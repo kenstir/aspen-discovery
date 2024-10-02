@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 require_once ROOT_DIR . '/sys/DB/DataObject.php';
 
@@ -49,7 +49,7 @@ class User extends DataObject {
 	public $isLoggedInViaSSO;
 	public $userCookiePreferenceEssential;
 	public $userCookiePreferenceAnalytics;
-
+	public $userCookiePreferenceLocalAnalytics;
 	public $holdInfoLastLoaded;
 	public $checkoutInfoLastLoaded;
 
@@ -80,6 +80,10 @@ class User extends DataObject {
 	public $updateMessageIsError;
 
 	public $proPayPayerAccountId;
+
+	public $enableCostSavings;
+	public $totalCostSavings;
+	public $currentCostSavings;
 
 	/** @var User $parentUser */
 	private $parentUser;
@@ -118,6 +122,7 @@ class User extends DataObject {
 	private $_numHoldsAvailableOverDrive = 0;
 	private $_numCheckedOutHoopla = 0;
 	public $_notices;
+	public $_billingNotices = "-";
 	public $_noticePreferenceLabel;
 	private $_numMaterialsRequests = 0;
 	private $_readingHistorySize = 0;
@@ -1064,6 +1069,12 @@ class User extends DataObject {
 				$this->homeLocationId = 0;
 				global $logger;
 				$logger->log('No Home Location ID was set for newly created user.', Logger::LOG_WARNING);
+			}else{
+				//Get the home library for the user
+				$homeLibrary = $this->getHomeLibrary();
+				if ($homeLibrary !== null) {
+					$this->enableCostSavings = $homeLibrary->enableCostSavings;
+				}
 			}
 			if (empty($this->pickupLocationId)) {
 				$this->pickupLocationId = $this->homeLocationId;
@@ -1328,6 +1339,7 @@ class User extends DataObject {
 	}
 
 	function updateUserPreferences() {
+		require_once ROOT_DIR . '/sys/LibraryLocation/UserLocalAnalyticsPreference.php';
 		// Validate that the input data is correct
 		if (isset($_POST['pickupLocation']) && !is_array($_POST['pickupLocation']) && preg_match('/^\d{1,3}$/', $_POST['pickupLocation']) == 0) {
 			return [
@@ -1413,11 +1425,16 @@ class User extends DataObject {
 			setcookie("cookieConsent", "", time() - 3600, "/"); //remove old cookie so new one can be generated on next page load
 			$this->__set('userCookiePreferenceEssential', 1);
 			$this->__set('userCookiePreferenceAnalytics', (isset($_POST['userCookieAnalytics']) && $_POST['userCookieAnalytics'] == 'on') ? 1 : 0);
+			$this->__set('userCookiePreferenceLocalAnalytics', (isset($_POST['userCookieUserLocalAnalytics']) && $_POST['userCookieUserLocalAnalytics']) ? 1 : 0);
 		}
 
 		$this->__set('noPromptForUserReviews', (isset($_POST['noPromptForUserReviews']) && $_POST['noPromptForUserReviews'] == 'on') ? 1 : 0);
 		$this->__set('rememberHoldPickupLocation', (isset($_POST['rememberHoldPickupLocation']) && $_POST['rememberHoldPickupLocation'] == 'on') ? 1 : 0);
 		$this->__set('disableCirculationActions', (isset($_POST['disableCirculationActions']) && $_POST['disableCirculationActions'] == 'on') ? 0 : 1);
+		$homeLibrary = $this->getHomeLibrary();
+		if ($homeLibrary !== null && $homeLibrary->enableCostSavings) {
+			$this->__set('enableCostSavings', (isset($_POST['enableCostSavings']) && $_POST['enableCostSavings'] == 'on') ? 1 : 0);
+		}
 
 		global $enabledModules;
 		global $library;
@@ -1675,6 +1692,10 @@ class User extends DataObject {
 					$checkoutsToReturn = array_merge($checkoutsToReturn, $linkedUser->getCheckouts(false, $source));
 				}
 			}
+		}
+
+		if ($includeLinkedUsers && $source == 'all') {
+			$this->calculateCostSavingsForCurrentCheckouts($checkoutsToReturn);
 		}
 		return $checkoutsToReturn;
 	}
@@ -2766,6 +2787,17 @@ class User extends DataObject {
 		}
 	}
 
+	public function isCostSavingsEnabled() : bool {
+		//Check to see if it's enabled by home library
+		$homeLibrary = $this->getHomeLibrary();
+		if (!empty($homeLibrary)) {
+			return $homeLibrary->enableCostSavings && $this->enableCostSavings;
+		} else {
+			global $library;
+			return $library->enableCostSavings && $this->enableCostSavings;
+		}
+	}
+
 	public function getPaymentHistory($page = 1, $recordsPerPage = 25) {
 		require_once ROOT_DIR . '/sys/Account/UserPayment.php';
 		require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
@@ -2814,6 +2846,29 @@ class User extends DataObject {
 					'isPublicFacing' => true,
 				]),
 			];
+		}
+	}
+
+	/**
+	 * Returns the timestamp when reading history was first tracked, or null if reading history is not enabled or is empty
+	 *
+	 * @return int|null
+	 */
+	public function getReadingHistoryStartDate() : ?int {
+		if ($this->isReadingHistoryEnabled()) {
+			require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+			$readingHistoryEntry = new ReadingHistoryEntry();
+			$readingHistoryEntry->userId = $this->id;
+			$readingHistoryEntry->deleted = 0;
+			$readingHistoryEntry->orderBy('checkOutDate ASC');
+			$readingHistoryEntry->limit(0, 1);
+			if ($readingHistoryEntry->find(true)) {
+				return $readingHistoryEntry->checkOutDate;
+			}else{
+				return null;
+			}
+		}else{
+			return null;
 		}
 	}
 
@@ -3727,6 +3782,7 @@ class User extends DataObject {
 		$sections['cataloging']->addAction(new AdminAction('Manual Grouping Authorities', 'View a list of all title author/authorities that have been added to Aspen to merge works.', '/Admin/AlternateTitles'), 'Manually Group and Ungroup Works');
 		$sections['cataloging']->addAction(new AdminAction('Author Authorities', 'Create and edit authorities for authors.', '/Admin/AuthorAuthorities'), 'Manually Group and Ungroup Works');
 		$sections['cataloging']->addAction(new AdminAction('Records To Not Group', 'Lists records that should not be grouped.', '/Admin/NonGroupedRecords'), 'Manually Group and Ungroup Works');
+		$sections['cataloging']->addAction(new AdminAction('Replacement Costs', 'Define default replacement costs by format.', '/Admin/ReplacementCosts'), 'Administer Replacement Costs');
 		$sections['cataloging']->addAction(new AdminAction('Hidden Series', 'Edit series to be excluded from the Series facet and Series Display Information', '/Admin/HideSeriess'), 'Hide Metadata');
 		$sections['cataloging']->addAction(new AdminAction('Hidden Subjects', 'Edit subjects to be excluded from the Subjects facet.', '/Admin/HideSubjectFacets'), 'Hide Metadata');
 		$sections['cataloging']->addAction(new AdminAction('Search Tests', 'Tests to be run to verify searching is generating optimal results.', '/Admin/GroupedWorkSearchTests'), 'Administer Grouped Work Tests');
@@ -4537,6 +4593,84 @@ class User extends DataObject {
 				'success' => false,
 				'message' => 'Invalid source',
 			];
+		}
+	}
+
+	public function calculateCostSavingsForCurrentCheckouts(array $checkouts) : float {
+		$costSavings = 0;
+		foreach ($checkouts as $checkout) {
+			$costSavings += $checkout->getReplacementCost();
+		}
+		$this->__set('currentCostSavings', $costSavings);
+		$this->update();
+		return $costSavings;
+	}
+
+	public function getCurrentCostSavingsMessage(bool $wrapWithAlert) : string {
+		$totalSavings = 0;
+		$linkedUsers = $this->getLinkedUsers();
+		if (count($linkedUsers)) {
+			$costSavingsMessage = "You are saving %1% with what is currently checked out from the library to you and your linked accounts. Learn more in <a href='/MyAccount/LibrarySavings'>Library Savings</a>.";
+		}else{
+			$costSavingsMessage = "You are saving %1% with what is currently checked out from the library. Learn more in <a href='/MyAccount/LibrarySavings'>Library Savings</a>.";
+		}
+		$costSavings = $this->currentCostSavings;
+		require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
+		$formattedCostSavings = StringUtils::formatCurrency($costSavings);
+
+		$translatedMessage = translate(['text' => $costSavingsMessage, '1'=>$formattedCostSavings, 'isPublicFacing'=>true]);
+		if ($wrapWithAlert) {
+			$translatedMessage = '<div class="alert alert-info">' . $translatedMessage . '</div>';
+		}
+		return $translatedMessage;
+	}
+
+	public function getTotalCostSavingsMessage(bool $wrapWithAlert) : string {
+		$totalSavings = 0;
+		$costSavingsMessage = "You have saved %1% by checking out the materials in your reading history from the library. Learn more in <a href='/MyAccount/LibrarySavings'>Library Savings</a>.";
+		$costSavings = $this->totalCostSavings;
+		require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
+		$formattedCostSavings = StringUtils::formatCurrency($costSavings);
+		$translatedMessage = translate(['text' => $costSavingsMessage, '1'=>$formattedCostSavings, 'isPublicFacing'=>true]);
+		if ($wrapWithAlert) {
+			$translatedMessage = '<div class="alert alert-info">' . $translatedMessage . '</div>';
+		}
+		return $translatedMessage;
+	}
+
+	public function getCostSavingsByMonth($month, $year) : float{
+		$startTimeStamp = strtotime($year . '-' . $month);
+		if ($month < 12) {
+			$endTimeStamp = strtotime($year . '-' . ($month + 1));
+		}else{
+			$endTimeStamp = strtotime(($year + 1) . '-01');
+		}
+
+		require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+		$readingHistoryEntry = new ReadingHistoryEntry();
+		$readingHistoryEntry->userId = $this->id;
+		$readingHistoryEntry->whereAdd("checkOutDate >= $startTimeStamp AND checkOutDate < $endTimeStamp", 'AND');
+		$readingHistoryEntry->selectAdd('SUM(costSavings) as costSavings');
+		if ($readingHistoryEntry->find(true)) {
+			return (float)$readingHistoryEntry->costSavings;
+		}else{
+			return 0;
+		}
+	}
+
+	public function getCostSavingsByYear($year) : float{
+		$startTimeStamp = strtotime($year . '-01-01');
+		$endTimeStamp = strtotime(($year + 1) . '-01-01');
+
+		require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+		$readingHistoryEntry = new ReadingHistoryEntry();
+		$readingHistoryEntry->userId = $this->id;
+		$readingHistoryEntry->whereAdd("checkOutDate >= $startTimeStamp AND checkOutDate < $endTimeStamp", 'AND');
+		$readingHistoryEntry->selectAdd('SUM(costSavings) as costSavings');
+		if ($readingHistoryEntry->find(true)) {
+			return (float)$readingHistoryEntry->costSavings;
+		}else{
+			return 0;
 		}
 	}
 

@@ -835,6 +835,7 @@ EOT;
                       , item_v2.price AS Owed
                       , to_char(transitem_v2.duedate,'MM/DD/YYYY') AS Due_Date_Dup
                       , item_v2.item AS Item
+                      , item_v2.bid AS recordId
                     from 
                       bbibmap_v2
                       , branch_v2 patronbranch
@@ -928,6 +929,7 @@ EOT;
                     , r.owed as Owed
                     , r.due AS Due_Date_Dup
                     , r.item AS Item
+                    , i.bid AS recordId
             from r
             left join item_v2 i on r.item = i.item
             left join branch_v2 itembranch on i.owningbranch = itembranch.branchnumber
@@ -946,7 +948,14 @@ EOT;
         // oci_set_prefetch($stid, 1000);
         oci_execute($stid);
         while (($row = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS)) != false) {
-            $data[] = $row;
+			require_once ROOT_DIR . '/RecordDrivers/MarcRecordDriver.php';
+			$recordDriver = new MarcRecordDriver($this->accountProfile->recordSource . ':' . parent::fullCarlIDfromBID($row['RECORDID']));
+			if ($recordDriver->isValid()) {
+				$row['coverUrl'] = $recordDriver->getBookcoverUrl('small', true);
+			} else {
+				$row['coverUrl'] = '';
+			}
+			$data[] = $row;
         }
         oci_free_statement($stid);
         return $data;

@@ -580,5 +580,10 @@
   "open": "Open",
   "alternate_library_card": "Alternate Library Card",
   "manage_alternate_library_card": "Manage Alternate Library Card",
-  "add_alternate_library_card": "Add Alternate Library Card"
+  "add_alternate_library_card": "Add Alternate Library Card",
+  "register_for_a_library_card": "Register for a Library Card",
+  "self_registration": "Self Registration",
+  "self_registration_message": "This page allows you to register as a patron of our library online. You will have limited privileges initially.",
+  "register": "Register"
+
 }

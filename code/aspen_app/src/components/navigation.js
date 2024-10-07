@@ -18,6 +18,7 @@ import { navigationRef } from '../helpers/RootNavigator';
 import LaunchStackNavigator from '../navigations/LaunchStackNavigator';
 
 import { LoginScreen } from '../screens/Auth/Login';
+import { SelfRegistration } from '../screens/Auth/SelfRegistration';
 import { SplashScreen } from '../screens/Auth/Splash';
 import { GLOBALS } from '../util/globals';
 import { updateAspenLiDABuild } from '../util/greenhouse';
@@ -366,6 +367,13 @@ export function App() {
                                                                                 <Stack.Screen
                                                                                      name="LibraryCardScanner"
                                                                                      component={LibraryCardScanner}
+                                                                                     options={{
+                                                                                          presentation: 'modal',
+                                                                                     }}
+                                                                                />
+                                                                                <Stack.Screen
+                                                                                     name="SelfRegistration"
+                                                                                     component={SelfRegistration}
                                                                                      options={{
                                                                                           presentation: 'modal',
                                                                                      }}

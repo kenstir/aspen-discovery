@@ -4634,10 +4634,9 @@ class MyAccount_AJAX extends JSON_Action {
 					$paymentLine = new UserPaymentLine();
 					$paymentLine->paymentId = $paymentId;
 					$description = $fine['reason'];
-					if (!empty($description)) {
-						$description .= " - ";
+					if (!empty($description) && !empty($fine['message'])) {
+						$description .= " - " . $fine['message'];
 					}
-					$description .= $fine['message'];
 					$paymentLine->description = $description;
 					if (isset($_REQUEST['amountToPay'][$fineId])) {
 						$fineAmount = $_REQUEST['amountToPay'][$fineId];
@@ -6026,22 +6025,19 @@ class MyAccount_AJAX extends JSON_Action {
 				$signatureData = sprintf("%s:%s:%s", $requestSignatureBase64String, $nonce, $requestTimeStamp);
 // Encode signatureData to byte array using UTF-8 and convert to base64-encoded string
 				$HmacValue = base64_encode(utf8_encode($signatureData));
-// Add the HmacValue to the db payment record
-				$payment->snappayToken = $HmacValue;
-				$payment->update();
 
 				$postParams = [
 					'udf1' => $payment->id,
 					'accountid' => $snapPaySetting->accountId,
 					'customerid' => $patron->id, // TO DO: ensure correct ID
-					'currencycode' => 'USD', // TO DO: fix this hardcode
+					'currencycode' => 'USD', // TO DO: Allow for other currency types
 					'transactionamount' => number_format($payment->totalPaid, 2),
 					'merchantid' => $snapPaySetting->merchantId,
 					'paymentmode' => 'CC', // TO DO: allow ACH too
 					'cvvrequired' => 'Y', // TO DO: allow N too
 					'enableemailreceipt' => 'Y', // TO DO: allow N too
-					'redirectionurl' => $configArray['Site']['url'] . "/MyAccount/SnapPayComplete", // TO DO: documentation: FISERV pdf has 'redirectionurl'; error has 'redirecturl'; the former appears to be what is needed
-					'signature' => $HmacValue, // TO DO: documentation: FISERV pdf has 'signature'; error has 'Signature'
+					'redirectionurl' => $configArray['Site']['url'] . "/MyAccount/SnapPayComplete", // TO DO: documentation: FISERV pdf has 'redirectionurl'; error has 'redirecturl'; 'redirectionurl ' is correct
+					'signature' => $HmacValue, // TO DO: documentation: FISERV pdf has 'signature'; error has 'Signature'; 'signature' is correct
 					'firstname' => $patron->firstname,
 					'lastname' => $patron->lastname,
 					'addressline1' => $patron->_address1,

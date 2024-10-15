@@ -1554,9 +1554,9 @@ class User extends DataObject {
 	 * @param string $source
 	 * @return Checkout[]
 	 */
-	public function getCheckouts($includeLinkedUsers = true, $source = 'all'): array {
+	public function getCheckouts(bool $includeLinkedUsers = true, string $source = 'all'): array {
 		require_once ROOT_DIR . '/sys/User/Checkout.php';
-		//Check to see if we should return cached information, we will reload it if we last fetched it more than
+		//Check to see if we should return cached information, we will reload it if we last fetched data more than
 		//15 minutes ago or if the refresh option is selected
 		$reloadCheckoutInformation = false;
 		if (($this->checkoutInfoLastLoaded < (time() - 5 * 60)) || isset($_REQUEST['refreshCheckouts'])) {
@@ -1693,7 +1693,7 @@ class User extends DataObject {
 			}
 		}
 
-		if ($includeLinkedUsers && $source == 'all') {
+		if ($source == 'all') {
 			$this->calculateCostSavingsForCurrentCheckouts($checkoutsToReturn);
 		}
 		return $checkoutsToReturn;
@@ -3640,7 +3640,7 @@ class User extends DataObject {
 			'View Dashboards',
 			'View System Reports',
 		]);
-		$sections['system_reports']->addAction(new AdminAction('API Usage Dashboard', 'API Usage Report for Aspen Discovery.', '/Admin/APIUsageDashboard'), [
+		$sections['system_reports']->addAction(new AdminAction('API Usage Dashboard', 'API Usage Report for Aspen Discovery.', '/API/UsageDashboard'), [
 			'View Dashboards',
 			'View System Reports',
 		]);
@@ -3711,6 +3711,7 @@ class User extends DataObject {
 				$sections['materials_request']->addAction(new AdminAction('Usage Dashboard', 'View the usage dashboard for Materials Requests.', '/MaterialsRequest/Dashboard'), 'View Materials Requests Reports');
 				$sections['materials_request']->addAction(new AdminAction('Summary Report', 'A Summary Report of all requests that have been submitted.', '/MaterialsRequest/SummaryReport'), 'View Materials Requests Reports');
 				$sections['materials_request']->addAction(new AdminAction('Report By User', 'A Report of all requests that have been submitted by users who submitted them.', '/MaterialsRequest/UserReport'), 'View Materials Requests Reports');
+				$sections['materials_request']->addAction(new AdminAction('Hold Candidate Generation Log', 'A log showing information about the hold candidate generation process for materials requests.', '/MaterialsRequest/HoldCandidateGenerationLog'), 'View Materials Requests Reports');
 				$sections['materials_request']->addAction(new AdminAction('Format Mapping', 'Define format mapping between Aspen formats and Materials Request Formats for use when placing holds.', '/MaterialsRequest/FormatMapping'), 'Administer Materials Requests');
 				$sections['materials_request']->addAction(new AdminAction('Manage Statuses', 'Define the statuses of Materials Requests for the library.', '/MaterialsRequest/ManageStatuses'), 'Administer Materials Requests');
 			}
@@ -4606,6 +4607,9 @@ class User extends DataObject {
 	}
 
 	public function getCurrentCostSavingsMessage(bool $wrapWithAlert) : string {
+		//Make sure to get checkouts for the user since this triggers the calculation
+		$checkouts = $this->getCheckouts();
+
 		$totalSavings = 0;
 		$linkedUsers = $this->getLinkedUsers();
 		if (count($linkedUsers)) {

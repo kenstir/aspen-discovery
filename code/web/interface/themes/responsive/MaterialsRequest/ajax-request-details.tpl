@@ -12,11 +12,7 @@
 						<div class="request_detail_field row">
 							<label class="request_detail_field_label col-sm-3">{translate text=$formField->fieldLabel isPublicFacing=true isAdminFacing=true} </label>
 							<div class="request_detail_field_value col-sm-9">
-								{if $materialsRequest->formatLabel}
-									{translate text=$materialsRequest->formatLabel isPublicFacing=true isAdminFacing=true}
-								{else}{* Fallback if no label is found*}
-									{translate text=$materialsRequest->format isPublicFacing=true isAdminFacing=true}
-								{/if}
+								{translate text=$materialsRequest->getDisplayFormat() isPublicFacing=true isAdminFacing=true}
 							</div>
 						</div>
 						{if !empty($materialsRequest->specialFields)}

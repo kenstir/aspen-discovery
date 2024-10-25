@@ -5,13 +5,13 @@ require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php';
 require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestStatus.php';
 
 /**
- * MaterialsRequest AJAX Page, handles returing asynchronous information about Materials Requests.
+ * MaterialsRequest AJAX Page, handles returning asynchronous information about Materials Requests.
  */
 class MaterialsRequest_AJAX extends Action {
 
 	function AJAX() {}
 
-	function launch() {
+	function launch() : void {
 		$method = $_GET['method'];
 		if (method_exists($this, $method)) {
 			header('Content-type: application/json');
@@ -25,7 +25,7 @@ class MaterialsRequest_AJAX extends Action {
 	}
 
 	/** @noinspection PhpUnused */
-	function cancelRequest() {
+	function cancelRequest() : array {
 		if (!UserAccount::isLoggedIn()) {
 			return [
 				'success' => false,
@@ -78,7 +78,7 @@ class MaterialsRequest_AJAX extends Action {
 	}
 
 	/** @noinspection PhpUnused */
-	function updateMaterialsRequest() {
+	function updateMaterialsRequest() : array {
 		global $interface;
 
 		if (!isset($_REQUEST['id'])) {
@@ -195,15 +195,15 @@ class MaterialsRequest_AJAX extends Action {
 											$pickupLocations[] = [
 												'id' => $curLocation->locationId,
 												'displayName' => $curLocation->displayName,
-												'selected' => is_object($curLocation) ? ($curLocation->locationId == $materialsRequest->holdPickupLocation ? 'selected' : '') : '',
+												'selected' => $curLocation->locationId == $materialsRequest->holdPickupLocation ? 'selected' : '',
 											];
 										}
 									}
 
 									// Add bookmobile Stop to the pickup locations if that form field is being used.
-									foreach ($requestFormFields as $catagory) {
+									foreach ($requestFormFields as $category) {
 										/** @var MaterialsRequestFormFields $formField */
-										foreach ($catagory as $formField) {
+										foreach ($category as $formField) {
 											if ($formField->fieldType == 'bookmobileStop') {
 												$pickupLocations[] = [
 													'id' => 'bookmobile',
@@ -239,13 +239,13 @@ class MaterialsRequest_AJAX extends Action {
 								}
 							} else {
 								$interface->assign('error', translate([
-									'text' => 'Sorry, we couldn\'t find the user that made this materials request.',
+									'text' => "Sorry, we couldn't find the user that made this materials request.",
 									'isPublicFacing' => true,
 								]));
 							}
 						} else {
 							$interface->assign('error', translate([
-								'text' => 'Sorry, we couldn\'t find a materials request for that id.',
+								'text' => "Sorry, we couldn't find a materials request for that id.",
 								'isPublicFacing' => true,
 							]));
 						}
@@ -279,7 +279,7 @@ class MaterialsRequest_AJAX extends Action {
 	}
 
 	/** @noinspection PhpUnused */
-	function MaterialsRequestDetails() {
+	function MaterialsRequestDetails() : array {
 		global $interface;
 		$user = UserAccount::getLoggedInUser();
 		if (!isset($_REQUEST['id'])) {
@@ -304,7 +304,7 @@ class MaterialsRequest_AJAX extends Action {
 					$materialsRequest = new MaterialsRequest();
 					$materialsRequest->id = $id;
 
-					$staffView = isset($_REQUEST['staffView']) ? $_REQUEST['staffView'] : true;
+					$staffView = $_REQUEST['staffView'] ?? true;
 					$requestFormFields = $materialsRequest->getRequestFormFields($requestLibrary->libraryId, $staffView);
 					$interface->assign('requestFormFields', $requestFormFields);
 
@@ -348,7 +348,7 @@ class MaterialsRequest_AJAX extends Action {
 
 						$interface->assign('materialsRequest', $materialsRequest);
 
-						if ($user && UserAccount::userHasPermission('Manage Library Materials Requests')) {
+						if (UserAccount::userHasPermission('Manage Library Materials Requests')) {
 							$interface->assign('showUserInformation', true);
 							//Load user information
 							$requestUser = new User();
@@ -365,7 +365,7 @@ class MaterialsRequest_AJAX extends Action {
 						}
 					} else {
 						$interface->assign('error', translate([
-							'text' => 'Sorry, we couldn\'t find a materials request for that id.',
+							'text' => "Sorry, we couldn't find a materials request for that id.",
 							'isPublicFacing' => true,
 						]));
 					}

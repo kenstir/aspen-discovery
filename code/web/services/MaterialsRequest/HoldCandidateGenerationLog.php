@@ -62,7 +62,7 @@ class MaterialsRequest_HoldCandidateGenerationLog extends ObjectEditor {
 	}
 
 	function getDefaultSort(): string {
-		return 'startTime';
+		return 'startTime desc';
 	}
 
 	function canCompare() : bool {

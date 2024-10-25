@@ -6253,7 +6253,7 @@ class UserAPI extends AbstractAPI {
 
 			$materialsRequest->libraryId = $homeLibrary->libraryId;
 
-			$formatObject = $materialsRequest->getFormatObject();
+			$formatObject = $materialsRequest->getFormatObjectByFormat();
 			if (!empty($formatObject->id)) {
 				$materialsRequest->formatId = $formatObject->id;
 			}

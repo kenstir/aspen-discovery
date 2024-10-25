@@ -43,10 +43,10 @@
                 {/if}
 			</div>
 			<div class="{if !empty($showEditionCovers) && $showEditionCovers == 1}col-tn-6 col-md-4 col-lg-3{else}col-tn-3 col-md-4 col-lg-4{/if}">
-                {include file='GroupedWork/statusIndicator.tpl' statusInformation=$relatedRecord->getStatusInformation() viewingIndividualRecord=1}
-                {if !$relatedRecord->isEContent()}
-                    {include file='GroupedWork/copySummary.tpl' summary=$relatedRecord->getItemSummary() totalCopies=$relatedRecord->getCopies() itemSummaryId=$relatedRecord->id recordViewUrl=$relatedRecord->getUrl()}
-                {/if}
+				{include file='GroupedWork/statusIndicator.tpl' statusInformation=$relatedRecord->getStatusInformation() viewingIndividualRecord=1}
+				{if $relatedRecord->showCopySummary()}
+					{include file='GroupedWork/copySummary.tpl' summary=$relatedRecord->getItemSummary() totalCopies=$relatedRecord->getCopies() itemSummaryId=$relatedRecord->id recordViewUrl=$relatedRecord->getUrl() isEContent=$relatedRecord->isEContent()}
+				{/if}
 			</div>
 			<div class="{if !empty($showEditionCovers) && $showEditionCovers == 1}col-tn-6 col-md-4 col-lg-3{else}col-tn-3 col-md-4 col-lg-4{/if}">
 				<div class="btn-group btn-group-vertical btn-group-md btn-block">

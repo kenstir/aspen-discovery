@@ -512,7 +512,7 @@ class PalaceProjectRecordDriver extends GroupedWorkSubDriver {
 		return $configArray['Site']['url'] . '/PalaceProject/' . $this->id . '/AccessOnline?patronId=' . $patron->id;
 	}
 
-	function getStatusSummary() {
+	function getStatusSummary() : array {
 		$relatedRecord = $this->getRelatedRecord();
 		$statusSummary = [];
 		if ($relatedRecord == null) {

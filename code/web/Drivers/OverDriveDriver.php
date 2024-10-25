@@ -7,46 +7,48 @@ require_once ROOT_DIR . '/Drivers/AbstractEContentDriver.php';
 require_once ROOT_DIR . '/sys/Utils/DateUtils.php';
 
 class OverDriveDriver extends AbstractEContentDriver {
-	public $version = 3;
+	public int $version = 3;
 
-	protected $requirePin;
-	/** @var string */
-	protected $ILSName;
+	/** @var bool[] */
+	protected array $requirePin = [];
+	/** @var string[] */
+	protected array $ILSName = [];
 
-	/** @var OverDriveScope */
-	private $scope = null;
-	/** @var OverDriveSetting */
-	protected $settings = null;
-	private $patronApiHost = null;
-	private $overdriveApiHost = null;
-	private $clientKey = null;
-	private $clientSecret = null;
-	protected $format_map = null;
-	private $lastHttpCode;
+	protected null|OverDriveSetting|false $settings = null;
+	/** @var string[] */
+	private array $patronApiHost = [];
+	/** @var string[] */
+	private array $overdriveApiHost = [];
+	/** @var string[] */
+	protected ?array $format_map = null;
+	private ?string $lastHttpCode = null;
 
-	/** @var CurlWrapper */
-	private $apiCurlWrapper;
+	private ?CurlWrapper $apiCurlWrapper = null;
 
-	public function initCurlWrapper() {
+	public function initCurlWrapper() : void {
 		$this->apiCurlWrapper = new CurlWrapper();
 		$this->apiCurlWrapper->timeout = 5;
 	}
 
-
-	/** @var OverDriveDriver */
-	private static $singletonDriver = null;
-
 	/**
-	 * @return OverDriveDriver
+	 * @var OverDriveDriver[]
 	 */
-	public static function getOverDriveDriver() {
-		if (OverDriveDriver::$singletonDriver == null) {
-			OverDriveDriver::$singletonDriver = new OverDriveDriver();
+	private static array $singletonDrivers = [];
+
+	public static function getOverDriveDriver(int $settingId) : OverDriveDriver {
+		if (!isset(OverDriveDriver::$singletonDrivers[$settingId])) {
+			OverDriveDriver::$singletonDrivers[$settingId] = new OverDriveDriver();
+			require_once ROOT_DIR . '/sys/OverDrive/OverDriveSetting.php';
+			$overDriveSetting = new OverDriveSetting();
+			$overDriveSetting->id = $settingId;
+			if ($overDriveSetting->find(true)) {
+				OverDriveDriver::$singletonDrivers[$settingId]->setSettings($overDriveSetting);
+			}
 		}
-		return OverDriveDriver::$singletonDriver;
+		return OverDriveDriver::$singletonDrivers[$settingId];
 	}
 
-	public function getFormatMap() {
+	public function getFormatMap() : array {
 		if ($this->format_map == null) {
 			$readerName = $this->getReaderName();
 			$this->format_map = [
@@ -56,14 +58,14 @@ class OverDriveDriver extends AbstractEContentDriver {
 				'ebook-pdf-open' => 'Open PDF eBook',
 				'ebook-kindle' => 'Kindle Book',
 				'ebook-disney' => 'Disney Online Book',
-				'ebook-overdrive' => "$readerName Read",
+				'ebook-overdrive' => "$readerName eBook",
 				'ebook-microsoft' => 'Microsoft eBook',
-				'audiobook-wma' => "$readerName WMA Audiobook",
-				'audiobook-mp3' => "$readerName MP3 Audiobook",
+				'audiobook-wma' => "$readerName Audiobook",
+				'audiobook-mp3' => "$readerName Audiobook",
 				'audiobook-streaming' => 'Streaming Audiobook',
 				'music-wma' => "$readerName Music",
 				'video-wmv' => "$readerName Video",
-				'video-wmv-mobile' => "$readerName Video (mobile)",
+				'video-wmv-mobile' => "$readerName Video",
 				'periodicals-nook' => 'NOOK Periodicals',
 				'audiobook-overdrive' => "$readerName Listen",
 				'video-streaming' => "$readerName Video",
@@ -74,114 +76,117 @@ class OverDriveDriver extends AbstractEContentDriver {
 		return $this->format_map;
 	}
 
-	public function getReaderName() {
-		global $library;
-		require_once ROOT_DIR . '/sys/OverDrive/OverDriveScope.php';
-		$this->scope = new OverDriveScope();
-		$this->scope->id = $library->overDriveScopeId;
-		if ($this->scope->find(true)) {
-			return $this->scope->readerName;
-		}
-		return 'Libby';
-	}
-
-	public function getSettings() {
-		if ($this->settings == null) {
-			try {
-				//There can be multiple settings so we will get based on the library being used.
-				//We may also want to do this based on the patron's home library?
-				global $library;
-				require_once ROOT_DIR . '/sys/OverDrive/OverDriveScope.php';
-				$this->scope = new OverDriveScope();
-				$this->scope->id = $library->overDriveScopeId;
-				if ($this->scope->find(true)) {
-					require_once ROOT_DIR . '/sys/OverDrive/OverDriveSetting.php';
-					$this->settings = new OverDriveSetting();
-					$this->settings->id = $this->scope->settingId;
-					if (!$this->settings->find(true)) {
-						$this->settings = false;
-					} else {
-						if (empty($this->scope->clientKey)) {
-							$this->clientKey = $this->settings->clientKey;
-						} else {
-							$this->clientKey = $this->scope->clientKey;
-						}
-						if (empty($this->scope->clientSecret)) {
-							$this->clientSecret = $this->settings->clientSecret;
-						} else {
-							$this->clientSecret = $this->scope->clientSecret;
-						}
-					}
-				} else {
-					$this->settings = false;
-					$this->scope = false;
-				}
-			} catch (Exception $e) {
-				$this->settings = false;
-				$this->scope = false;
-			}
-
-		}
-		return $this->settings;
-	}
-
-	public function getProductUrl($crossRefId) {
-		$settings = $this->getSettings();
-		if ($settings != null) {
-			$baseUrl = $settings->url;
-			if (substr($baseUrl, -1) != '/') {
-				$baseUrl .= '/';
-			}
-			if (str_contains($baseUrl, 'lexisdl')) {
-				$baseUrl .= 'title/' . $crossRefId;
-			} else{
-				$baseUrl .= 'media/' . $crossRefId;
-			}
+	public function getReaderName() : string {
+		if (!empty($this->settings)) {
+			return $this->settings->readerName;
 		}else{
-			$baseUrl = '';
+			$readerNames = $this->getReaderNames();
+			return implode(', ', $readerNames);
+		}
+	}
+
+	/**
+	 * @var null|string[]
+	 */
+	private ?array $_readerNames = null;
+	public function getReaderNames() : array {
+		if ($this->_readerNames == null) {
+			$this->_readerNames = [];
+			try {
+				$settings = $this->getAvailableSettings();
+				foreach ($settings as $setting) {
+					$this->_readerNames[$setting->readerName] = $setting->readerName;
+				}
+				if (empty($readerNames)) {
+					$this->_readerNames['Libby'] = 'Libby';
+				}
+			}catch (Exception) {
+				//This happens if new tables are not installed
+			}
+		}
+		return $this->_readerNames;
+	}
+
+	/**
+	 * @var null|OverDriveSetting[]
+	 */
+	private ?array $_availableSettings = null;
+	/**
+	 * @return OverDriveSetting[]
+	 */
+	public function getAvailableSettings() : array {
+		if ($this->_availableSettings == null) {
+			$this->_availableSettings = [];
+
+			if (UserAccount::isLoggedIn()) {
+				$activeLibrary = UserAccount::getLoggedInUser()->getHomeLibrary();
+			}else{
+				global $library;
+				$activeLibrary = $library;
+			}
+
+			$librarySettings = $activeLibrary->getLibraryOverdriveSettings();
+			foreach ($librarySettings as $librarySetting) {
+				$this->_availableSettings[$librarySetting->settingId] = $librarySetting->getOverDriveSettings();
+			}
+		}
+
+		return $this->_availableSettings;
+	}
+
+	public function getActiveSettings() : OverDriveSetting {
+		if (!empty($this->settings)) {
+			return $this->settings;
+		}else {
+			$settings = $this->getAvailableSettings();
+			return reset($settings);
+		}
+	}
+
+	public function getProductUrl(OverDriveSetting $settings, $crossRefId) : string {
+		$baseUrl = $settings->url;
+		if (!str_ends_with($baseUrl, '/')) {
+			$baseUrl .= '/';
+		}
+		if (str_contains($baseUrl, 'lexisdl')) {
+			$baseUrl .= 'title/' . $crossRefId;
+		} else{
+			$baseUrl .= 'media/' . $crossRefId;
 		}
 		return $baseUrl;
 	}
 
-	public function isCirculationEnabled() {
-		$this->getSettings();
-		if ($this->scope == null) {
+	public function isCirculationEnabled(Library $activeLibrary, OverDriveSetting $settings) : bool {
+		$librarySettings = $activeLibrary->getLibraryOverdriveSetting($settings->id);
+		if ($librarySettings == null) {
 			return false;
-		} else {
-			return $this->scope->circulationEnabled;
+		}else{
+			return (bool) $librarySettings->circulationEnabled;
 		}
 	}
-
-	public function getTokenData() {
-		return $this->_connectToAPI(true, "getTokenData");
+	public function getTokenData(Library $activeLibrary, OverDriveSetting $settings) : false|stdClass {
+		return $this->_connectToAPI($activeLibrary, $settings, true, "getTokenData");
 	}
 
-	/**
-	 * @param User $user
-	 * @param bool $forceNewConnection
-	 * @return bool|mixed
-	 */
-	public function getPatronTokenData($user, $forceNewConnection = false) {
+	public function getPatronTokenData(OverDriveSetting $settings, User $user, bool $forceNewConnection = false) : bool|stdClass {
 		$userBarcode = $user->getBarcode();
-		if ($this->getRequirePin($user)) {
+		if ($this->getRequirePin($settings, $user)) {
 			$userPin = $user->getPasswordOrPin();
-			$tokenData = $this->_connectToPatronAPI($user, $userBarcode, $userPin, "getPatronTokenData", $forceNewConnection);
+			$tokenData = $this->_connectToPatronAPI($settings, $user, $userBarcode, $userPin, $forceNewConnection);
 		} else {
-			$tokenData = $this->_connectToPatronAPI($user, $userBarcode, null, "getPatronTokenData", $forceNewConnection);
+			$tokenData = $this->_connectToPatronAPI($settings, $user, $userBarcode, null, $forceNewConnection);
 		}
 
 		return $tokenData;
 	}
 
-	private function _connectToAPI($forceNewConnection, $methodName) {
+	private function _connectToAPI(Library $activeLibrary, OverDriveSetting $settings, bool $forceNewConnection, string $methodName) : false|stdClass {
 		global $memCache;
-		$settings = $this->getSettings();
-		if ($settings == false) {
-			return false;
-		}
-		$tokenData = $memCache->get('overdrive_token_' . $settings->id . '_' . $this->scope->id);
-		if ($forceNewConnection || $tokenData == false) {
-			if (!empty($this->clientKey) && !empty($this->clientSecret)) {
+		$tokenData = $memCache->get('overdrive_token_' . $settings->id . '_' . $activeLibrary->libraryId);
+		if ($forceNewConnection || $tokenData === false) {
+			$activeLibrarySettings = $activeLibrary->getLibraryOverdriveSetting($settings->id);
+			$clientAuthString = $this->getClientAuthString($settings, $activeLibrarySettings);
+			if (!empty($clientAuthString)) {
 
 				$url = "https://oauth.overdrive.com/token";
 
@@ -200,7 +205,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 					CURLOPT_RETURNTRANSFER => true,
 					CURLOPT_SSL_VERIFYPEER => false,
 					CURLOPT_FOLLOWLOCATION => 1,
-					CURLOPT_USERPWD => $this->clientKey . ':' . $this->clientSecret,
+					CURLOPT_USERPWD => $clientAuthString,
 				];
 
 				$response = $this->apiCurlWrapper->curlPostPage($url, $params, $curlOptions);
@@ -209,7 +214,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				$tokenData = json_decode($response);
 				if ($tokenData) {
 					if (!isset($tokenData->error)) {
-						$memCache->set('overdrive_token_' . $settings->id . '_' . $this->scope->id, $tokenData, $tokenData->expires_in - 10);
+						$memCache->set('overdrive_token_' . $settings->id . '_' . $activeLibrary->libraryId, $tokenData, $tokenData->expires_in - 10);
 					}
 				} else {
 					$this->incrementStat('numConnectionFailures');
@@ -222,23 +227,29 @@ class OverDriveDriver extends AbstractEContentDriver {
 		return $tokenData;
 	}
 
-	private function _connectToPatronAPI(User $user, $patronBarcode, $patronPin, $methodName, $forceNewConnection = false) {
+	private function _connectToPatronAPI(OverDriveSetting $settings, User $user, string $patronBarcode, ?string $patronPin, bool $forceNewConnection = false) {
 		global $memCache;
 		global $timer;
 		global $logger;
-		$settings = $this->getSettings();
-		if ($settings == false) {
+
+		$homeLibrary = $user->getHomeLibrary();
+		if (empty($homeLibrary)) {
 			return false;
 		}
-
-		$patronTokenData = $memCache->get("overdrive_patron_token_{$settings->id}_{$this->scope->id}_$patronBarcode");
-		if ($forceNewConnection || $patronTokenData == false) {
-			$tokenData = $this->_connectToAPI($forceNewConnection, "connectToPatronAPI");
+		$librarySettings = $homeLibrary->getLibraryOverdriveSetting($settings->id);
+		if ($librarySettings == null) {
+			//These settings aren't valid for the library
+			return false;
+		}
+		$patronTokenData = $memCache->get("overdrive_patron_token_{$settings->id}_{$homeLibrary->libraryId}_$patronBarcode");
+		if ($forceNewConnection || !$patronTokenData) {
+			$tokenData = $this->_connectToAPI($user->getHomeLibrary(), $settings, $forceNewConnection, "connectToPatronAPI");
 			$timer->logTime("Connected to OverDrive API");
 			if ($tokenData) {
 				$this->initCurlWrapper();
 				$url = "https://oauth-patron.overdrive.com/patrontoken";
-				$ch = curl_init("https://oauth-patron.overdrive.com/patrontoken");
+				//This seems to be no longer needed now that we are using apiCurlWrapper
+				//$ch = curl_init("https://oauth-patron.overdrive.com/patrontoken");
 				if (empty($settings->websiteId)) {
 					if (IPAddress::showDebuggingInformation()) {
 						$logger->log("Patron is not valid for OverDrive, website id is not set", Logger::LOG_ERROR);
@@ -247,13 +258,14 @@ class OverDriveDriver extends AbstractEContentDriver {
 				}
 				$websiteId = $settings->websiteId;
 
-				$ilsname = $this->getILSName($user);
-				if (!$ilsname) {
+				$ilsname = $this->getILSName($settings, $user);
+				if (empty($ilsname)) {
 					$logger->log("Patron is not valid for OverDrive, ILSName is not set", Logger::LOG_ERROR);
 					return false;
 				}
 
-				if (empty($settings->clientSecret)) {
+				$clientAuthString = $this->getClientAuthString($settings, $librarySettings);
+				if (empty($clientAuthString)) {
 					$logger->log("Patron is not valid for OverDrive, ClientSecret is not set", Logger::LOG_ERROR);
 					return false;
 				}
@@ -261,7 +273,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				$this->apiCurlWrapper->setOption(CURLOPT_RETURNTRANSFER, true);
 				$this->apiCurlWrapper->setOption(CURLOPT_SSL_VERIFYPEER, false);
 				$this->apiCurlWrapper->setOption(CURLOPT_FOLLOWLOCATION, 1);
-				$encodedAuthValue = base64_encode($this->clientKey . ":" . $this->clientSecret);
+				$encodedAuthValue = base64_encode($clientAuthString);
 				global $interface;
 				$this->apiCurlWrapper->addCustomHeaders([
 					"Content-Type: application/x-www-form-urlencoded;charset=UTF-8",
@@ -271,13 +283,13 @@ class OverDriveDriver extends AbstractEContentDriver {
 
 				$patronBarcode = urlencode($patronBarcode);
 				if ($patronPin == null) {
-					$postFields = "grant_type=password&username={$patronBarcode}&password=ignore&password_required=false&scope=websiteId:{$websiteId}%20ilsname:{$ilsname}";
+					$postFields = "grant_type=password&username=$patronBarcode&password=ignore&password_required=false&scope=websiteId:$websiteId%20ilsname:$ilsname";
 				} else {
-					$postFields = "grant_type=password&username={$patronBarcode}&password={$patronPin}&password_required=true&scope=websiteId:{$websiteId}%20ilsname:{$ilsname}";
+					$postFields = "grant_type=password&username=$patronBarcode&password=$patronPin&password_required=true&scope=websiteId:$websiteId%20ilsname:$ilsname";
 				}
 
 				$content = $this->apiCurlWrapper->curlPostPage($url, $postFields);
-				ExternalRequestLogEntry::logRequest('overdrive.connectToPatronAPI_' . $methodName, 'POST', $url, $this->apiCurlWrapper->getHeaders(), $postFields, $this->apiCurlWrapper->getResponseCode(), $content, ['password'=>$patronPin]);
+				ExternalRequestLogEntry::logRequest('overdrive.connectToPatronAPI_' . "getPatronTokenData", 'POST', $url, $this->apiCurlWrapper->getHeaders(), $postFields, $this->apiCurlWrapper->getResponseCode(), $content, ['password'=>$patronPin]);
 				$timer->logTime("Logged $patronBarcode into OverDrive API");
 				$patronTokenData = json_decode($content);
 				$timer->logTime("Decoded return for login of $patronBarcode into OverDrive API");
@@ -294,7 +306,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 						}
 					} else {
 						if (property_exists($patronTokenData, 'expires_in')) {
-							$memCache->set("overdrive_patron_token_{$settings->id}_{$this->scope->id}_$patronBarcode", $patronTokenData, $patronTokenData->expires_in - 10);
+							$memCache->set("overdrive_patron_token_{$settings->id}_{$homeLibrary->libraryId}_$patronBarcode", $patronTokenData, $patronTokenData->expires_in - 10);
 						} else {
 							$this->incrementStat('numConnectionFailures');
 						}
@@ -309,8 +321,8 @@ class OverDriveDriver extends AbstractEContentDriver {
 		return $patronTokenData;
 	}
 
-	public function _callUrl($url, $methodName) {
-		$tokenData = $this->_connectToAPI(false, "callUrl");
+	public function _callUrl(Library $activeLibrary, OverDriveSetting $settings, string $url, string $methodName) {
+		$tokenData = $this->_connectToAPI($activeLibrary, $settings, false, "callUrl");
 		if ($tokenData) {
 			$this->initCurlWrapper();
 			$this->apiCurlWrapper->setOption(CURLOPT_USERAGENT, "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)");
@@ -318,7 +330,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 			$this->apiCurlWrapper->setOption(CURLOPT_FOLLOWLOCATION, 1);
 			global $interface;
 			$this->apiCurlWrapper->addCustomHeaders([
-				"Authorization: {$tokenData->token_type} {$tokenData->access_token}",
+				"Authorization: $tokenData->token_type $tokenData->access_token",
 				"User-Agent: Aspen Discovery " . $interface->getVariable('gitBranch'),
 			], true);
 
@@ -335,58 +347,49 @@ class OverDriveDriver extends AbstractEContentDriver {
 		return null;
 	}
 
-	/**
-	 * @param User $user
-	 * @return string
-	 */
-	private function getILSName($user) {
-		if (!isset($this->ILSName)) {
+	private function getILSName(OverDriveSetting $settings, User $user) : ?string {
+		if (!isset($this->ILSName[$settings->id])) {
 			// use library setting if it has a value. if no library setting, use the configuration setting.
-			global $library;
 			/** @var Library $patronHomeLibrary */
 			$patronHomeLibrary = Library::getPatronHomeLibrary($user);
-			if (!empty($patronHomeLibrary->getOverdriveScope()->authenticationILSName)) {
-				$this->ILSName = $patronHomeLibrary->getOverdriveScope()->authenticationILSName;
-			} elseif (!empty($library->getOverdriveScope()->authenticationILSName)) {
-				$this->ILSName = $library->getOverdriveScope()->authenticationILSName;
+			if ($patronHomeLibrary == null) {
+				$this->ILSName[$settings->id] = null;
+			}else{
+				$homeLibrarySettings = $patronHomeLibrary->getLibraryOverdriveSetting($settings->id);
+				if ($homeLibrarySettings != null) {
+					$this->ILSName[$settings->id] = $homeLibrarySettings->authenticationILSName;
+				}else{
+					$this->ILSName[$settings->id] = null;
+				}
 			}
 		}
-		return $this->ILSName;
+		return $this->ILSName[$settings->id];
 	}
 
-	/**
-	 * @param $user User
-	 * @return bool
-	 */
-	private function getRequirePin($user) {
-		if (!isset($this->requirePin)) {
+	private function getRequirePin(OverDriveSetting $settings, User $user) : bool {
+		if (!isset($this->requirePin[$settings->id])) {
 			// use library setting if it has a value. if no library setting, use the configuration setting.
-			global $library;
-			$patronHomeLibrary = Library::getLibraryForLocation($user->homeLocationId);
-			if (!empty($patronHomeLibrary->getOverdriveScope()->requirePin)) {
-				$this->requirePin = $patronHomeLibrary->getOverdriveScope()->requirePin;
-			} elseif (isset($library->getOverdriveScope()->requirePin)) {
-				$this->requirePin = $library->getOverdriveScope()->requirePin;
-			} else {
-				$this->requirePin = false;
+			$patronHomeLibrary = Library::getPatronHomeLibrary($user);
+			if ($patronHomeLibrary == null) {
+				$this->requirePin[$settings->id] = false;
+			}else{
+				$homeLibrarySettings = $patronHomeLibrary->getLibraryOverdriveSetting($settings->id);
+				if ($homeLibrarySettings != null) {
+					$this->requirePin[$settings->id] = $homeLibrarySettings->requirePin;
+				}else{
+					$this->requirePin[$settings->id] = false;
+				}
 			}
 		}
-		return $this->requirePin;
+		return $this->requirePin[$settings->id];
 	}
 
-	/**
-	 * @param User $user
-	 * @param $url
-	 * @param array $postParams
-	 * @param string $method
-	 * @return bool|mixed
-	 */
-	public function _callPatronUrl($user, $url, $methodName, $postParams = null, $method = null) {
+	public function _callPatronUrl(OverDriveSetting $settings, User $user, string $url, string $methodName, ?array $postParams = null, ?string $method = null) : bool|stdClass {
 		global $configArray;
 
-		$tokenData = $this->getPatronTokenData($user);
+		$tokenData = $this->getPatronTokenData($settings, $user);
 		if ($tokenData) {
-			$patronApiHost = $this->getPatronApiHost();
+			$patronApiHost = $this->getPatronApiHost($settings);
 
 			$this->initCurlWrapper();
 			if (isset($tokenData->token_type) && isset($tokenData->access_token)) {
@@ -399,7 +402,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				], true);
 			} else {
 				//The user is not valid
-				if (isset($configArray['Site']['debug']) && $configArray['Site']['debug'] == true) {
+				if (isset($configArray['Site']['debug']) && $configArray['Site']['debug']) {
 					print_r($tokenData);
 				}
 				return false;
@@ -412,7 +415,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 			];
 
 			if ($postParams != null) {
-				//Convert post fields to json
+				//Convert POST fields to JSON
 				$jsonData = ['fields' => []];
 				foreach ($postParams as $key => $value) {
 					$jsonData['fields'][] = [
@@ -457,7 +460,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 			} else {
 				$this->lastHttpCode = $this->apiCurlWrapper->getResponseCode();
 				global $logger;
-				if ($response == false) {
+				if ($response === false) {
 					$logger->log("Failed to call overdrive url $url " . session_id() . " curl_exec returned false " . print_r($postParams, true), Logger::LOG_ERROR);
 				} else {
 					$logger->log("Failed to call overdrive url " . session_id() . print_r($response, true), Logger::LOG_ERROR);
@@ -468,246 +471,246 @@ class OverDriveDriver extends AbstractEContentDriver {
 		return false;
 	}
 
-	/**
-	 * @param User $user
-	 * @param $url
-	 * @return bool|mixed
-	 */
-	private function _callPatronDeleteUrl($user, $url, $methodName) {
-		$tokenData = $this->getPatronTokenData($user);
+	private function _callPatronDeleteUrl(OverDriveSetting $settings, User $user, string $url, string $methodName) {
+		$tokenData = $this->getPatronTokenData($settings, $user);
 
-		//TODO: Remove || true when oauth works
-		if ($tokenData || true) {
-			$this->initCurlWrapper();
-			$this->apiCurlWrapper->setOption(CURLOPT_USERAGENT, "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)");
-			$this->apiCurlWrapper->setOption(CURLOPT_RETURNTRANSFER, true);
-			$this->apiCurlWrapper->setOption(CURLOPT_FOLLOWLOCATION, 1);
+		$this->initCurlWrapper();
+		$this->apiCurlWrapper->setOption(CURLOPT_USERAGENT, "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)");
+		$this->apiCurlWrapper->setOption(CURLOPT_RETURNTRANSFER, true);
+		$this->apiCurlWrapper->setOption(CURLOPT_FOLLOWLOCATION, 1);
 
-			global $interface;
-			if ($tokenData) {
-				$authorizationData = $tokenData->token_type . ' ' . $tokenData->access_token;
-				$patronApiHost = $this->getPatronApiHost();
-				$this->apiCurlWrapper->addCustomHeaders([
-					"Authorization: $authorizationData",
-					"User-Agent: Aspen Discovery " . $interface->getVariable('gitBranch'),
-					"Host: $patronApiHost",
-				], true);
-			} else {
-				$this->apiCurlWrapper->addCustomHeaders([
-					"User-Agent: Aspen Discovery " . $interface->getVariable('gitBranch'),
-					"Host: {$this->getOverDriveApiHost()}",
-				], true);
+		global $interface;
+		if ($tokenData) {
+			$authorizationData = $tokenData->token_type . ' ' . $tokenData->access_token;
+			$patronApiHost = $this->getPatronApiHost($settings);
+			$this->apiCurlWrapper->addCustomHeaders([
+				"Authorization: $authorizationData",
+				"User-Agent: Aspen Discovery " . $interface->getVariable('gitBranch'),
+				"Host: $patronApiHost",
+			], true);
+		} else {
+			$this->apiCurlWrapper->addCustomHeaders([
+				"User-Agent: Aspen Discovery " . $interface->getVariable('gitBranch'),
+				"Host: {$this->getOverDriveApiHost($settings)}",
+			], true);
+		}
+
+		$content = $this->apiCurlWrapper->curlSendPage($url, "DELETE", false);
+		ExternalRequestLogEntry::logRequest('overdrive.callPatronDeleteUrl_' . $methodName, 'DEL', $url, $this->apiCurlWrapper->getHeaders(), false, $this->apiCurlWrapper->getResponseCode(), $content, []);
+		$responseCode = $this->apiCurlWrapper->getResponseCode();
+
+		if ($responseCode == 204) {
+			$result = true;
+		} else {
+			//echo("Response code was " . $responseCode);
+			$result = false;
+		}
+
+		$response = json_decode($content);
+		if ($response != null) {
+			if (!isset($response->message) || $response->message != 'An unexpected error has occurred.') {
+				return $response;
 			}
-
-			$content = $this->apiCurlWrapper->curlSendPage($url, "DELETE", false);
-			ExternalRequestLogEntry::logRequest('overdrive.callPatronDeleteUrl_' . $methodName, 'DEL', $url, $this->apiCurlWrapper->getHeaders(), false, $this->apiCurlWrapper->getResponseCode(), $content, []);
-			$responseCode = $this->apiCurlWrapper->getResponseCode();
-
-			if ($responseCode == 204) {
-				$result = true;
-			} else {
-				//echo("Response code was " . $responseCode);
-				$result = false;
-			}
-
-			$response = json_decode($content);
-			if ($response != null) {
-				if (!isset($response->message) || $response->message != 'An unexpected error has occurred.') {
-					return $response;
-				}
-			} else {
-				return $result;
-			}
+		} else {
+			return $result;
 		}
 		return false;
 	}
 
-	public function getLibraryAccountInformation() {
-		$libraryId = $this->getSettings()->accountId;
-		return $this->_callUrl("https://{$this->getOverDriveApiHost()}/v1/libraries/$libraryId", "getLibraryAccountInformation");
+	public function getLibraryAccountInformation(Library $activeLibrary, OverDriveSetting $settings) {
+		$libraryId = $settings->accountId;
+		return $this->_callUrl($activeLibrary, $settings, "https://{$this->getOverDriveApiHost($settings)}/v1/libraries/$libraryId", "getLibraryAccountInformation");
 	}
 
-	public function getAdvantageAccountInformation() {
-		$libraryId = $this->getSettings()->accountId;
-		return $this->_callUrl("https://{$this->getOverDriveApiHost()}/v1/libraries/$libraryId/advantageAccounts", "getAdvantageAccountInformation");
+	public function getAdvantageAccountInformation(Library $activeLibrary, OverDriveSetting $settings) {
+		$libraryId = $settings->accountId;
+		return $this->_callUrl($activeLibrary, $settings, "https://{$this->getOverDriveApiHost($settings)}/v1/libraries/$libraryId/advantageAccounts", "getAdvantageAccountInformation");
 	}
 
-	public function getProductMetadata($overDriveId, $productsKey = null) {
+	public function getProductMetadata(Library $activeLibrary, OverDriveSetting $settings, $overDriveId, $productsKey = null) {
 		if ($productsKey == null) {
-			$productsKey = $this->getSettings()->productsKey;
+			$productsKey = $settings->productsKey;
 		}
 		if (is_numeric($overDriveId)) {
 			//This is a crossRefId, we need to search for the product by crossRefId to get the actual id
-			$searchUrl = "https://{$this->getOverDriveApiHost()}/v1/collections/$productsKey/products?crossRefId=$overDriveId";
-			$searchResults = $this->_callUrl($searchUrl, "getProductMetadata");
+			$searchUrl = "https://{$this->getOverDriveApiHost($settings)}/v1/collections/$productsKey/products?crossRefId=$overDriveId";
+			$searchResults = $this->_callUrl($activeLibrary, $settings, $searchUrl, "getProductMetadata");
 			if (!empty($searchResults->products) && count($searchResults->products) > 0) {
 				$overDriveId = $searchResults->products[0]->id;
 			}
 		}
 		$overDriveId = strtoupper($overDriveId);
-		$metadataUrl = "https://{$this->getOverDriveApiHost()}/v1/collections/$productsKey/products/$overDriveId/metadata";
-		return $this->_callUrl($metadataUrl, "getProductMetadata");
+		$metadataUrl = "https://{$this->getOverDriveApiHost($settings)}/v1/collections/$productsKey/products/$overDriveId/metadata";
+		return $this->_callUrl($activeLibrary, $settings, $metadataUrl, "getProductMetadata");
 	}
 
-	public function getProductAvailability($overDriveId, $productsKey = null) {
+	public function getProductAvailability(Library $activeLibrary, OverDriveSetting $settings, $overDriveId, $productsKey = null) {
 		if ($productsKey == null) {
-			$productsKey = $this->getSettings()->productsKey;
+			$productsKey =$settings->productsKey;
 		}
-		$availabilityUrl = "https://{$this->getOverDriveApiHost()}/v2/collections/$productsKey/products/$overDriveId/availability";
-		return $this->_callUrl($availabilityUrl, "getProductAvailability");
+		$availabilityUrl = "https://{$this->getOverDriveApiHost($settings)}/v2/collections/$productsKey/products/$overDriveId/availability";
+		return $this->_callUrl($activeLibrary, $settings, $availabilityUrl, "getProductAvailability");
 	}
 
 	/**
-	 * Loads information about items that the user has checked out in OverDrive
-	 *
-	 * @param User $patron
-	 * @param bool $forSummary
-	 * @return Checkout[]
+	 * Loads information about items that the user has checked out in OverDrive.
+	 * If multiple OverDrive collections are connected, all checkouts for all collections will be loaded.
 	 */
 	public function getCheckouts(User $patron, bool $forSummary = false): array {
 		require_once ROOT_DIR . '/sys/User/Checkout.php';
 		global $logger;
-		if (!$this->isUserValidForOverDrive($patron)) {
-			return [];
-		}
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me/checkouts';
-		$response = $this->_callPatronUrl($patron, $url, "getCheckouts");
-		if ($response == false) {
-			//The user is not authorized to use OverDrive
-			$this->incrementStat('numApiErrors');
-			return [];
-		}
 
-		global $interface;
-		$fulfillmentMethod = (string)$this->getSettings()->useFulfillmentInterface;
-		$interface->assign('fulfillmentMethod', $fulfillmentMethod);
-
+		if (!empty($this->settings)) {
+			$settingsToCheck = [$this->settings->id => $this->settings];
+		}else{
+			$settingsToCheck = $this->getAvailableSettings();
+		}
 		$checkedOutTitles = [];
-		$supplementalMaterialIds = [];
-		if (isset($response->checkouts)) {
-			foreach ($response->checkouts as $curTitle) {
-				$checkout = new Checkout();
-				$checkout->type = 'overdrive';
-				$checkout->source = 'overdrive';
-				$checkout->userId = $patron->id;
-				if (isset($curTitle->links->bundledChildren)) {
-					foreach ($curTitle->links->bundledChildren as $bundledChild) {
-						if (preg_match('%.*/checkouts/(.*)%ix', $bundledChild->href, $matches)) {
-							$supplementalMaterialIds[$matches[1]] = $curTitle->reserveId;
-						}
-					}
-				}
+		foreach ($settingsToCheck as $setting) {
+			if (!$this->isUserValidForOverDrive($setting, $patron)) {
+				continue;
+			}
+			$url = $setting->patronApiUrl . '/v1/patrons/me/checkouts';
+			$response = $this->_callPatronUrl($setting, $patron, $url, "getCheckouts");
+			if ($response === false) {
+				//The user is not authorized to use OverDrive
+				$this->incrementStat('numApiErrors');
+				continue;
+			}
 
-				if (array_key_exists($curTitle->reserveId, $supplementalMaterialIds)) {
-					$parentCheckoutId = $supplementalMaterialIds[$curTitle->reserveId];
-					/** @var Checkout $parentCheckout */
-					$parentCheckout = $checkedOutTitles['overdrive' . $parentCheckoutId . $patron->id];
-					if (!isset($parentCheckout->supplementalMaterials)) {
-						$parentCheckout->supplementalMaterials = [];
-					}
-					$supplementalMaterial = new Checkout();
-					$supplementalMaterial->source = 'overdrive';
-					$supplementalMaterial->sourceId = $curTitle->reserveId;
-					$supplementalMaterial->recordId = $curTitle->reserveId;
-					$supplementalMaterial->userId = $patron->id;
-					$supplementalMaterial->isSupplemental = true;
-					$supplementalMaterial = $this->loadCheckoutFormatInformation($curTitle, $supplementalMaterial);
-					if (isset($supplementalMaterial->selectedFormatValue) && !empty($supplementalMaterial->selectedFormatValue)) {
-						$parentCheckout->supplementalMaterials[] = $supplementalMaterial;
-					}
-				} else {
-					//Load data from api
-					$checkout->sourceId = $curTitle->reserveId;
-					$checkout->recordId = $curTitle->reserveId;
-					$checkout->dueDate = $curTitle->expires;
-					$checkout->canRenew = false;
-					try {
-						$expirationDate = new DateTime($curTitle->expires);
-						$checkout->dueDate = $expirationDate->getTimestamp();
-						//If the title expires in less than 3 days we should be able to renew it
-						if ($expirationDate->getTimestamp() < time() + 3 * 24 * 60 * 60) {
-							$checkout->canRenew = true;
-						} else {
-							$checkout->canRenew = false;
+			$supplementalMaterialIds = [];
+			if (isset($response->checkouts)) {
+				foreach ($response->checkouts as $curTitle) {
+					$checkout = new Checkout();
+					$checkout->type = 'overdrive';
+					$checkout->source = 'overdrive';
+					$checkout->userId = $patron->id;
+					if (isset($curTitle->links->bundledChildren)) {
+						foreach ($curTitle->links->bundledChildren as $bundledChild) {
+							if (preg_match('%.*/checkouts/(.*)%ix', $bundledChild->href, $matches)) {
+								$supplementalMaterialIds[$matches[1]] = $curTitle->reserveId;
+							}
 						}
-					} catch (Exception $e) {
-						$logger->log("Could not parse date for overdrive expiration " . $curTitle->expires, Logger::LOG_NOTICE);
 					}
-					try {
-						$checkOutDate = new DateTime($curTitle->checkoutDate);
-						$checkout->checkoutDate = $checkOutDate->getTimestamp();
-					} catch (Exception $e) {
-						$logger->log("Could not parse date for overdrive checkout date " . $curTitle->checkoutDate, Logger::LOG_NOTICE);
-					}
-					$checkout->overdriveRead = false;
-					if (isset($curTitle->isFormatLockedIn) && $curTitle->isFormatLockedIn == 1) {
-						$checkout->formatSelected = true;
+
+					if (array_key_exists($curTitle->reserveId, $supplementalMaterialIds)) {
+						$parentCheckoutId = $supplementalMaterialIds[$curTitle->reserveId];
+						/** @var Checkout $parentCheckout */
+						$parentCheckout = $checkedOutTitles['overdrive' . $parentCheckoutId . $patron->id];
+						if (!isset($parentCheckout->supplementalMaterials)) {
+							$parentCheckout->supplementalMaterials = [];
+						}
+						$supplementalMaterial = new Checkout();
+						$supplementalMaterial->source = 'overdrive';
+						$supplementalMaterial->sourceId = $curTitle->reserveId . '_' . $setting->id;
+						if (count($settingsToCheck) > 1) {
+							$supplementalMaterial->collectionName = $setting->name;
+						}
+						$supplementalMaterial->recordId = $curTitle->reserveId;
+						$supplementalMaterial->userId = $patron->id;
+						$supplementalMaterial->isSupplemental = true;
+						$supplementalMaterial = $this->loadCheckoutFormatInformation($curTitle, $supplementalMaterial);
+						if (!empty($supplementalMaterial->selectedFormatValue)) {
+							$parentCheckout->supplementalMaterials[] = $supplementalMaterial;
+						}
 					} else {
-						$checkout->formatSelected = false;
-					}
-					$checkout->formats = [];
-					if (!$forSummary) {
-						$checkout = $this->loadCheckoutFormatInformation($curTitle, $checkout);
-
-						if (isset($curTitle->actions->earlyReturn)) {
-							$checkout->canReturnEarly = true;
+						//Load data from api
+						$checkout->sourceId = $curTitle->reserveId . '_' . $setting->id;
+						$checkout->recordId = $curTitle->reserveId;
+						if (count($settingsToCheck) > 1) {
+							$checkout->collectionName = $setting->name;
 						}
-						//Figure out which eContent record this is for.
-						require_once ROOT_DIR . '/RecordDrivers/OverDriveRecordDriver.php';
-						$overDriveRecord = new OverDriveRecordDriver($checkout->sourceId);
-						if ($overDriveRecord->isValid()) {
-							$checkout->updateFromRecordDriver($overDriveRecord);
-							$checkout->format = $checkout->getRecordFormatCategory();
+						$checkout->dueDate = $curTitle->expires;
+						$checkout->canRenew = false;
+						try {
+							$expirationDate = new DateTime($curTitle->expires);
+							$checkout->dueDate = $expirationDate->getTimestamp();
+							//If the title expires in less than 3 days, we should be able to renew it
+							if ($expirationDate->getTimestamp() < time() + 3 * 24 * 60 * 60) {
+								$checkout->canRenew = true;
+							} else {
+								$checkout->canRenew = false;
+							}
+						} catch (Exception $e) {
+							$logger->log("Could not parse date for overdrive expiration " . $curTitle->expires, Logger::LOG_NOTICE);
+						}
+						try {
+							$checkOutDate = new DateTime($curTitle->checkoutDate);
+							$checkout->checkoutDate = $checkOutDate->getTimestamp();
+						} catch (Exception $e) {
+							$logger->log("Could not parse date for overdrive checkout date " . $curTitle->checkoutDate, Logger::LOG_NOTICE);
+						}
+						$checkout->overdriveRead = false;
+						if (isset($curTitle->isFormatLockedIn) && $curTitle->isFormatLockedIn == 1) {
+							$checkout->formatSelected = true;
 						} else {
-							//The title doesn't exist in the collection - this happens with Magazines right now (early 2021).
-							//Load the title information from metadata, but don't link it.
-							$overDriveMetadata = $this->getProductMetadata($checkout->sourceId);
-							if ($overDriveMetadata) {
-								$checkout->format = $overDriveMetadata->mediaType;
-								$checkout->coverUrl = $overDriveMetadata->images->cover150Wide->href;
-								$checkout->title = $overDriveMetadata->title;
-								$checkout->author = $overDriveMetadata->publisher;
-								//Magazines link to the searchable record by the parent magazine title id
-								if (!empty($overDriveMetadata->parentMagazineTitleId)) {
-									require_once ROOT_DIR . '/sys/OverDrive/OverDriveAPIProduct.php';
-									$overDriveProduct = new OverDriveAPIProduct();
-									$overDriveProduct->crossRefId = $overDriveMetadata->parentMagazineTitleId;
-									if ($overDriveProduct->find(true)) {
-										//we have the product, now we need to find the grouped work id
-										require_once ROOT_DIR . '/sys/Grouping/GroupedWorkPrimaryIdentifier.php';
-										$groupedWorkPrimaryIdentifier = new GroupedWorkPrimaryIdentifier();
-										$groupedWorkPrimaryIdentifier->type = 'overdrive';
-										$groupedWorkPrimaryIdentifier->identifier = $overDriveProduct->overdriveId;
-										if ($groupedWorkPrimaryIdentifier->find(true)) {
-											require_once ROOT_DIR . '/sys/Grouping/GroupedWork.php';
-											$groupedWork = new GroupedWork();
-											$groupedWork->id = $groupedWorkPrimaryIdentifier->grouped_work_id;
-											if ($groupedWork->find(true)) {
-												$checkout->groupedWorkId = $groupedWork->permanent_id;
+							$checkout->formatSelected = false;
+						}
+						$checkout->formats = [];
+						if (!$forSummary) {
+							$checkout = $this->loadCheckoutFormatInformation($curTitle, $checkout);
+
+							if (isset($curTitle->actions->earlyReturn)) {
+								$checkout->canReturnEarly = true;
+							}
+							//Figure out which eContent record this is for.
+							require_once ROOT_DIR . '/RecordDrivers/OverDriveRecordDriver.php';
+							$overDriveRecord = new OverDriveRecordDriver($checkout->recordId);
+							if ($overDriveRecord->isValid()) {
+								$checkout->updateFromRecordDriver($overDriveRecord);
+								$checkout->format = $checkout->getRecordFormatCategory();
+							} else {
+								//The title doesn't exist in the collection - this happens with Magazines right now (early 2021).
+								//Load the title information from metadata, but don't link it.
+								$overDriveMetadata = $this->getProductMetadata($patron->getHomeLibrary(), $setting, $checkout->recordId);
+								if ($overDriveMetadata) {
+									$checkout->format = $overDriveMetadata->mediaType;
+									$checkout->coverUrl = $overDriveMetadata->images->cover150Wide->href;
+									$checkout->title = $overDriveMetadata->title;
+									$checkout->author = $overDriveMetadata->publisher;
+									//Magazines link to the searchable record by the parent magazine title id
+									if (!empty($overDriveMetadata->parentMagazineTitleId)) {
+										require_once ROOT_DIR . '/sys/OverDrive/OverDriveAPIProduct.php';
+										$overDriveProduct = new OverDriveAPIProduct();
+										$overDriveProduct->crossRefId = $overDriveMetadata->parentMagazineTitleId;
+										if ($overDriveProduct->find(true)) {
+											//we have the product, now we need to find the grouped work id
+											require_once ROOT_DIR . '/sys/Grouping/GroupedWorkPrimaryIdentifier.php';
+											$groupedWorkPrimaryIdentifier = new GroupedWorkPrimaryIdentifier();
+											$groupedWorkPrimaryIdentifier->type = 'overdrive';
+											$groupedWorkPrimaryIdentifier->identifier = $overDriveProduct->overdriveId;
+											if ($groupedWorkPrimaryIdentifier->find(true)) {
+												require_once ROOT_DIR . '/sys/Grouping/GroupedWork.php';
+												$groupedWork = new GroupedWork();
+												$groupedWork->id = $groupedWorkPrimaryIdentifier->grouped_work_id;
+												if ($groupedWork->find(true)) {
+													$checkout->groupedWorkId = $groupedWork->permanent_id;
+												}
 											}
 										}
 									}
 								}
 							}
 						}
-					}
 
-					$key = $checkout->source . $checkout->sourceId . $checkout->userId;
-					$checkedOutTitles[$key] = $checkout;
+						$key = $checkout->source . $checkout->sourceId . $checkout->userId;
+						$checkedOutTitles[$key] = $checkout;
+					}
 				}
 			}
 		}
+
 		return $checkedOutTitles;
 	}
 
-	private $holds = [];
+	private array $holds = [];
 
 	/**
 	 * @param User $patron
 	 * @param bool $forSummary
 	 * @return array
 	 */
-	public function getHolds($patron, $forSummary = false): array {
+	public function getHolds(User $patron, bool $forSummary = false): array {
 		require_once ROOT_DIR . '/sys/User/Hold.php';
 		//Cache holds for the user just for this call.
 		if (isset($this->holds[$patron->id])) {
@@ -717,61 +720,72 @@ class OverDriveDriver extends AbstractEContentDriver {
 			'available' => [],
 			'unavailable' => [],
 		];
-		if (!$this->isUserValidForOverDrive($patron)) {
-			return $holds;
+		if (!empty($this->settings)) {
+			$settingsToCheck = [$this->settings->id => $this->settings];
+		}else{
+			$settingsToCheck = $this->getAvailableSettings();
 		}
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me/holds';
-		$response = $this->_callPatronUrl($patron, $url, "getHolds");
-		if ($response == false) {
-			$this->incrementStat('numApiErrors');
-			return $holds;
-		}
-		if (isset($response->holds)) {
-			foreach ($response->holds as $curTitle) {
-				$hold = new Hold();
-				$hold->type = 'overdrive';
-				$hold->source = 'overdrive';
-				$hold->sourceId = $curTitle->reserveId;
-				$hold->recordId = $curTitle->reserveId;
-				$datePlaced = strtotime($curTitle->holdPlacedDate);
-				if ($datePlaced) {
-					$hold->createDate = $datePlaced;
-				}
-				$hold->holdQueueLength = $curTitle->numberOfHolds;
-				$hold->position = $curTitle->holdListPosition;  // this is so that overdrive holds can be sorted by hold position with the IlS holds
-				$hold->cancelable = true;
-				$hold->available = isset($curTitle->actions->checkout);
-				if ($hold->available) {
-					$hold->expirationDate = strtotime($curTitle->holdExpires);
-				} else {
-					$hold->canFreeze = true;
-					if (isset($curTitle->holdSuspension)) {
-						$hold->frozen = true;
-						$hold->status = "Frozen";
-						if ($curTitle->holdSuspension->numberOfDays > 0) {
-							$numDaysSuspended = $curTitle->holdSuspension->numberOfDays;
-							$reactivateDate = DateUtils::addDays(date('m/d/Y'), $numDaysSuspended, "M d,Y");
-							$hold->reactivateDate = strtotime($reactivateDate);
+		foreach ($settingsToCheck as $setting) {
+			if (!$this->isUserValidForOverDrive($setting, $patron)) {
+				continue;
+			}
+			$url = $setting->patronApiUrl . '/v1/patrons/me/holds';
+			$response = $this->_callPatronUrl($setting, $patron, $url, "getHolds");
+			if ($response === false) {
+				$this->incrementStat('numApiErrors');
+				continue;
+			}
+			if (isset($response->holds)) {
+				foreach ($response->holds as $curTitle) {
+					$hold = new Hold();
+					$hold->type = 'overdrive';
+					$hold->source = 'overdrive';
+					$hold->sourceId = $curTitle->reserveId . '_' . $setting->id;
+					$hold->recordId = $curTitle->reserveId;
+					$datePlaced = strtotime($curTitle->holdPlacedDate);
+					if ($datePlaced) {
+						$hold->createDate = $datePlaced;
+					}
+					$hold->holdQueueLength = $curTitle->numberOfHolds;
+					$hold->position = $curTitle->holdListPosition;  // this is so that overdrive holds can be sorted by hold position with the IlS holds
+					$hold->cancelable = true;
+					$hold->available = isset($curTitle->actions->checkout);
+					if ($hold->available) {
+						$hold->expirationDate = strtotime($curTitle->holdExpires);
+					} else {
+						$hold->canFreeze = true;
+						if (isset($curTitle->holdSuspension)) {
+							$hold->frozen = true;
+							$hold->status = "Frozen";
+							if ($curTitle->holdSuspension->numberOfDays > 0) {
+								$numDaysSuspended = $curTitle->holdSuspension->numberOfDays;
+								$reactivateDate = DateUtils::addDays(date('m/d/Y'), $numDaysSuspended, "M d,Y");
+								$hold->reactivateDate = strtotime($reactivateDate);
+							}
 						}
 					}
-				}
+					if (count($settingsToCheck) > 1) {
+						$hold->collectionName = $setting->name;
+					}
 
-				$hold->userId = $patron->id;
+					$hold->userId = $patron->id;
 
-				require_once ROOT_DIR . '/RecordDrivers/OverDriveRecordDriver.php';
-				$overDriveRecordDriver = new OverDriveRecordDriver($hold->recordId);
-				if ($overDriveRecordDriver->isValid()) {
-					$hold->updateFromRecordDriver($overDriveRecordDriver);
-				}
+					require_once ROOT_DIR . '/RecordDrivers/OverDriveRecordDriver.php';
+					$overDriveRecordDriver = new OverDriveRecordDriver($hold->recordId);
+					if ($overDriveRecordDriver->isValid()) {
+						$hold->updateFromRecordDriver($overDriveRecordDriver);
+					}
 
-				$key = $hold->type . $hold->sourceId . $hold->userId;
-				if ($hold->available) {
-					$holds['available'][$key] = $hold;
-				} else {
-					$holds['unavailable'][$key] = $hold;
+					$key = $hold->type . $hold->sourceId . $hold->userId;
+					if ($hold->available) {
+						$holds['available'][$key] = $hold;
+					} else {
+						$holds['unavailable'][$key] = $hold;
+					}
 				}
 			}
 		}
+
 		if (!$forSummary) {
 			$this->holds[$patron->id] = $holds;
 		}
@@ -813,24 +827,69 @@ class OverDriveDriver extends AbstractEContentDriver {
 		return $summary;
 	}
 
-	function placeHold($user, $overDriveId, $pickupBranch = null, $cancelDate = null) {
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me/holds/' . $overDriveId;
+	/**
+	 * Attempts to place a hold for the patron.
+	 *
+	 * If the library has multiple OverDrive collections available, the driver should have the active settings
+	 * set using a call to setSettings before calling this method.
+	 */
+	function placeHold($patron, $recordId, $pickupBranch = null, $cancelDate = null) : array {
+		require_once ROOT_DIR . '/RecordDrivers/OverDriveRecordDriver.php';
+		$recordDriver = new OverDriveRecordDriver($recordId);
+		if (!$recordDriver->isValid()) {
+			return [
+				'success' => false,
+				'message' => translate(['text'=>'This title no longer exists within the catalog.', 'isPublicFacing'=>true]),
+			];
+		}
+
+		$bestItem = $recordDriver->getBestCirculationOption($patron);
+
+		if ($bestItem == null) {
+			global $interface;
+			$readerName = $interface->getVariable('readerName');
+			return [
+				'success' => false,
+				'message' => translate(['text'=>'Unable to find a record to place a hold on. Your account may not be valid for use with %1% or this title may have been withdrawn.', 1=>$readerName, 'isPublicFacing'=>true]),
+			];
+		}
+
+		$patronHomeLibrary = $patron->getHomeLibrary();
+		if (substr_count($bestItem->itemId, ':') >= 2) {
+			list(, $settingIdForItem,) = explode(':', $bestItem->itemId);
+			$librarySettings = $patronHomeLibrary->getLibraryOverdriveSetting($settingIdForItem);
+
+		}else{
+			$allLibrarySettings = $patronHomeLibrary->getLibraryOverdriveSettings();
+			if (!empty($allLibrarySettings)) {
+				$librarySettings = reset($allLibrarySettings);
+			}
+		}
+
+		if (empty($librarySettings)) {
+			return [
+				'success' => false,
+				'message' => translate(['text'=>'Unable to find information about the collection to place a hold for this title.', 'isPublicFacing'=>true]),
+			];
+		}
+		$settings = $librarySettings->getOverDriveSettings();
+
+		$url = $settings->patronApiUrl . '/v1/patrons/me/holds/' . $recordId;
 		$params = [
-			'reserveId' => $overDriveId,
-			'emailAddress' => trim((empty($user->overdriveEmail) ? $user->email : $user->overdriveEmail)),
+			'reserveId' => $recordId,
+			'emailAddress' => trim((empty($patron->overdriveEmail) ? $patron->email : $patron->overdriveEmail)),
 		];
-		$response = $this->_callPatronUrl($user, $url, "placeHold", $params);
+		$response = $this->_callPatronUrl($settings, $patron, $url, "placeHold", $params);
 
 		$holdResult = [];
 		$holdResult['success'] = false;
-		$holdResult['message'] = '';
 
 		// Store result for API or app use
 		$holdResult['api'] = [];
 
 		if (isset($response->holdListPosition)) {
-			$this->trackUserUsageOfOverDrive($user);
-			$this->trackRecordHold($overDriveId);
+			$this->trackUserUsageOfOverDrive($patron);
+			$this->trackRecordHold($recordId);
 			$this->incrementStat('numHoldsPlaced');
 
 			$holdResult['success'] = true;
@@ -859,37 +918,33 @@ class OverDriveDriver extends AbstractEContentDriver {
 			//Get the grouped work for the record
 			global $library;
 			if ($library->showWhileYouWait) {
-				require_once ROOT_DIR . '/RecordDrivers/OverDriveRecordDriver.php';
-				$recordDriver = new OverDriveRecordDriver($overDriveId);
-				if ($recordDriver->isValid()) {
-					$groupedWorkId = $recordDriver->getPermanentId();
-					require_once ROOT_DIR . '/RecordDrivers/GroupedWorkDriver.php';
-					$groupedWorkDriver = new GroupedWorkDriver($groupedWorkId);
-					$whileYouWaitTitles = $groupedWorkDriver->getWhileYouWait();
+				$groupedWorkId = $recordDriver->getPermanentId();
+				require_once ROOT_DIR . '/RecordDrivers/GroupedWorkDriver.php';
+				$groupedWorkDriver = new GroupedWorkDriver($groupedWorkId);
+				$whileYouWaitTitles = $groupedWorkDriver->getWhileYouWait();
 
-					global $interface;
-					if (count($whileYouWaitTitles) > 0) {
-						$interface->assign('whileYouWaitTitles', $whileYouWaitTitles);
-						$holdResult['message'] .= '<h3>' . translate([
-								'text' => 'While You Wait',
-								'isPublicFacing' => true,
-							]) . '</h3>';
-						$holdResult['message'] .= $interface->fetch('GroupedWork/whileYouWait.tpl');
-						$holdResult['hasWhileYouWait'] = true;
-					}
+				global $interface;
+				if (count($whileYouWaitTitles) > 0) {
+					$interface->assign('whileYouWaitTitles', $whileYouWaitTitles);
+					$holdResult['message'] .= '<h3>' . translate([
+							'text' => 'While You Wait',
+							'isPublicFacing' => true,
+						]) . '</h3>';
+					$holdResult['message'] .= $interface->fetch('GroupedWork/whileYouWait.tpl');
+					$holdResult['hasWhileYouWait'] = true;
 				}
 			}
 
-			$user->clearCache();
-			$user->clearCachedAccountSummaryForSource('overdrive');
-			$user->forceReloadOfHolds();
+			$patron->clearCache();
+			$patron->clearCachedAccountSummaryForSource('overdrive');
+			$patron->forceReloadOfHolds();
 		} else {
 			$holdResult['message'] = translate([
 				'text' => 'Sorry, but we could not place a hold for you on this title.',
 				'isPublicFacing' => true,
 			]);
 			if (isset($response->message)) {
-				$holdResult['message'] .= "  {$response->message}";
+				$holdResult['message'] .= "  $response->message";
 			}
 
 			// Result for API or app use
@@ -909,7 +964,15 @@ class OverDriveDriver extends AbstractEContentDriver {
 	}
 
 	function freezeHold(User $patron, $overDriveId, $reactivationDate): array {
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me/holds/' . $overDriveId . '/suspension';
+		//Figure out which collection the title is on hold in.
+		if (str_contains($overDriveId, '_')){
+			list ($overDriveId, $settingId) = explode('_', $overDriveId);
+			$settings = $this->getAvailableSettings()[$settingId];
+		}else{
+			$settings = $this->getActiveSettings();
+		}
+
+		$url = $settings->patronApiUrl . '/v1/patrons/me/holds/' . $overDriveId . '/suspension';
 		$params = [
 			'emailAddress' => trim($patron->overdriveEmail),
 		];
@@ -921,7 +984,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				$numberOfDaysToSuspend = (new DateTime())->diff(new DateTime($reactivationDate))->days + 2;
 				$params['suspensionType'] = 'limited';
 				$params['numberOfDays'] = $numberOfDaysToSuspend;
-			} catch (Exception $e) {
+			} /** @noinspection PhpUnusedLocalVariableInspection */ catch (Exception $e) {
 				return [
 					'success' => false,
 					'message' => 'Unable to determine reactivation date',
@@ -929,11 +992,10 @@ class OverDriveDriver extends AbstractEContentDriver {
 			}
 
 		}
-		$response = $this->_callPatronUrl($patron, $url, "freezeHold", $params);
+		$response = $this->_callPatronUrl($settings, $patron, $url, "freezeHold", $params);
 
 		$holdResult = [];
 		$holdResult['success'] = false;
-		$holdResult['message'] = '';
 
 		if (isset($response->holdListPosition) && isset($response->holdSuspension)) {
 			$this->incrementStat('numHoldsFrozen');
@@ -960,7 +1022,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				'isPublicFacing' => true,
 			]);
 			if (isset($response->message)) {
-				$holdResult['message'] .= "  {$response->message}";
+				$holdResult['message'] .= "  $response->message";
 			}
 
 			// Store result for API or app use
@@ -973,7 +1035,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				'isPublicFacing' => true,
 			]);
 			if (isset($response->message)) {
-				$holdResult['api']['message'] .= "  {$response->message}";
+				$holdResult['api']['message'] .= "  $response->message";
 			}
 
 			$this->incrementStat('numApiErrors');
@@ -984,17 +1046,24 @@ class OverDriveDriver extends AbstractEContentDriver {
 	}
 
 	function thawHold(User $patron, $overDriveId): array {
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me/holds/' . $overDriveId . '/suspension';
-		$response = $this->_callPatronDeleteUrl($patron, $url, "thawHold");
+		//Figure out which collection the title is on hold in.
+		if (str_contains($overDriveId, '_')){
+			list ($overDriveId, $settingId) = explode('_', $overDriveId);
+			$settings = $this->getAvailableSettings()[$settingId];
+		}else{
+			$settings = $this->getActiveSettings();
+		}
+
+		$url = $settings->patronApiUrl . '/v1/patrons/me/holds/' . $overDriveId . '/suspension';
+		$response = $this->_callPatronDeleteUrl($settings, $patron, $url, "thawHold");
 
 		$holdResult = [];
 		$holdResult['success'] = false;
-		$holdResult['message'] = '';
 
 		// Store result for API or app use
 		$holdResult['api'] = [];
 
-		if ($response == true) {
+		if ($response === true) {
 			$holdResult['success'] = true;
 			$holdResult['message'] = translate([
 				'text' => 'Your hold was thawed successfully.',
@@ -1019,7 +1088,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				'isPublicFacing' => true,
 			]);
 			if (isset($response->message)) {
-				$holdResult['message'] .= "  {$response->message}";
+				$holdResult['message'] .= "  $response->message";
 			}
 
 			// Result for API or app use
@@ -1032,7 +1101,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				'isPublicFacing' => true,
 			]);
 			if (isset($response->message)) {
-				$holdResult['api']['message'] .= "  {$response->message}";
+				$holdResult['api']['message'] .= "  $response->message";
 			}
 
 			$this->incrementStat('numApiErrors');
@@ -1042,18 +1111,21 @@ class OverDriveDriver extends AbstractEContentDriver {
 		return $holdResult;
 	}
 
-	/**
-	 * @param User $patron
-	 * @param string $overDriveId
-	 * @return array
-	 */
-	function cancelHold($patron, $overDriveId, $cancelId = null, $isIll = false): array {
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me/holds/' . $overDriveId;
-		$response = $this->_callPatronDeleteUrl($patron, $url, "cancelHold");
+	function cancelHold($patron, $recordId, $cancelId = null, $isIll = false): array {
+		//Figure out which collection the title is on hold in.
+		if (str_contains($recordId, '_')){
+			list ($overDriveId, $settingId) = explode('_', $recordId);
+			$settings = $this->getAvailableSettings()[$settingId];
+		}else{
+			$settings = $this->getActiveSettings();
+			$overDriveId = $recordId;
+		}
+
+		$url = $settings->patronApiUrl . '/v1/patrons/me/holds/' . $overDriveId;
+		$response = $this->_callPatronDeleteUrl($settings, $patron, $url, "cancelHold");
 
 		$cancelHoldResult = [];
 		$cancelHoldResult['success'] = false;
-		$cancelHoldResult['message'] = '';
 
 		// Store result for API or app use
 		$cancelHoldResult['api'] = [];
@@ -1084,7 +1156,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				'isPublicFacing' => true,
 			]);
 			if (isset($response->message)) {
-				$cancelHoldResult['message'] .= "  {$response->message}";
+				$cancelHoldResult['message'] .= "  $response->message";
 			}
 
 			// Result for API or app use
@@ -1095,9 +1167,9 @@ class OverDriveDriver extends AbstractEContentDriver {
 			$cancelHoldResult['api']['message'] = translate([
 				'text' => 'There was an error cancelling your hold.',
 				'isPublicFacing' => true,
-			]);;
+			]);
 			if (isset($response->message)) {
-				$cancelHoldResult['api']['message'] .= "  {$response->message}";
+				$cancelHoldResult['api']['message'] .= "  $response->message";
 			}
 
 			$this->incrementStat('numApiErrors');
@@ -1109,21 +1181,59 @@ class OverDriveDriver extends AbstractEContentDriver {
 	/**
 	 * Checkout a title from OverDrive
 	 *
-	 * @param string $overDriveId
+	 * @param string $titleId
 	 * @param User $patron
 	 *
 	 * @return array results (success, message, noCopies)
 	 */
-	public function checkOutTitle($patron, $overDriveId) {
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me/checkouts';
+	public function checkOutTitle($patron, $titleId) : array {
+		require_once ROOT_DIR . '/RecordDrivers/OverDriveRecordDriver.php';
+		$recordDriver = new OverDriveRecordDriver($titleId);
+		if (!$recordDriver->isValid()) {
+			return [
+				'success' => false,
+				'message' => translate(['text'=>'This title no longer exists within the catalog.', 'isPublicFacing'=>true]),
+			];
+		}
+
+		$bestItem = $recordDriver->getBestCirculationOption($patron);
+		if ($bestItem == null) {
+			global $interface;
+			$readerName = $interface->getVariable('readerName');
+			return [
+				'success' => false,
+				'message' => translate(['text'=>'Unable to find a record to checkout. Your account may not be valid for use with %1% or this title may have been withdrawn.', 1=>$readerName, 'isPublicFacing'=>true]),
+			];
+		}
+
+		$patronHomeLibrary = $patron->getHomeLibrary();
+		if (substr_count($bestItem->itemId, ':') >= 2) {
+			list(, $settingIdForItem,) = explode(':', $bestItem->itemId);
+			$librarySettings = $patronHomeLibrary->getLibraryOverdriveSetting($settingIdForItem);
+
+		}else{
+			$allLibrarySettings = $patronHomeLibrary->getLibraryOverdriveSettings();
+			if (!empty($allLibrarySettings)) {
+				$librarySettings = reset($allLibrarySettings);
+			}
+		}
+
+		if (empty($librarySettings)) {
+			return [
+				'success' => false,
+				'message' => translate(['text'=>'Unable to find information about the collection to check out this title.', 'isPublicFacing'=>true]),
+			];
+		}
+		$settings = $librarySettings->getOverDriveSettings();
+
+		$url = $settings->patronApiUrl . '/v1/patrons/me/checkouts';
 		$params = [
-			'reserveId' => $overDriveId,
+			'reserveId' => $titleId,
 		];
-		$response = $this->_callPatronUrl($patron, $url, "checkOutTitle", $params);
+		$response = $this->_callPatronUrl($settings, $patron, $url, "checkOutTitle", $params);
 
 		$result = [];
 		$result['success'] = false;
-		$result['message'] = '';
 
 		// Store result for API or app use
 		$result['api'] = [];
@@ -1151,7 +1261,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 			]);
 
 			$this->trackUserUsageOfOverDrive($patron);
-			$this->trackRecordCheckout($overDriveId);
+			$this->trackRecordCheckout($titleId);
 			$this->incrementStat('numCheckouts');
 			$patron->lastReadingHistoryUpdate = 0;
 			$patron->update();
@@ -1187,15 +1297,15 @@ class OverDriveDriver extends AbstractEContentDriver {
 
 			} else {
 				if (isset($response->message)) {
-					$result['message'] .= "  {$response->message}";
+					$result['message'] .= "  $response->message";
 				}
 				if (isset($response->message)) {
-					$result['api']['message'] .= "  {$response->message}";
+					$result['api']['message'] .= "  $response->message";
 				}
 			}
 
-			if ($response == false) {
-				//Give more information about why it might have failed, ie expired card or too many fines
+			if ($response === false) {
+				//Give more information about why it might have failed. I.e., expired card or too many fines
 				$result['message'] = translate([
 					'text' => 'Sorry, we could not checkout this title to you. Could not connect to OverDrive.',
 					'isPublicFacing' => true,
@@ -1237,7 +1347,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 					'isPublicFacing' => true,
 				]);
 			} else {
-				//Give more information about why it might have failed, ie expired card or too many fines
+				//Give more information about why it might have failed. I.e., expired card or too many fines
 				$result['message'] .= ' ' . translate([
 						'text' => 'Sorry, we could not checkout this title to you.  Please verify that your card has not expired and that you do not have excessive fines.',
 						'isPublicFacing' => true,
@@ -1257,17 +1367,25 @@ class OverDriveDriver extends AbstractEContentDriver {
 	}
 
 	/**
-	 * @param $overDriveId
-	 * @param User $patron
-	 * @return array
+	 * Returns a checkout within OverDrive
+	 *
+	 *  If the library has multiple OverDrive collections available, the driver should have the active settings
+	 *  set using a call to setSettings before calling this method.
 	 */
-	public function returnCheckout($patron, $overDriveId) {
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me/checkouts/' . $overDriveId;
-		$response = $this->_callPatronDeleteUrl($patron, $url, "returnCheckout");
+	public function returnCheckout(User $patron, string $overDriveId) : array {
+		//Figure out which collection the title is on hold in.
+		if (str_contains($overDriveId, '_')){
+			list ($overDriveId, $settingId) = explode('_', $overDriveId);
+			$settings = $this->getAvailableSettings()[$settingId];
+		}else{
+			$settings = $this->getActiveSettings();
+		}
+
+		$url = $settings->patronApiUrl . '/v1/patrons/me/checkouts/' . $overDriveId;
+		$response = $this->_callPatronDeleteUrl($settings, $patron, $url, "returnCheckout");
 
 		$cancelHoldResult = [];
 		$cancelHoldResult['success'] = false;
-		$cancelHoldResult['message'] = '';
 
 		// Store result for API or app use
 		$cancelHoldResult['api'] = [];
@@ -1305,7 +1423,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 						'isPublicFacing' => true,
 					]);
 				} else {
-					$cancelHoldResult['message'] .= "  {$response->message}";
+					$cancelHoldResult['message'] .= "  $response->message";
 				}
 			}
 
@@ -1325,7 +1443,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 						'isPublicFacing' => true,
 					]);
 				} else {
-					$cancelHoldResult['api']['message'] .= "  {$response->message}";
+					$cancelHoldResult['api']['message'] .= "  $response->message";
 				}
 			}
 
@@ -1336,191 +1454,128 @@ class OverDriveDriver extends AbstractEContentDriver {
 		return $cancelHoldResult;
 	}
 
-	public function selectOverDriveDownloadFormat($overDriveId, $formatId, $patron) {
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me/checkouts/' . $overDriveId . '/formats';
-		$params = [
-			'reserveId' => $overDriveId,
-			'formatType' => $formatId,
-		];
-		$response = $this->_callPatronUrl($patron, $url, "selectOverDriveDownloadFormat", $params);
-		//print_r($response);
-
-		$result = [];
-		$result['success'] = false;
-		$result['message'] = '';
-
-		if (isset($response->linkTemplates->downloadLink)) {
-			$result['success'] = true;
-			$result['message'] = translate([
-				'text' => 'This format was locked in',
-				'isPublicFacing' => true,
-			]);
-			$downloadLink = $this->getDownloadLink($overDriveId, $formatId, $patron);
-			$result = $downloadLink;
-			$patron->forceReloadOfCheckouts();
-		} else {
-			$result['message'] = translate([
-				'text' => 'Sorry, but we could not select a format for you.',
-				'isPublicFacing' => true,
-			]);
-			if (isset($response->message)) {
-				$result['message'] .= "  {$response->message}";
-			}
-			$this->incrementStat('numApiErrors');
-		}
-
-		return $result;
-	}
-
 	/** @var array Key = user id, value = boolean */
-	private static $validUsersOverDrive = [];
+	private static array $validUsersOverDrive = [];
 
-	/**
-	 * @param $user  User
-	 * @return bool
-	 */
-	public function isUserValidForOverDrive($user) {
+	public function isUserValidForOverDrive(OverDriveSetting $setting, User $user) : bool {
 		global $timer;
 		$userBarcode = $user->getBarcode();
-		if (!isset(OverDriveDriver::$validUsersOverDrive[$userBarcode])) {
-			$tokenData = $this->getPatronTokenData($user, false);
-			$timer->logTime("Checked to see if the user $userBarcode is valid for OverDrive");
-			$isValid = ($tokenData !== false) && ($tokenData !== null) && !isset($tokenData->error);
-			OverDriveDriver::$validUsersOverDrive[$userBarcode] = $isValid;
+		if (empty($userBarcode)) {
+			return false;
 		}
-		return OverDriveDriver::$validUsersOverDrive[$userBarcode];
+		if (!isset(OverDriveDriver::$validUsersOverDrive[$setting->id .  ':' . $userBarcode])) {
+			$tokenData = $this->getPatronTokenData($setting, $user);
+			$timer->logTime("Checked to see if the user $userBarcode is valid for OverDrive");
+			$isValid = ($tokenData !== false) && !isset($tokenData->error);
+			OverDriveDriver::$validUsersOverDrive[$setting->id .  ':' . $userBarcode] = $isValid;
+		}
+		return OverDriveDriver::$validUsersOverDrive[$setting->id .  ':' . $userBarcode];
 	}
 
-	public function getDownloadLink($overDriveId, $format, $user, $isSupplement = false) {
-		global $configArray;
+	public function getDownloadLink(string $overDriveId, User $user) : array {
 		$result = [];
 		$result['success'] = false;
-		$result['message'] = '';
 
-		// check the value of useFulfillmentInterface
-		$fulfillmentMethod = $this->getSettings()->useFulfillmentInterface;
-		if ($fulfillmentMethod == 1 && $isSupplement == 0) {
-			$showLibbyPromoSetting = $this->getSettings()->showLibbyPromo;
-			if ($showLibbyPromoSetting == 1) {
-				$showLibbyPromo = "";
-			} else {
-				$showLibbyPromo = "?appPromoOverride=none";
-			}
-			$downloadRedirectUrl = $this->getDownloadRedirectUrl($user, $overDriveId, $showLibbyPromo);
-			if ($downloadRedirectUrl) {
-				$result['success'] = true;
-				$result['message'] = translate([
-					'text' => 'Select a format',
-					'isPublicFacing' => true,
-				]);
-				$result['fulfillment'] = "redirect";
-				$result['modalBody'] = "<iframe src='{$downloadRedirectUrl}' class='fulfillmentFrame'></iframe>";
-				$result['downloadUrl'] = $downloadRedirectUrl; // for API access
-				$this->incrementStat('numDownloads');
-			} else {
-				$result['message'] = translate([
-					'text' => 'Unable to create download url',
-					'isPublicFacing' => true,
-				]);
-			}
+		//Figure out which collection the title is on hold in.
+		if (str_contains($overDriveId, '_')){
+			//Don't strip the setting from the overDrive ID since we need it later
+			list (, $settingId) = explode('_', $overDriveId);
+			$settings = $this->getAvailableSettings()[$settingId];
+		}else{
+			$settings = $this->getActiveSettings();
+		}
+
+		$showLibbyPromoSetting = $settings->showLibbyPromo;
+		if ($showLibbyPromoSetting == 1) {
+			$showLibbyPromo = "";
 		} else {
-			$url = $this->getSettings()->patronApiUrl . "/v1/patrons/me/checkouts/{$overDriveId}/formats/{$format}/downloadlink";
-			$url .= '?errorpageurl=' . urlencode($configArray['Site']['url'] . '/Help/OverDriveError');
-			if ($format == 'ebook-overdrive' || $format == 'ebook-mediado') {
-				$url .= '&odreadauthurl=' . urlencode($configArray['Site']['url'] . '/Help/OverDriveError');
-			} elseif ($format == 'audiobook-overdrive') {
-				$url .= '&odreadauthurl=' . urlencode($configArray['Site']['url'] . '/Help/OverDriveError');
-			} elseif ($format == 'video-streaming') {
-				$url .= '&errorurl=' . urlencode($configArray['Site']['url'] . '/Help/OverDriveError');
-				$url .= '&streamingauthurl=' . urlencode($configArray['Site']['url'] . '/Help/streamingvideoauth');
-			}
-
-			$response = $this->_callPatronUrl($user, $url, "getDownloadLink");
-			//print_r($response);
-
-			$result = [];
-			$result['success'] = false;
-			$result['message'] = '';
-
-			if (isset($response->links->contentlink)) {
-				$result['success'] = true;
-				$result['message'] = translate([
-					'text' => 'Created Download Link',
-					'isPublicFacing' => true,
-				]);
-				$result['downloadUrl'] = $response->links->contentlink->href;
-				$result['fulfillment'] = "download";
-				$this->incrementStat('numDownloads');
-			} else {
-				$result['message'] = translate([
-					'text' => 'Sorry, but we could not get a download link for you.',
-					'isPublicFacing' => true,
-				]);
-				if (isset($response->message)) {
-					$result['message'] .= "  {$response->message}";
-				}
-				$this->incrementStat('numApiErrors');
-			}
+			$showLibbyPromo = "?appPromoOverride=none";
+		}
+		$downloadRedirectUrl = $this->getDownloadRedirectUrl($user, $overDriveId, $showLibbyPromo);
+		if ($downloadRedirectUrl) {
+			$result['success'] = true;
+			$result['message'] = translate([
+				'text' => 'Select a format',
+				'isPublicFacing' => true,
+			]);
+			$result['modalBody'] = "<iframe src='$downloadRedirectUrl' class='fulfillmentFrame'></iframe>";
+			$result['downloadUrl'] = $downloadRedirectUrl; // for API access
+			$this->incrementStat('numDownloads');
+		} else {
+			$result['message'] = translate([
+				'text' => 'Unable to create download url',
+				'isPublicFacing' => true,
+			]);
 		}
 
 		return $result;
 	}
 
-	function getDownloadRedirectUrl($user, $overDriveId, $showLibbyPromo) {
+	function getDownloadRedirectUrl($user, $overDriveId, $showLibbyPromo)  : ?string {
+		//Figure out which collection the title is on hold in.
+		if (str_contains($overDriveId, '_')){
+			list ($overDriveId, $settingId) = explode('_', $overDriveId);
+			$settings = $this->getAvailableSettings()[$settingId];
+		}else{
+			$settings = $this->getActiveSettings();
+		}
 
-		$url = $this->getSettings()->patronApiUrl . "/v1/patrons/me/checkouts/$overDriveId" . $showLibbyPromo;
-		$response = $this->_callPatronUrl($user, $url, "getDownloadRedirectUrl");
-		if ($response == false) {
+		$url = $settings->patronApiUrl . "/v1/patrons/me/checkouts/$overDriveId" . $showLibbyPromo;
+		$response = $this->_callPatronUrl($settings, $user, $url, "getDownloadRedirectUrl");
+		if ($response === false) {
 			//The user is not authorized to use OverDrive
 			$this->incrementStat('numApiErrors');
-			return [];
+			return null;
 		}
 
-		$apiUrl = $response->links->downloadRedirect->href;
-		if (empty($apiUrl)) {
-			return '';
+		if (!empty($response->links)) {
+			$apiUrl = $response->links->downloadRedirect->href;
+			if (empty($apiUrl)) {
+				return null;
+			}
+			$tokenData = $this->getPatronTokenData($settings, $user, true);
+			$authorizationData = $tokenData->token_type . ' ' . $tokenData->access_token;
+
+			$apiHost = $this->getPatronApiHost($settings);
+
+			$ch = curl_init($apiUrl);
+			curl_setopt($ch, CURLOPT_ENCODING, "");
+			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_AUTOREFERER, true);
+			curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+			curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+			curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
+			curl_setopt($ch, CURLOPT_HEADER, true);
+			curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, [
+				"Authorization: " . $authorizationData,
+				"Host: $apiHost",
+				"Accept: application/json, text/xml, text/html",
+			]);
+
+			$content = curl_exec($ch);
+			$response = curl_getinfo($ch);
+			$header = curl_getinfo($ch, CURLINFO_HEADER_OUT);
+			$headers = explode("\n", $header);
+			curl_close($ch);
+
+			if ($response['http_code'] == 301 || $response['http_code'] == 302) {
+				ini_set("user_agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; rv:1.7.3) Gecko/20041001 Firefox/0.10.1");
+				ExternalRequestLogEntry::logRequest('overdrive.getDownloadRedirectUrl', 'GET', $apiUrl, $headers, false, $response['http_code'], $content, []);
+				return $response['redirect_url'];
+			}
+
+			if (preg_match("/window\.location\.replace\('(.*)'\)/i", $content, $value) || preg_match('/window\.location="(.*)"/i', $content, $value)) {
+				ExternalRequestLogEntry::logRequest('overdrive.getDownloadRedirectUrl', 'GET', $apiUrl, $headers, false, $response['http_code'], $content, []);
+				return $response['redirect_url'];
+			} else {
+				ExternalRequestLogEntry::logRequest('overdrive.getDownloadRedirectUrl', 'GET', $apiUrl, $headers, false, $response['http_code'], $content, []);
+				return $response['url'];
+			}
+		}else{
+			return null;
 		}
-		$tokenData = $this->getPatronTokenData($user, true);
-		$authorizationData = $tokenData->token_type . ' ' . $tokenData->access_token;
-
-		$apiHost = $this->getPatronApiHost();
-
-		$ch = curl_init($apiUrl);
-		curl_setopt($ch, CURLOPT_ENCODING, "");
-		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_AUTOREFERER, true);
-		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-		curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-		curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
-		curl_setopt($ch, CURLOPT_HEADER, true);
-		curl_setopt($ch, CURLINFO_HEADER_OUT, true);
-		curl_setopt($ch, CURLOPT_HTTPHEADER, [
-			"Authorization: " . $authorizationData,
-			"Host: $apiHost",
-			"Accept: application/json, text/xml, text/html",
-		]);
-
-		$content = curl_exec($ch);
-		$response = curl_getinfo($ch);
-		$header = curl_getinfo($ch, CURLINFO_HEADER_OUT);
-		$headers = explode("\n", $header);
-		curl_close($ch);
-
-		if ($response['http_code'] == 301 || $response['http_code'] == 302) {
-			ini_set("user_agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; rv:1.7.3) Gecko/20041001 Firefox/0.10.1");
-			ExternalRequestLogEntry::logRequest('overdrive.getDownloadRedirectUrl', 'GET', $apiUrl, $headers, false, $response['http_code'], $content, []);
-			return $response['redirect_url'];
-		}
-
-		if (preg_match("/window\.location\.replace\('(.*)'\)/i", $content, $value) || preg_match("/window\.location\=\"(.*)\"/i", $content, $value)) {
-			ExternalRequestLogEntry::logRequest('overdrive.getDownloadRedirectUrl', 'GET', $apiUrl, $headers, false, $response['http_code'], $content, []);
-			return $response['redirect_url'];
-		} else {
-			ExternalRequestLogEntry::logRequest('overdrive.getDownloadRedirectUrl', 'GET', $apiUrl, $headers, false, $response['http_code'], $content, []);
-			return $response['url'];
-		}
-
 	}
 
 	public function hasNativeReadingHistory(): bool {
@@ -1533,34 +1588,31 @@ class OverDriveDriver extends AbstractEContentDriver {
 
 	/**
 	 * Renew all titles currently checked out to the user.
-	 * This is not currently implemented
-	 *
-	 * @param $patron  User
-	 * @return mixed
+	 * This is not currently implemented for OverDrive
 	 */
-	public function renewAll(User $patron) {
+	public function renewAll(User $patron) : array|false {
 		return false;
 	}
 
 	/**
 	 * Renew a single title currently checked out to the user
 	 *
-	 * @param $patron     User
-	 * @param $recordId   string
-	 * @return mixed
+	 * If the library has multiple OverDrive collections available, the driver should have the active settings
+	 * set using a call to setSettings before calling this method.
 	 */
-	function renewCheckout($patron, $recordId, $itemId = null, $itemIndex = null) {
+	function renewCheckout($patron, $recordId, $itemId = null, $itemIndex = null) : array {
+		$settings = $this->getActiveSettings();
+
 		//To renew, we actually just place another hold on the title.
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me/holds/' . $recordId;
+		$url = $settings->patronApiUrl . '/v1/patrons/me/holds/' . $recordId;
 		$params = [
 			'reserveId' => $recordId,
 			'emailAddress' => trim((empty($patron->overdriveEmail) ? $patron->email : $patron->overdriveEmail)),
 		];
-		$response = $this->_callPatronUrl($patron, $url, "renewCheckout", $params);
+		$response = $this->_callPatronUrl($settings, $patron, $url, "renewCheckout", $params);
 
 		$holdResult = [];
 		$holdResult['success'] = false;
-		$holdResult['message'] = '';
 
 		if (isset($response->holdListPosition)) {
 			$this->trackUserUsageOfOverDrive($patron);
@@ -1593,7 +1645,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				'isPublicFacing' => true,
 			]);
 			if (isset($response->message)) {
-				$holdResult['message'] .= "  {$response->message}";
+				$holdResult['message'] .= "  $response->message";
 			}
 
 			// Result for API or app use
@@ -1606,7 +1658,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				'isPublicFacing' => true,
 			]);
 			if (isset($response->message)) {
-				$holdResult['api']['message'] .= "  {$response->message}";
+				$holdResult['api']['message'] .= "  $response->message";
 			}
 
 			$this->incrementStat('numApiErrors');
@@ -1624,7 +1676,6 @@ class OverDriveDriver extends AbstractEContentDriver {
 		$userUsage = new UserOverDriveUsage();
 		$userOverDriveTracking = $user->userCookiePreferenceLocalAnalytics;
 		global $aspenUsage;
-		global $library;
 		$userUsage->instance = $aspenUsage->getInstance();
 		$userUsage->userId = $user->id;
 		$userUsage->year = date('Y');
@@ -1683,13 +1734,16 @@ class OverDriveDriver extends AbstractEContentDriver {
 		}
 	}
 
-	function getOptions(User $patron) {
-		if (!$this->isUserValidForOverDrive($patron)) {
+	function getOptions(User $patron) : array {
+		$settings = $this->getActiveSettings();
+
+		if (!$this->isUserValidForOverDrive($settings, $patron)) {
 			return [];
 		}
-		$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me';
-		$response = $this->_callPatronUrl($patron, $url, "getOptions");
-		if ($response == false) {
+
+		$url = $settings->patronApiUrl . '/v1/patrons/me';
+		$response = $this->_callPatronUrl($settings, $patron, $url, "getOptions");
+		if ($response === false) {
 			//The user is not authorized to use OverDrive
 			return [];
 		} else {
@@ -1725,7 +1779,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 
 						$options['lendingPeriods'][$formatClass]['options'] = $lendingPeriodField->options;
 
-						if($formatClass == 'Magazines') {
+						if ($formatClass == 'Magazines') {
 							unset($options['lendingPeriods'][$formatClass]);
 						}
 					}
@@ -1735,31 +1789,34 @@ class OverDriveDriver extends AbstractEContentDriver {
 		return $options;
 	}
 
-	function updateOptions(User $patron) {
-		if (!$this->isUserValidForOverDrive($patron)) {
-			return false;
-		}
+	function updateOptions(User $patron) : bool {
+		$settingsToUpdate = $patron->getHomeLibrary()->getOverdriveSettings();
+		foreach ($settingsToUpdate as $overDriveSetting) {
+			if ($this->isUserValidForOverDrive($overDriveSetting, $patron)) {
+				$existingOptions = $this->getOptions($patron);
+				foreach ($existingOptions['lendingPeriods'] as $lendingPeriod) {
+					if ($_REQUEST[$lendingPeriod['formatType'] . '_' . $overDriveSetting->id] != $lendingPeriod['lendingPeriod']) {
+						$url = $overDriveSetting->patronApiUrl . '/v1/patrons/me';
 
-		$existingOptions = $this->getOptions($patron);
-		foreach ($existingOptions['lendingPeriods'] as $lendingPeriod) {
-			if ($_REQUEST[$lendingPeriod['formatType']] != $lendingPeriod['lendingPeriod']) {
-				$url = $this->getSettings()->patronApiUrl . '/v1/patrons/me';
+						$formatClass = $lendingPeriod['formatType'];
+						if ($formatClass == 'Magazines') {
+							$formatClass = 'magazine-overdrive';
+						}
+						$params = [
+							'formatClass' => strtolower($formatClass),
+							'lendingPeriodDays' => $_REQUEST[$lendingPeriod['formatType'] . '_' . $overDriveSetting->id],
+						];
+						/** @noinspection PhpUnusedLocalVariableInspection */
+						$response = $this->_callPatronUrl($overDriveSetting, $patron, $url, "updateOptions", $params, 'PUT');
 
-				$formatClass = $lendingPeriod['formatType'];
-				if ($formatClass == 'Magazines') {
-					$formatClass = 'magazine-overdrive';
-				}
-				$params = [
-					'formatClass' => strtolower($formatClass),
-					'lendingPeriodDays' => $_REQUEST[$lendingPeriod['formatType']],
-				];
-				$response = $this->_callPatronUrl($patron, $url, "updateOptions", $params, 'PUT');
-
-				if ($this->lastHttpCode != 204) {
-					return false;
+						if ($this->lastHttpCode != 204) {
+							return false;
+						}
+					}
 				}
 			}
 		}
+
 		$this->incrementStat('numOptionsUpdates');
 		return true;
 	}
@@ -1807,10 +1864,10 @@ class OverDriveDriver extends AbstractEContentDriver {
 					}
 				}
 			}
-		} elseif ($curTitle->isFormatLockedIn == false && isset($curTitle->actions->format)) {
+		} elseif (!$curTitle->isFormatLockedIn && isset($curTitle->actions->format)) {
 			foreach ($curTitle->actions->format->fields as $curFieldIndex => $curField) {
 				if (isset($curField->options)) {
-					foreach ($curField->options as $index => $format) {
+					foreach ($curField->options as $format) {
 						if ($format == 'ebook-overdrive' || $format == 'ebook-mediado') {
 							$bookshelfItem->overdriveRead = true;
 						} elseif ($format == 'audiobook-overdrive') {
@@ -1851,46 +1908,29 @@ class OverDriveDriver extends AbstractEContentDriver {
 		if (isset($curTitle->actions->format) && empty($bookshelfItem->selectedFormatValue)) {
 			//Get the options for the format which includes the valid formats
 			$formatField = null;
-			foreach ($curTitle->actions->format->fields as $curFieldIndex => $curField) {
+			foreach ($curTitle->actions->format->fields as $curField) {
 				if ($curField->name == 'formatType') {
 					$formatField = $curField;
 					break;
 				}
 			}
 			if (isset($formatField->options)) {
-				foreach ($formatField->options as $index => $format) {
+				foreach ($formatField->options as $format) {
 					$curFormat = [];
 					$curFormat['id'] = $format;
 					$curFormat['name'] = $this->getFormatMap()[$format];
 					$bookshelfItem->formats[] = $curFormat;
 				}
-				//}else{
-				//No formats found for the title, do we need to do anything special?
 			}
 		}
 		return $bookshelfItem;
 	}
 
-	/**
-	 * @param OverDriveSetting $activeSetting
-	 * @param OverDriveScope $activeScope
-	 */
-	public function setSettings($activeSetting, $activeScope) {
+	public function setSettings(OverDriveSetting $activeSetting) : void {
 		$this->settings = $activeSetting;
-		$this->scope = $activeScope;
-		if (empty($this->scope->clientKey)) {
-			$this->clientKey = $this->settings->clientKey;
-		} else {
-			$this->clientKey = $this->scope->clientKey;
-		}
-		if (empty($this->scope->clientSecret)) {
-			$this->clientSecret = $this->settings->clientSecret;
-		} else {
-			$this->clientSecret = $this->scope->clientSecret;
-		}
 	}
 
-	function incrementStat(string $fieldName) {
+	function incrementStat(string $fieldName) : void {
 		require_once ROOT_DIR . '/sys/OverDrive/OverDriveStats.php';
 		$axis360Stats = new OverDriveStats();
 		global $aspenUsage;
@@ -1906,24 +1946,37 @@ class OverDriveDriver extends AbstractEContentDriver {
 		}
 	}
 
-	private function getPatronApiHost() {
-		if ($this->patronApiHost == null) {
-			$patronApiUrl = $this->getSettings()->patronApiUrl;
+	private function getPatronApiHost(OverDriveSetting $settings) : string {
+		if (!isset($this->patronApiHost[$settings->id])) {
+			$patronApiUrl = $settings->patronApiUrl;
+			/** @noinspection HttpUrlsUsage */
 			$patronApiHost = str_replace('http://', '', $patronApiUrl);
-			$this->patronApiHost = str_replace('https://', '', $patronApiHost);
+			$this->patronApiHost[$settings->id] = str_replace('https://', '', $patronApiHost);
 		}
-		return $this->patronApiHost;
+		return $this->patronApiHost[$settings->id];
 	}
 
-	private function getOverDriveApiHost() {
-		if ($this->overdriveApiHost == null) {
-			$patronApiHost = $this->getPatronApiHost();
-			if (strpos($patronApiHost, 'integration') !== false) {
-				$this->overdriveApiHost = 'integration.api.overdrive.com';
+	private function getOverDriveApiHost(OverDriveSetting $settings) : string {
+		if (!isset($this->overdriveApiHost[$settings->id])) {
+			$patronApiHost = $this->getPatronApiHost($settings);
+			if (str_contains($patronApiHost, 'integration')) {
+				$this->overdriveApiHost[$settings->id] = 'integration.api.overdrive.com';
 			} else {
-				$this->overdriveApiHost = 'api.overdrive.com';
+				$this->overdriveApiHost[$settings->id] = 'api.overdrive.com';
 			}
 		}
-		return $this->overdriveApiHost;
+		return $this->overdriveApiHost[$settings->id];
+	}
+
+	private function getClientAuthString(OverDriveSetting $settings, ?LibraryOverDriveSettings $librarySettings) : ?string {
+		if (empty($librarySettings->clientKey) || empty($librarySettings->clientSecret)) {
+			if (empty($settings->clientSecret) || empty($settings->clientKey)) {
+				return null;
+			}else{
+				return $settings->clientKey . ':' . $settings->clientSecret;
+			}
+		}else{
+			return $librarySettings->clientKey . ':' . $librarySettings->clientSecret;
+		}
 	}
 }

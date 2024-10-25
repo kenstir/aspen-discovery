@@ -237,7 +237,7 @@ class Grouping_Manifestation {
 				if ($variation->isEContent() && !in_array($variation->econtentSource, $selectedEcontentSources)) {
 					$variation->setHideByDefault(true);
 				}
-				if (!$variation->isEcontent() && empty($selectedFormat)) {
+				if (!$variation->isEContent() && empty($selectedFormat)) {
 					$variation->setHideByDefault(true);
 				}
 			}
@@ -297,6 +297,20 @@ class Grouping_Manifestation {
 		return $this->_isEContent;
 	}
 
+	public function showCopySummary() : bool {
+		if (!$this->_isEContent) {
+			return true;
+		}else{
+			//For eContent, we will only show if there is more than one item
+			foreach ($this->_relatedRecords as $record) {
+				if (count($record->getItems()) > 1) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * @return string
 	 */
@@ -318,7 +332,7 @@ class Grouping_Manifestation {
 	/**
 	 * @return array
 	 */
-	function getItemSummary() {
+	function getItemSummary() : array {
 		if ($this->_itemSummary == null) {
 			global $timer;
 			require_once ROOT_DIR . '/sys/Utils/GroupingUtils.php';

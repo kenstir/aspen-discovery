@@ -8,8 +8,8 @@
 		{* Display Title *}
 		<h1>
 			{$recordDriver->getTitle()|removeTrailingPunctuation|escape}{if $recordDriver->getSubtitle()}: {$recordDriver->getSubtitle()|removeTrailingPunctuation|escape}{/if}
-			{if $recordDriver->getFormats()}
-				<br><small>({implode subject=$recordDriver->getFormats() glue=", "})</small>
+			{if $recordDriver->getOverDriveFormats()}
+				<br><small>({implode subject=$recordDriver->getOverDriveFormats() glue=", "})</small>
 			{/if}
 		</h1>
 

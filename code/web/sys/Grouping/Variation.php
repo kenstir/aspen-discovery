@@ -7,7 +7,7 @@ class Grouping_Variation {
 	public $databaseId;
 	public $label;
 	public $language;
-	public $isEcontent = false;
+	public $isEContent = false;
 	public $econtentSource = '';
 
 	/** @var Grouping_Record[] */
@@ -28,12 +28,12 @@ class Grouping_Variation {
 	 */
 	public function __construct($record) {
 		if (is_array($record)) {
-			$this->isEcontent = $record['eContentSource'] != null;
+			$this->isEContent = $record['eContentSource'] != null;
 			$this->econtentSource = $record['eContentSource'];
 			$this->language = $record['language'] == null ? 'Unknown' : $record['language'];
 			$this->databaseId = $record['id'];
 		} else {
-			$this->isEcontent = $record->isEContent();
+			$this->isEContent = $record->isEContent();
 			$this->econtentSource = $record->getEContentSource();
 			$this->language = $record->language;
 		}
@@ -45,7 +45,7 @@ class Grouping_Variation {
 		} else {
 			$this->label = '';
 		}
-		if ($this->language != 'English' || !$this->isEcontent) {
+		if ($this->language != 'English' || !$this->isEContent) {
 			$this->label .= translate([
 				'text' => $this->language,
 				'isPublicFacing' => true,
@@ -63,15 +63,15 @@ class Grouping_Variation {
 	/**
 	 * @return Grouping_Record[]
 	 */
-	public function getRecords() {
+	public function getRecords() : array {
 		return $this->_records;
 	}
 
-	public function isValidForRecord(Grouping_Record $record) {
-		if ($record->isEContent() != $this->isEcontent) {
+	public function isValidForRecord(Grouping_Record $record) : bool {
+		if ($record->isEContent() != $this->isEContent) {
 			return false;
 		}
-		if ($this->isEcontent && ($this->econtentSource != $record->getEContentSource())) {
+		if ($this->isEContent && ($this->econtentSource != $record->getEContentSource())) {
 			return false;
 		}
 		if ($record->language != $this->language) {
@@ -256,13 +256,14 @@ class Grouping_Variation {
 	/**
 	 * @return array
 	 */
-	function getItemSummary() {
+	function getItemSummary() : array {
 		if ($this->_itemSummary == null) {
 			global $timer;
 			require_once ROOT_DIR . '/sys/Utils/GroupingUtils.php';
 			$itemSummary = [];
 			foreach ($this->_records as $record) {
-				$itemSummary = mergeItemSummary($itemSummary, $record->getItemSummary($this->databaseId));
+				$recordSummary = $record->getItemSummary($this->databaseId);
+				$itemSummary = mergeItemSummary($itemSummary, $recordSummary);
 			}
 			$this->_itemSummary = $itemSummary;
 			$timer->logTime("Got item summary for variation");
@@ -307,6 +308,20 @@ class Grouping_Variation {
 	}
 
 	function isEContent() {
-		return $this->isEcontent;
+		return $this->isEContent;
+	}
+
+	public function showCopySummary() : bool {
+		if (!$this->isEContent) {
+			return true;
+		}else{
+			//For eContent, we will only show if there is more than one item
+			foreach ($this->_records as $record) {
+				if (count($record->getItems()) > 1) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }

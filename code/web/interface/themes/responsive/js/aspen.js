@@ -5564,7 +5564,7 @@ AspenDiscovery.Account = (function () {
 
 		/**
 		 * Do an ajax process, but only if the user is logged in.
-		 * If the user is not logged in, force them to login and then do the process.
+		 * If the user is not logged in, force them to log in and then do the process.
 		 * Can also be called without the ajax callback to just login and not go anywhere
 		 *
 		 * @param trigger
@@ -13271,6 +13271,7 @@ AspenDiscovery.OverDrive = (function(){
 			//Prompt the user for the date they want to reactivate the hold
 			params['method'] = 'getReactivationDateForm'; // set method for this form
 			$.getJSON(url, params, function(data){
+				// noinspection JSUnresolvedReference
 				AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons)
 			}).error(AspenDiscovery.ajaxFail);
 		},
@@ -13316,12 +13317,15 @@ AspenDiscovery.OverDrive = (function(){
 		getCheckOutPrompts: function(overDriveId){
 			var url = Globals.path + "/OverDrive/" + overDriveId + "/AJAX?method=getCheckOutPrompts";
 			var result = true;
+			//This runs synchronously so we can return the data
 			$.ajax({
 				url: url,
 				cache: false,
 				success: function(data){
 					result = data;
+					// noinspection JSUnresolvedReference
 					if (data.promptNeeded){
+						// noinspection JSUnresolvedReference
 						AspenDiscovery.showMessageWithButtons(data.promptTitle, data.prompts, data.buttons);
 					}
 				},
@@ -13331,20 +13335,22 @@ AspenDiscovery.OverDrive = (function(){
 					AspenDiscovery.showMessage('An Error occurred', "An error occurred processing your request in OverDrive.  Please try again in a few minutes.");
 				}
 			});
+			// noinspection JSUnresolvedReference
 			return result;
 		},
 
 		checkOutTitle: function(overDriveId){
 			if (Globals.loggedIn){
-				//Get any prompts needed for placing holds (email and format depending on the interface.
-				var promptInfo = AspenDiscovery.OverDrive.getCheckOutPrompts(overDriveId, 'hold');
+				//Get any prompts needed for checking the title out.
+				var promptInfo = AspenDiscovery.OverDrive.getCheckOutPrompts(overDriveId);
+				// noinspection JSUnresolvedReference
 				if (!promptInfo.promptNeeded){
 					AspenDiscovery.OverDrive.doOverDriveCheckout(promptInfo.patronId, overDriveId);
 				}
 			}else{
 				AspenDiscovery.Account.ajaxLogin(null, function(){
 					AspenDiscovery.OverDrive.checkOutTitle(overDriveId);
-				});
+				}, true);
 			}
 			return false;
 		},
@@ -13367,6 +13373,7 @@ AspenDiscovery.OverDrive = (function(){
 							AspenDiscovery.showMessageWithButtons("Title Checked Out Successfully", data.message, data.buttons);
 							AspenDiscovery.Account.loadMenuData();
 						}else{
+							// noinspection JSUnresolvedReference
 							if (data.noCopies === true){
 								AspenDiscovery.closeLightbox();
 								var ret = confirm(data.message);
@@ -13398,9 +13405,11 @@ AspenDiscovery.OverDrive = (function(){
 				url: url,
 				cache: false,
 				success: function(data){
+					// noinspection JSUnresolvedReference
 					if (data.availableForCheckout){
-						AspenDiscovery.OverDrive.doOverDriveCheckout(patronId, overdriveId);
+						AspenDiscovery.OverDrive.doOverDriveCheckout(patronId, overDriveId);
 					}else{
+						// noinspection JSUnresolvedReference
 						AspenDiscovery.showMessage("Placed Hold", data.message, !data.hasWhileYouWait);
 						AspenDiscovery.Account.loadMenuData();
 					}
@@ -13419,21 +13428,11 @@ AspenDiscovery.OverDrive = (function(){
 				url: ajaxUrl,
 				cache: false,
 				success: function(data){
-					if (data.success && data.fulfillment == "download"){
-						//Reload the page
-						var win = window.open(data.downloadUrl, '_blank');
-						win.focus();
-						//window.location.href = data.downloadUrl ;
+					if (data.success){
+						// noinspection JSUnresolvedReference
+						AspenDiscovery.showMessageWithButtons(data.message, data.modalBody, data.modalButtons);
 					}else{
-						AspenDiscovery.showMessage('An Error occurred', data.message);
-					}
-
-					if (data.success && data.fulfillment == "redirect") {
-						if (data.success){
-							AspenDiscovery.showMessageWithButtons(data.message, data.modalBody, data.modalButtons);
-						}else{
-							AspenDiscovery.showMessage('Error', data.message);
-						}
+						AspenDiscovery.showMessage('Error', data.message);
 					}
 				},
 				dataType: 'json',
@@ -13453,7 +13452,9 @@ AspenDiscovery.OverDrive = (function(){
 				success: function(data){
 					if (data.success){
 						result = data;
+						// noinspection JSUnresolvedReference
 						if (data.promptNeeded){
+							// noinspection JSUnresolvedReference
 							AspenDiscovery.showMessageWithButtons(data.promptTitle, data.prompts, data.buttons);
 						}
 					}else{
@@ -13472,15 +13473,17 @@ AspenDiscovery.OverDrive = (function(){
 
 		placeHold: function(overDriveId){
 			if (Globals.loggedIn){
-				//Get any prompts needed for placing holds (email and format depending on the interface.
-				var promptInfo = AspenDiscovery.OverDrive.getOverDriveHoldPrompts(overDriveId, 'hold');
+				//Get any prompts needed for placing holds (email and format) depending on the interface.
+				var promptInfo = AspenDiscovery.OverDrive.getOverDriveHoldPrompts(overDriveId);
+				// noinspection JSUnresolvedReference
 				if (promptInfo !== false && !promptInfo.promptNeeded){
+					// noinspection JSUnresolvedReference
 					AspenDiscovery.OverDrive.doOverDriveHold(promptInfo.patronId, overDriveId, promptInfo.overdriveEmail, promptInfo.promptForOverdriveEmail);
 				}
 			}else{
 				AspenDiscovery.Account.ajaxLogin(null, function(){
 					AspenDiscovery.OverDrive.placeHold(overDriveId);
-				});
+				}, true);
 			}
 			return false;
 		},
@@ -13546,44 +13549,13 @@ AspenDiscovery.OverDrive = (function(){
 			return false;
 		},
 
-		selectOverDriveDownloadFormat: function(patronId, overDriveId, time){
-			var selectedOption = $("#downloadFormat_" + overDriveId + "_" + time + " option:selected");
-			var selectedFormatId = selectedOption.val();
-			var selectedFormatText = selectedOption.text();
-			// noinspection EqualityComparisonWithCoercionJS
-			if (selectedFormatId == -1){
-				alert("Please select a format to download.");
-			}else{
-				if (confirm("Are you sure you want to download the " + selectedFormatText + " format? You cannot change format after downloading.")){
-					var ajaxUrl = Globals.path + "/OverDrive/AJAX?method=selectOverDriveDownloadFormat&patronId=" + patronId + "&overDriveId=" + overDriveId + "&formatId=" + selectedFormatId;
-					$.ajax({
-						url: ajaxUrl,
-						cache: false,
-						success: function(data){
-							if (data.success){
-								//Reload the page
-								window.location.href = data.downloadUrl;
-							}else{
-								AspenDiscovery.showMessage("Error Selecting Format", data.message);
-							}
-						},
-						dataType: 'json',
-						async: false,
-						error: function(){
-							AspenDiscovery.showMessage("Error Selecting Format", "An error occurred processing your request in OverDrive.  Please try again in a few minutes.");
-						}
-					});
-				}
-			}
-			return false;
-		},
-
 		getStaffView: function (id) {
 			var url = Globals.path + "/OverDrive/" + id + "/AJAX?method=getStaffView";
 			$.getJSON(url, function (data){
 				if (!data.success){
 					AspenDiscovery.showMessage('Error', data.message);
 				}else{
+					// noinspection JSUnresolvedReference
 					$("#staffViewPlaceHolder").replaceWith(data.staffView);
 				}
 			});
@@ -13593,6 +13565,7 @@ AspenDiscovery.OverDrive = (function(){
 			var url = Globals.path + "/OverDrive/" + overdriveId + "/AJAX?method=getPreview&formatId=" + formatId + "&sampleNumber=" + sampleNumber;
 			$.getJSON(url, function (data){
 				if (data.success){
+					// noinspection JSUnresolvedReference
 					AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons);
 				}else{
 					AspenDiscovery.showMessage('Error', data.message);
@@ -13603,7 +13576,8 @@ AspenDiscovery.OverDrive = (function(){
 		getLargeCover: function (id){
 			var url = Globals.path + '/OverDrive/' + id + '/AJAX?method=getLargeCover';
 			$.getJSON(url, function (data){
-					AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons);
+				// noinspection JSUnresolvedReference
+				AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons);
 				}
 			);
 			return false;

@@ -5,8 +5,6 @@ import com.turning_leaf_technologies.logging.BaseIndexingLogEntry;
 import com.turning_leaf_technologies.strings.AspenStringUtils;
 import org.apache.logging.log4j.Logger;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.StringUtils;
-import org.marc4j.marc.DataField;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -1446,7 +1444,6 @@ public abstract class AbstractGroupedWorkSolr {
 	}
 
 	public synchronized void saveRecordsToDatabase(long groupedWorkId) {
-		//groupedWorkIndexer.disableAutoCommit();
 		//Get a list of all existing records for the grouped work
 		HashMap<String, SavedRecordInfo> existingRecords = groupedWorkIndexer.getExistingRecordsForGroupedWork(groupedWorkId);
 		HashMap<VariationInfo, Long> existingVariations = groupedWorkIndexer.getExistingVariationsForGroupedWork(groupedWorkId);
@@ -1455,7 +1452,7 @@ public abstract class AbstractGroupedWorkSolr {
 		for (RecordInfo recordInfo : relatedRecords.values()){
 			//Don't look at format since that is causing records to be deleted incorrectly
 			//long formatId = groupedWorkIndexer.getFormatId(recordInfo.getPrimaryFormat());
-			String relatedRecordKey = groupedWorkIndexer.getSourceId(recordInfo.getSource(), recordInfo.getSubSource()) + ":" + recordInfo.getRecordIdentifier(); // + ":" + formatId;
+			String relatedRecordKey = groupedWorkIndexer.getSourceId(recordInfo.getSource(), recordInfo.getSubSource(), 1) + ":" + recordInfo.getRecordIdentifier(); // + ":" + formatId;
 			SavedRecordInfo savedRecord = null;
 			if (existingRecords.containsKey(relatedRecordKey)){
 				savedRecord = existingRecords.get(relatedRecordKey);
@@ -1499,7 +1496,6 @@ public abstract class AbstractGroupedWorkSolr {
 				groupedWorkIndexer.removeGroupedWorkVariation(existingVariationId);
 			}
 		}
-		//groupedWorkIndexer.enableAutoCommit();
 	}
 
 	public void addHolds(int numHolds) {

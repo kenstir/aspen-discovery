@@ -12,11 +12,11 @@
 		</div>
 		<div class="col-tn-8 col-xs-8{if empty($viewingCombinedResults)} col-md-5 col-lg-6{/if}">
 			{include file='GroupedWork/statusIndicator.tpl' statusInformation=$relatedManifestation->getStatusInformation() viewingIndividualRecord=0}
-			{if !$relatedManifestation->isEContent()}
+			{if $relatedManifestation->showCopySummary()}
 				{if $relatedManifestation->getNumRelatedRecords() == 1}
-					{include file='GroupedWork/copySummary.tpl' summary=$relatedManifestation->getItemsDisplayedByDefault() totalCopies=$relatedManifestation->getCopies() itemSummaryId=$workId recordViewUrl=$relatedManifestation->getUrl() format=$relatedManifestation->format}
+					{include file='GroupedWork/copySummary.tpl' summary=$relatedManifestation->getItemsDisplayedByDefault() totalCopies=$relatedManifestation->getCopies() itemSummaryId=$workId recordViewUrl=$relatedManifestation->getUrl() format=$relatedManifestation->format isEContent=$relatedManifestation->isEContent()}
 				{else}
-					{include file='GroupedWork/copySummary.tpl' summary=$relatedManifestation->getItemsDisplayedByDefault() totalCopies=$relatedManifestation->getCopies() itemSummaryId=$workId format=$relatedManifestation->format}
+					{include file='GroupedWork/copySummary.tpl' summary=$relatedManifestation->getItemsDisplayedByDefault() totalCopies=$relatedManifestation->getCopies() itemSummaryId=$workId format=$relatedManifestation->format isEContent=$relatedManifestation->isEContent()}
 				{/if}
 			{/if}
 		</div>

@@ -88,7 +88,7 @@ class GroupedWorkDisplaySetting extends DataObject {
 
 	// Use this to set which details will be shown in the Main Details section of the record in the search results.
 	// You should be able to add options here without needing to change the database.
-	// set the key to the desired SMARTY template variable name, set the value to the label to show in the library configuration page
+	// Set the key to the desired SMARTY template variable name, set the value to the label to show in the library configuration page
 	static $searchResultsMainDetailsOptions = [
 		'showSeries' => 'Show Series',
 		'showPublisher' => 'Publisher',
@@ -104,7 +104,7 @@ class GroupedWorkDisplaySetting extends DataObject {
 
 	// Use this to set which details will be shown in the Main Details section of the record view.
 	// You should be able to add options here without needing to change the database.
-	// set the key to the desired SMARTY template variable name, set the value to the label to show in the library configuration page
+	// Set the key to the desired SMARTY template variable name, set the value to the label to show in the library configuration page
 	static $showInMainDetailsOptions = [
 		'showSeries' => 'Series',
 		'showPublicationDetails' => 'Published',
@@ -713,7 +713,7 @@ class GroupedWorkDisplaySetting extends DataObject {
 		$return = parent::fetch();
 		if ($return) {
 			if (!empty($this->showInSearchResultsMainDetails) && is_string($this->showInSearchResultsMainDetails) ) {
-				// convert to array retrieving from database
+				// convert to array retrieving from the database
 				$unSerialized = @unserialize($this->showInSearchResultsMainDetails);
 				if (!empty($unSerialized)) {
 					$this->showInSearchResultsMainDetails = array_combine($unSerialized, $unSerialized);
@@ -726,7 +726,7 @@ class GroupedWorkDisplaySetting extends DataObject {
 			}
 
 			if (!empty($this->showInMainDetails) && is_string($this->showInMainDetails)) {
-				// convert to array retrieving from database
+				// convert to array retrieving from the database
 				try {
 					$unSerialized = unserialize($this->showInMainDetails);
 					if (!empty($unSerialized)) {
@@ -742,9 +742,9 @@ class GroupedWorkDisplaySetting extends DataObject {
 					$logger->log("Error loading GroupedWorkDisplaySetting $this->id $e", Logger::LOG_DEBUG);
 				}
 			} elseif (empty($this->showInMainDetails)) {
-				// when a value is not set, assume set to show all options, e.g. null = all
+				// when a value is not set, assume that we should show all options, e.g., null = all
 				$default = self::$showInMainDetailsOptions;
-				// remove options below that aren't to be part of the default
+				// remove options below that aren't meant to be part of the default
 				unset($default['showISBNs']);
 				unset($default['showLexileInfo']);
 				unset($default['showFountasPinnell']);
@@ -762,12 +762,12 @@ class GroupedWorkDisplaySetting extends DataObject {
 	 */
 	public function update($context = '') {
 		if (isset($this->showInSearchResultsMainDetails) && is_array($this->showInSearchResultsMainDetails)) {
-			// convert array to string before storing in database
+			// convert the array to string before storing in the database
 			$this->showInSearchResultsMainDetails = serialize($this->showInSearchResultsMainDetails);
 		}
 
 		if (isset($this->showInMainDetails) && is_array($this->showInMainDetails)) {
-			// convert array to string before storing in database
+			// convert the array to string before storing in the database
 			$this->showInMainDetails = serialize($this->showInMainDetails);
 		}
 
@@ -787,11 +787,11 @@ class GroupedWorkDisplaySetting extends DataObject {
 	 */
 	public function insert($context = '') {
 		if (isset($this->showInSearchResultsMainDetails) && is_array($this->showInSearchResultsMainDetails)) {
-			// convert array to string before storing in database
+			// convert the array to string before storing in the database
 			$this->showInSearchResultsMainDetails = serialize($this->showInSearchResultsMainDetails);
 		}
 		if (isset($this->showInMainDetails) && is_array($this->showInMainDetails)) {
-			// convert array to string before storing in database
+			// convert the array to string before storing in the database
 			$this->showInMainDetails = serialize($this->showInMainDetails);
 		}
 
@@ -1057,7 +1057,7 @@ class GroupedWorkDisplaySetting extends DataObject {
 	}
 
 	private GroupedWorkFormatSortingGroup|false|null $_formatSortingGroup = false;
-	public function getFormatSortingGroup() {
+	public function getFormatSortingGroup() : ?GroupedWorkFormatSortingGroup {
 		if ($this->_formatSortingGroup === false) {
 			$this->_formatSortingGroup = new GroupedWorkFormatSortingGroup();
 			$this->_formatSortingGroup->id = $this->formatSortingGroupId;

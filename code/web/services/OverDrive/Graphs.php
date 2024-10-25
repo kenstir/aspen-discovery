@@ -6,7 +6,7 @@ require_once ROOT_DIR . '/sys/OverDrive/OverDriveRecordUsage.php';
 require_once ROOT_DIR . '/sys/OverDrive/OverDriveStats.php';
 
 class OverDrive_Graphs extends Admin_Admin {
-	function launch() {
+	function launch() : void {
 		global $interface;
 
 		$readerName = new OverDriveDriver();
@@ -120,7 +120,7 @@ class OverDrive_Graphs extends Admin_Admin {
 		$userUsage->orderBy('year, month');
 		$userUsage->find();
 		while ($userUsage->fetch()) {
-			$curPeriod = "{$userUsage->month}-{$userUsage->year}";
+			$curPeriod = "$userUsage->month-$userUsage->year";
 			$columnLabels[] = $curPeriod;
 			/** @noinspection PhpUndefinedFieldInspection */
 			$dataSeries['Total Usage']['data'][$curPeriod] = $userUsage->sumUsage;
@@ -171,7 +171,7 @@ class OverDrive_Graphs extends Admin_Admin {
 		$stats->orderBy('year, month');
 		$stats->find();
 		while ($stats->fetch()) {
-			$curPeriod = "{$stats->month}-{$stats->year}";
+			$curPeriod = "$stats->month-$stats->year";
 			$dataSeries['Total Holds']['data'][$curPeriod] = $stats->numHoldsPlaced;
 			$dataSeries['Total Failed Holds']['data'][$curPeriod] = $stats->numFailedHolds;
 			$dataSeries['Total Checkouts']['data'][$curPeriod] = $stats->numCheckouts;
@@ -202,9 +202,12 @@ class OverDrive_Graphs extends Admin_Admin {
 		$recordUsage->orderBy('year, month');
 		$recordUsage->find();
 		while ($recordUsage->fetch()) {
-			$curPeriod = "{$stats->month}-{$stats->year}";
+			$curPeriod = "$stats->month-$stats->year";
+			/** @noinspection PhpUndefinedFieldInspection */
 			$dataSeries['Records Used']['data'][$curPeriod] = $recordUsage->numRecordsUsed;
+			/** @noinspection PhpUndefinedFieldInspection */
 			$dataSeries['Total Holds']['data'][$curPeriod] = $recordUsage->numHoldsPlaced;
+			/** @noinspection PhpUndefinedFieldInspection */
 			$dataSeries['Total Checkouts']['data'][$curPeriod] = $recordUsage->numCheckouts;
 		}
 

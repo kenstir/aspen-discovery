@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 
 class UserOverDriveUsage extends DataObject {
@@ -53,7 +53,7 @@ class UserOverDriveUsage extends DataObject {
 		return $links;
 	}
 
-	public function loadEmbeddedLinksFromJSON($jsonData, $mappings, $overrideExisting = 'keepExisting') {
+	public function loadEmbeddedLinksFromJSON($jsonData, $mappings, $overrideExisting = 'keepExisting') : void {
 		parent::loadEmbeddedLinksFromJSON($jsonData, $mappings, $overrideExisting);
 		if (isset($jsonData['user'])) {
 			$username = $jsonData['user'];

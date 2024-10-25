@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 class OverDriveAPIProductIdentifiers extends DataObject {
 	public $__table = 'overdrive_api_product_identifiers';   // table name

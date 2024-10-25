@@ -474,7 +474,7 @@ class SystemAPI extends AbstractAPI {
 			$availableUpdates[$updateName] = $updateToRun;
 			return [
 				'success' => $updateOk,
-				'message' => $updateToRun['status'],
+				'message' => empty($updateToRun['status']) ? 'Status not returned' : $updateToRun['status'],
 			];
 		} else {
 			return [

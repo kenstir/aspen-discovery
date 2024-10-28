@@ -928,7 +928,6 @@ class Koha extends AbstractIlsDriver {
 						$authenticationSuccess = true;
 					} else {
 						$error = $response['content']['error'];
-						$message = $response['content']['message'];
 						if (!empty($response['content']) && !empty($error) && $error == 'Password expired') {
 							$sql = "SELECT borrowernumber, cardnumber, userId, login_attempts from borrowers where cardnumber = '" . mysqli_escape_string($this->dbConnection, $barcode) . "' OR userId = '" . mysqli_escape_string($this->dbConnection, $barcode) . "'";
 	
@@ -977,7 +976,6 @@ class Koha extends AbstractIlsDriver {
 
 					//Technically this is not right, we're using an XML response and thinking it's JSON, but for practical purposes its going to work since we have the same format in the XML and json bodies and everything is clases
 					$jsonResponse = $responseBody;
-					$message = $jsonResponse->message;
 					$error = $jsonResponse->code;
 					ExternalRequestLogEntry::logRequest('koha.patronLogin', 'POST', $apiURL, $this->curlWrapper->getHeaders(), json_encode($postParams), $responseCode, $responseBody->asXML(), ['password' => $password]);
 
@@ -1004,10 +1002,10 @@ class Koha extends AbstractIlsDriver {
 						return $result;
 					}
 				} else {
-					if (isset($message) && strpos($apiURL, '/cgi-bin/koha/ilsdi.pl') !== false) {
+					if (isset($error) && strpos($apiURL, '/cgi-bin/koha/ilsdi.pl') !== false) {
 						global $logger;
 						$logger->log("ILS-DI is disabled", Logger::LOG_ERROR);
-					} else if (isset($message) && strpos($apiURL, "/api/v1/auth/password/validation") !== false) {
+					} else if (isset($error) && strpos($apiURL, "/api/v1/auth/password/validation") !== false) {
 						global $logger;
 						$logger->log("OAuth2 is disabled", Logger::LOG_ERROR);
 					}
@@ -3073,7 +3071,7 @@ class Koha extends AbstractIlsDriver {
 		$result = [
 			'success' => false,
 			'message' => translate([
-				'text' => 'Unable to freeze your hold.',
+				'text' => 'Unable to freeze your hold. ',
 				'isPublicFacing' => true,
 			]),
 		];
@@ -3088,16 +3086,10 @@ class Koha extends AbstractIlsDriver {
 			'isPublicFacing' => true,
 		]);
 
-		$postParams = [];
+		$postParams = (object) [];
 		if (strlen($dateToReactivate) > 0) {
-			$postParams = [];
-			[
-				$year,
-				$month,
-				$day,
-			] = explode('-', $dateToReactivate);
-			$postParams['end_date'] = "$year-$month-$day";	
-		}
+			$postParams['end_date'] = $dateToReactivate;	
+		} 
 
 		$endpoint = "/api/v1/holds/$itemToFreezeId/suspension";
 		$extraHeaders = ['Accept-Encoding: gzip, deflate','x-koha-library: ' .  $patron->getHomeLocationCode()];
@@ -3106,17 +3098,29 @@ class Koha extends AbstractIlsDriver {
 		if ($response) {
 			$holdResponse = $response['content'];
 			if ($response['code'] != 201) {
-				$result['title'] = translate([
-					'text' => 'Hold frozen',
-					'isPublicFacing' => true,
-				]);
-				$result['message'] = translate([
-					'text' => $holdResponse['error'],
-					'isPublicFacing' => true,
-				]);
-				$result['success'] = false;
-				// Result for API or app use
-				$result['api']['message'] = $holdResponse['error'];
+				if (isset($holdResponse['error'])){
+					$result['title'] = translate([
+						'text' => 'Hold frozen',
+						'isPublicFacing' => true,
+					]);
+					$result['message'] = translate([
+						'text' => $holdResponse['error'],
+						'isPublicFacing' => true,
+					]);
+					$result['success'] = false;
+					// Result for API or app use
+					$result['api']['message'] = $holdResponse['error'];
+				} elseif (isset($holdResponse['errors'])) {
+					foreach ($holdResponse['errors'] as $error) {
+						$result['message'] .= translate([
+							'text' => $error['message'],
+							'isPublicFacing' => true,
+						]) . '<br/>';
+					}
+				} else {
+					$result['message'] = $holdResponse;
+				}
+				
 			} else {
 				$result['message'] = translate([
 					'text' => 'Your hold was frozen successfully.',
@@ -4639,6 +4643,13 @@ class Koha extends AbstractIlsDriver {
 		} else {
 			$mandatoryFields = [];
 		}
+
+		if (isset($kohaPreferences['OPACSuggestionUnwantedFields'])) {
+			$unwantedFields = array_flip(explode('|', $kohaPreferences['OPACSuggestionUnwantedFields']));
+		} else {
+			$unwantedFields = [];
+		}
+
 		//Make sure that title is always required
 		$mandatoryFields['title'] = true;
 
@@ -4795,8 +4806,14 @@ class Koha extends AbstractIlsDriver {
 			} else {
 				$field['required'] = false;
 			}
-		}
 
+			if(array_key_exists($field['property'], $unwantedFields) && $field['required'] == false) {
+				unset($fields[array_search($field,$fields)]);
+				# Once you've removed the desired field, you'll need to reindex the array
+				$fields = array_values($fields);
+			}
+		}
+		
 		$interface->assign('submitUrl', '/MaterialsRequest/NewRequestIls');
 		$interface->assign('structure', $fields);
 		$interface->assign('saveButtonText', 'Submit your suggestion');

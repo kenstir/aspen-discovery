@@ -594,6 +594,11 @@ class Admin_AJAX extends JSON_Action {
 							];
 						}
 					}else {
+						if ($fieldStructure['type'] == 'enum') {
+							if (is_array($fieldStructure['values']) && array_key_exists($newValue, $fieldStructure['values'])) {
+								$newValue = $fieldStructure['values'][$newValue];
+							}
+						}
 						return [
 							'success' => true,
 							'title' => 'Success',
@@ -607,7 +612,8 @@ class Admin_AJAX extends JSON_Action {
 							$dataObject->setProperty($selectedField, $newValue, $fieldStructure);
 							$dataObject->update();
 						}
-					}if ($selectedField == "accountLinkingSetting"){ //ToDo: Link to help center
+					}
+					if ($selectedField == "accountLinkingSetting"){ //ToDo: Link to help center
 						if ($newValue == 1){
 							return [
 								'success' => true,
@@ -634,6 +640,11 @@ class Admin_AJAX extends JSON_Action {
 							];
 						}
 					}else {
+						if ($fieldStructure['type'] == 'enum') {
+							if (is_array($fieldStructure['values']) && array_key_exists($newValue, $fieldStructure['values'])) {
+								$newValue = $fieldStructure['values'][$newValue];
+							}
+						}
 						return [
 							'success' => true,
 							'title' => 'Success',
@@ -1664,20 +1675,9 @@ class Admin_AJAX extends JSON_Action {
 		return $result;
 	}
 
-	/*	Aspen API Usage and general Aspen usage use the same graph template and AJAX file,
-		but different services.
-		This is reflected in the following control flow
-	*/
 	public function exportUsageData() {
-		$stat = $_REQUEST['stat'];
-
-		if ($stat == 'runPendingDatabaseUpdates') {
-			require_once ROOT_DIR . '/services/Admin/APIUsageGraphs.php';
-			$aspenUsageGraph = new Admin_APIUsageGraphs();
-		} else {
-			require_once ROOT_DIR . '/services/Admin/UsageGraphs.php';
-			$aspenUsageGraph = new Admin_UsageGraphs();
-		}
+		require_once ROOT_DIR . '/services/Admin/UsageGraphs.php';
+		$aspenUsageGraph = new Admin_UsageGraphs();
 		$aspenUsageGraph->buildCSV();
 	}
 }

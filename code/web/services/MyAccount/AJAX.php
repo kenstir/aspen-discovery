@@ -6031,6 +6031,7 @@ class MyAccount_AJAX extends JSON_Action {
 				$payment->update();
 
 				$postParams = [
+					'udf1' => $payment->id,
 					'accountid' => $snapPaySetting->accountId,
 					'customerid' => $patron->id, // TO DO: ensure correct ID
 					'currencycode' => 'USD', // TO DO: fix this hardcode
@@ -6041,13 +6042,12 @@ class MyAccount_AJAX extends JSON_Action {
 					'enableemailreceipt' => 'Y', // TO DO: allow N too
 					'redirectionurl' => $configArray['Site']['url'] . "/MyAccount/SnapPayComplete", // TO DO: documentation: FISERV pdf has 'redirectionurl'; error has 'redirecturl'; the former appears to be what is needed
 					'signature' => $HmacValue, // TO DO: documentation: FISERV pdf has 'signature'; error has 'Signature'
-					'firstname' => $patron->firstName,
-					'lastname' => $patron->lastName,
-					'addressline1' => $patron->address1,
-					'city' => $patron->city,
-					'state' => $patron->state,
-					'zip' => $patron->zip,
-					'country' => $patron->country,
+					'firstname' => $patron->firstname,
+					'lastname' => $patron->lastname,
+					'addressline1' => $patron->_address1,
+					'city' => $patron->_city,
+					'state' => $patron->_state,
+					'zip' => $patron->_zip,
 					'email' => $patron->email,
 					'phone' => $patron->phone,
 				];
@@ -6065,6 +6065,7 @@ class MyAccount_AJAX extends JSON_Action {
 			}
 		}
 	}
+
 	function createPayPalPayflowOrder() {
 		global $configArray;
 		global $interface;
@@ -7084,7 +7085,6 @@ class MyAccount_AJAX extends JSON_Action {
 				$totalRecords = 0;
 			} else {
 				$userList->id = $listId;
-				$totalRecords = $userList->numValidListItems();
 				if (!$userList->find(true)) {
 					$result['success'] = false;
 					$result['message'] = translate([
@@ -7092,6 +7092,18 @@ class MyAccount_AJAX extends JSON_Action {
 						'isPublicFacing' => true,
 					]);
 					$listOk = false;
+				} else {
+						//Authorization check: Ensure list belongs to logged in user
+					$currentUser = UserAccount::getActiveUserObj();
+					if (!$currentUser->canEditList($userList)) {
+						$result['success'] = false;
+						$result['message'] =translate([
+							'text' => 'You are not authorized to modify this list.',
+							'isPublicFacing' => true,
+						]);
+						return $result;
+					}
+					$totalRecords = $userList->numValidListItems();
 				}
 			}
 

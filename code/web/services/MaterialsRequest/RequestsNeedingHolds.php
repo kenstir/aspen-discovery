@@ -93,9 +93,14 @@ class MaterialsRequest_RequestsNeedingHolds extends ObjectEditor {
 	function customListActions() : array {
 		return [
 			[
+				'label' => 'Check for New Hold Candidates',
+				'action' => 'checkForNewHoldCandidates',
+				'onclick' => "AspenDiscovery.showMessage('" . translate(['text'=>'Checking For New Hold Candidates', 'isAdminFacing'=>true]) . "', '". translate(['text'=>'Checking for new hold candidates, this may take a few minutes.', 'isAdminFacing'=>true]) . "');"
+			],
+			[
 				'label' => 'Place Holds for selected',
 				'action' => 'placeSelectedHolds',
-				'onclick' => "AspenDiscovery.showMessage('" . translate(['text'=>'Placing Holds', 'isAdminFacing'=>true]) . ", ". translate(['text'=>'Placing holds on the selected title(s)', 'isAdminFacing'=>true]) . ")"
+				'onclick' => "AspenDiscovery.showMessage('" . translate(['text'=>'Placing Holds', 'isAdminFacing'=>true]) . "', '". translate(['text'=>'Placing holds on the selected title(s)', 'isAdminFacing'=>true]) . "');"
 			],
 		];
 	}
@@ -104,9 +109,8 @@ class MaterialsRequest_RequestsNeedingHolds extends ObjectEditor {
 		global $interface;
 		//Load status information
 		$materialsRequestStatus = new MaterialsRequestStatus();
-		$materialsRequestStatus->orderBy('holdFailed DESC, holdPlacedSuccessfully DESC, description ASC');
+		$materialsRequestStatus->orderBy('holdNotNeeded DESC, holdFailed DESC, holdPlacedSuccessfully DESC, description ASC');
 		$homeLibrary = Library::getPatronHomeLibrary();
-		$user = UserAccount::getLoggedInUser();
 		if (is_null($homeLibrary)) {
 			//User does not have a home library, this is likely an admin account.  Use the active library
 			global $library;
@@ -145,6 +149,8 @@ class MaterialsRequest_RequestsNeedingHolds extends ObjectEditor {
 							$materialsRequest->holdFailureMessage = $result['message'];
 							$updateMessageIsError = true;
 						}else{
+							$updateMessage .= 'Hold Placed successfully for request ' . $requestId . '<br/>';
+
 							$materialsRequest->holdFailureMessage = '';
 							$materialsRequest->holdsCreated = 1;
 							//Set the status to the correct status showing the hold has been placed
@@ -181,6 +187,25 @@ class MaterialsRequest_RequestsNeedingHolds extends ObjectEditor {
 		$this->viewExistingObjects($objectStructure);
 	}
 
+	/** @noinspection PhpUnused */
+	public function checkForNewHoldCandidates() : void {
+		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestHoldCandidateGenerator.php';
+		global $interface;
+
+		$numRequestsWithNewSuggestions = generateMaterialsRequestsHoldCandidates();
+		if ($numRequestsWithNewSuggestions > 0) {
+			$interface->assign('updateMessage', "$numRequestsWithNewSuggestions requests were updated with new hold suggestions.");
+			$interface->assign('updateMessageIsError', false);
+		}else{
+			$interface->assign('updateMessage', 'No new hold candidates were found');
+			$interface->assign('updateMessageIsError', false);
+		}
+
+		$objectStructure = $this->getObjectStructure();
+		$this->viewExistingObjects($objectStructure);
+	}
+
+	/** @noinspection PhpUnused */
 	function updateRequestStatus()  : void {
 		global $interface;
 		$newStatus = $_REQUEST['newStatus'];
@@ -202,7 +227,7 @@ class MaterialsRequest_RequestsNeedingHolds extends ObjectEditor {
 						$materialsRequest->id = $requestId;
 						if ($materialsRequest->find(true)) {
 							if ($materialsRequest->status != $newStatus) {
-								if ($newStatusObject->holdFailed || $newStatusObject->holdPlacedSuccessfully) {
+								if ($newStatusObject->holdFailed || $newStatusObject->holdPlacedSuccessfully || $newStatusObject->holdNotNeeded) {
 									$materialsRequest->holdsCreated = 1;
 								}
 								$materialsRequest->status = $newStatus;

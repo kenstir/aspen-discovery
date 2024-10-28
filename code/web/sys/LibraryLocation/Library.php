@@ -161,6 +161,8 @@ class Library extends DataObject {
 		$repeatInInnReach;
 	public /** @noinspection PhpUnused */
 		$repeatInWorldCat;
+	public $repeatInCloudSource;
+	public $cloudSourceBaseUrl;
 	public $overDriveScopeId;
 
 	public $hooplaLibraryID;
@@ -247,6 +249,7 @@ class Library extends DataObject {
 	public $bypassReviewQueueWhenUpdatingProfile;
 	public $allowPatronWorkPhoneNumberUpdates;
 	public $showWorkPhoneInProfile;
+	public $showCellphoneInProfile;
 	public $showNoticeTypeInProfile;
 	public $symphonyDefaultPhoneField;
 	public $symphonyNoticeCategoryNumber;
@@ -1939,12 +1942,22 @@ class Library extends DataObject {
 								'readOnly' => false,
 								'permissions' => ['Library ILS Connection'],
 							],
+							'showCellphoneInProfile' => [
+								'property' => 'showCellphoneInProfile',
+								'type' => 'checkbox',
+								'label' => 'Show Cellphone in Profile',
+								'note' => 'Applies to Symphony Only',
+								'description' => 'Whether or not patron profiles include a cellphone number - they can update it if Allow Patron Phone Number Updates is on.',
+								'hideInLists' => true,
+								'default' => 0,
+								'permissions' => ['Library ILS Connection'],
+							],
 							'showNoticeTypeInProfile' => [
 								'property' => 'showNoticeTypeInProfile',
 								'type' => 'checkbox',
 								'label' => 'Show Notice Type in Profile',
 								'description' => 'Whether or not patrons should be able to change how they receive notices in their profile.',
-								'note' => 'For Polaris, prevents setting E-Receipt Option and Deliver Option, for CARL.X shows E-Mail Receipt Options, for Sierra allows the user to choose between Mail, Phone, and Email notices',
+								'note' => 'For Polaris, prevents setting E-Receipt Option and Deliver Option, for CARL.X shows E-Mail Receipt Options, for Sierra allows the user to choose between Mail, Phone, and Email notices, for Symphony, shows notice and billing-notice options if configured',
 								'hideInLists' => true,
 								'default' => 0,
 								'permissions' => ['Library ILS Connection'],
@@ -3794,6 +3807,32 @@ class Library extends DataObject {
 					],
 				],
 			],
+			'cloudSourceSection' => [
+				'property' => 'cloudSourceSection',
+				'type' => 'section',
+				'label' => 'CloudSource',
+				'hideInLists' => true,
+				'renderAsHeading' => true,
+				'helpLink' => '',
+				'properties' => [
+					'repeatInCloudSource' => [
+						'property' => 'repeatInCloudSource',
+						'type' => 'checkbox',
+						'label' => 'Repeat In CloudSource',
+						'description' => 'Turn on to allow repeat search in CloudSource functionality.',
+						'hideInLists' => true,
+					],
+					'cloudSourceBaseUrl' => [
+						'property' => 'cloudSourceBaseUrl',
+						'type' => 'text',
+						'label' => 'CloudSource URL',
+						'description' => 'The base CloudSource URL to use while searching.',
+						'note' => 'Will be similar to https://csclient2.ent.sirsi.net/client/en_US/{customer_name}.',
+						'hideInLists' => true,
+						'size' => '255',
+					],
+				],
+			],
 			'hooplaSection' => [
 				'property' => 'hooplaSection',
 				'type' => 'section',
@@ -5113,16 +5152,18 @@ class Library extends DataObject {
 			if ($homeLibrary != null) {
 				$library->whereAdd("libraryId = $homeLibrary->libraryId");
 			}
-			$user = UserAccount::getActiveUserObj();
-			$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
-			if (!empty($additionalAdministrationLocations)) {
-				$locationsForUser = Location::getLocationListAsObjects(true);
-				$additionalAdministrationLibraries = [];
-				foreach ($locationsForUser as $location) {
-					$additionalAdministrationLibraries[$location->libraryId] = $location->libraryId;
-				}
+			if (UserAccount::isLoggedIn()) {
+				$user = UserAccount::getActiveUserObj();
+				$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
+				if (!empty($additionalAdministrationLocations)) {
+					$locationsForUser = Location::getLocationListAsObjects(true);
+					$additionalAdministrationLibraries = [];
+					foreach ($locationsForUser as $location) {
+						$additionalAdministrationLibraries[$location->libraryId] = $location->libraryId;
+					}
 
-				$library->whereAddIn('libraryId', $additionalAdministrationLibraries, false, 'OR');
+					$library->whereAddIn('libraryId', $additionalAdministrationLibraries, false, 'OR');
+				}
 			}
 		}
 		$library->find();
@@ -5149,16 +5190,18 @@ class Library extends DataObject {
 				if ($homeLibrary != null) {
 					$library->whereAdd("libraryId = $homeLibrary->libraryId");
 				}
-				$user = UserAccount::getActiveUserObj();
-				$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
-				if (!empty($additionalAdministrationLocations)) {
-					$locationsForUser = Location::getLocationListAsObjects(true);
-					$additionalAdministrationLibraries = [];
-					foreach ($locationsForUser as $location) {
-						$additionalAdministrationLibraries[$location->libraryId] = $location->libraryId;
-					}
+				if (UserAccount::isLoggedIn()) {
+					$user = UserAccount::getActiveUserObj();
+					$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
+					if (!empty($additionalAdministrationLocations)) {
+						$locationsForUser = Location::getLocationListAsObjects(true);
+						$additionalAdministrationLibraries = [];
+						foreach ($locationsForUser as $location) {
+							$additionalAdministrationLibraries[$location->libraryId] = $location->libraryId;
+						}
 
-					$library->whereAddIn('libraryId', $additionalAdministrationLibraries, false, 'OR');
+						$library->whereAddIn('libraryId', $additionalAdministrationLibraries, false, 'OR');
+					}
 				}
 			}
 			$library->find();
@@ -5492,7 +5535,9 @@ class Library extends DataObject {
 		$thirdPartyRegistrationLocations = array_merge([
 			'-1' => 'None, Use ILS defaults'
 		], $thirdPartyRegistrationLocations);
-		$structure['ilsSection']['properties']['thirdPartyRegistrationSection']['properties']['thirdPartyRegistrationLocation']['values'] = $thirdPartyRegistrationLocations;
+		if (!empty($structure['ilsSection']['properties']['thirdPartyRegistrationSection']['properties']['thirdPartyRegistrationLocation'])) {
+			$structure['ilsSection']['properties']['thirdPartyRegistrationSection']['properties']['thirdPartyRegistrationLocation']['values'] = $thirdPartyRegistrationLocations;
+		}
 		return $structure;
 	}
 

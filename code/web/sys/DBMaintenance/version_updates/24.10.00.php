@@ -44,6 +44,14 @@ function getUpdates24_10_00(): array {
 				"ALTER TABLE materials_request_status ADD COLUMN holdFailed TINYINT(1) DEFAULT 0",
 			]
 		], //add_hold_options_for_materials_request_statuses
+		'add_hold_not_needed_for_materials_request_statuses' => [
+			'title' => 'Add Hold Not Needed Options for Materials Request Statuses',
+			'description' => 'Add hold not needed option for materials request status',
+			'continueOnError' => false,
+			'sql' => [
+				"ALTER TABLE materials_request_status ADD COLUMN holdNotNeeded TINYINT(1) DEFAULT 0",
+			]
+		], //add_hold_options_for_materials_request_statuses
 		'add_materials_request_format_mapping' => [
 			'title' => 'Add Materials Request Format Mapping',
 			'description' => 'Add new a new table to define mapping between Aspen Materials Request Formats and Aspen Catalog Formats',
@@ -102,16 +110,41 @@ function getUpdates24_10_00(): array {
 			'continueOnError' => false,
 			'sql' => [
 				"UPDATE materials_request_status SET isOpen = 1, checkForHolds = 1 where description='Item purchased' and libraryId = -1",
-				"INSERT INTO materials_request_status (description, sendEmailToPatron, emailTemplate, isOpen, holdPlacedSuccessfully, libraryId) 
+				"INSERT INTO materials_request_status (description, sendEmailToPatron, emailTemplate, isOpen, isPatronCancel, holdPlacedSuccessfully, libraryId) 
 					VALUES ('Hold Placed', 1, '{title} has been received by the library and you have been added to the hold queue. 
 
-Thank you for your purchase suggestion!', 0, 1, -1)",
-				"INSERT INTO materials_request_status (description, sendEmailToPatron, emailTemplate, isOpen, holdFailed, libraryId) 
+Thank you for your purchase suggestion!', 0, 0, 1, -1)",
+				"INSERT INTO materials_request_status (description, sendEmailToPatron, emailTemplate, isOpen, isPatronCancel, holdFailed, libraryId) 
 					VALUES ('Hold Failed', 1, '{title} has been received by the library, however we were not able to add you to the hold queue. Please ensure that your account is in good standing and then visit our catalog to place your hold.
 
-	Thanks', 0, 1, -1)",
+	Thanks', 0, 0, 1, -1)",
 			]
 		], //update_default_request_statuses
+		'update_default_request_statuses_2' => [
+			'title' => 'Update default material request statuses pt 2',
+			'description' => 'Update default material request statuses pt 2',
+			'continueOnError' => false,
+			'sql' => [
+				"INSERT INTO materials_request_status (description, sendEmailToPatron, emailTemplate, isOpen, isPatronCancel, holdNotNeeded, libraryId) 
+					VALUES ('Hold Not Needed', 0, '', 0, 0, 1, -1)",
+			]
+		], //update_default_request_statuses_2
+		'materials_request_hold_candidate_generation_log' => [
+			'title' => 'Materials Request Hold Candidate Generation Log',
+			'description' => 'Create a table to store information about generating hold candidates for materials requests',
+			'sql' => [
+				'CREATE TABLE IF NOT EXISTS materials_request_hold_candidate_generation_log (
+					id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					startTime INT NOT NULL,
+					endTime INT, 
+					numRequestsChecked INT DEFAULT 0,
+					numRequestsWithNewSuggestions INT DEFAULT 0,
+					numSearchErrors INT DEFAULT 0,
+					notes TEXT,
+					index (startTime)
+				) ENGINE INNODB'
+			]
+		], //materials_request_hold_candidate_generation_log
 
 		//mark - Grove DIS-28 Library cost savings
 		'administer_replacement_costs_permission' => [
@@ -233,6 +266,14 @@ Thank you for your purchase suggestion!', 0, 1, -1)",
 		//pedro - PTFS-Europe
 
 		//James Staub - Nashville Public Library
+		'drop_snappayToken_column' => [
+			'title' => 'Drop SnapPay Token column from User Payments',
+			'description' => 'Drop SnapPay Token column from User Payments',
+			'continueOnError' => true,
+			'sql' => [
+				'ALTER TABLE user_payments DROP COLUMN snappayToken',
+			]
+		], //drop_snappayToken_column
 
 		//Jeremy Eden - Howell Carnegie District Library
 		'add_openarchives_dateformatting_field' => [

@@ -95,6 +95,7 @@ class Location extends DataObject {
 	public $repeatInInnReach;
 	public $repeatInWorldCat;
 	public $repeatInShareIt;
+	public $repeatInCloudSource;
 	public $vdxFormId;
 	public $vdxLocation;
 	public $systemsToRepeatIn;
@@ -164,6 +165,7 @@ class Location extends DataObject {
 			'repeatInInnReach',
 			'repeatInWorldCat',
 			'repeatInShareIt',
+			'repeatInCloudSource',
 			'showEmailThis',
 			'showShareOnExternalSites',
 			'showFavorites',
@@ -902,6 +904,14 @@ class Location extends DataObject {
 								'type' => 'checkbox',
 								'label' => 'Repeat In WorldCat',
 								'description' => 'Turn on to allow repeat search in WorldCat functionality.',
+								'hideInLists' => true,
+								'default' => false,
+							],
+							[
+								'property' => 'repeatInCloudSource',
+								'type' => 'checkbox',
+								'label' => 'Repeat In CloudSource',
+								'description' => 'Turn on to allow repeat search in CloudSource functionality.',
 								'hideInLists' => true,
 								'default' => false,
 							],
@@ -2607,13 +2617,15 @@ class Location extends DataObject {
 		$location->orderBy('displayName');
 		if ($restrictByHomeLibrary) {
 			$homeLibrary = Library::getPatronHomeLibrary();
-			$user = UserAccount::getActiveUserObj();
 			if ($homeLibrary != null) {
 				$location->whereAdd("libraryId = $homeLibrary->libraryId");
 			}
-			$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
-			if (!empty($additionalAdministrationLocations)) {
-				$location->whereAddIn('locationId', array_keys($additionalAdministrationLocations), false, 'OR');
+			if (UserAccount::isLoggedIn()) {
+				$user = UserAccount::getActiveUserObj();
+				$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
+				if (!empty($additionalAdministrationLocations)) {
+					$location->whereAddIn('locationId', array_keys($additionalAdministrationLocations), false, 'OR');
+				}
 			}
 		}
 		$selectValue = 'locationId';
@@ -2640,13 +2652,15 @@ class Location extends DataObject {
 			$location->orderBy('displayName');
 			if ($restrictByHomeLibrary) {
 				$homeLibrary = Library::getPatronHomeLibrary();
-				$user = UserAccount::getActiveUserObj();
 				if ($homeLibrary != null) {
 					$location->whereAdd("libraryId = $homeLibrary->libraryId");
 				}
-				$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
-				if (!empty($additionalAdministrationLocations)) {
-					$location->whereAddIn('locationId', array_keys($additionalAdministrationLocations), false, 'OR');
+				if (UserAccount::isLoggedIn()) {
+					$user = UserAccount::getActiveUserObj();
+					$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
+					if (!empty($additionalAdministrationLocations)) {
+						$location->whereAddIn('locationId', array_keys($additionalAdministrationLocations), false, 'OR');
+					}
 				}
 			}
 			$location->find();
@@ -2689,7 +2703,7 @@ class Location extends DataObject {
 	 * @return LibraryTheme[]|null
 	 */
 	public function getThemes(): ?array {
-		if (!isset($this->_themes) && $this->libraryId) {
+		if (!isset($this->_themes) && $this->locationId) {
 			$this->_themes = [];
 			$locationTheme = new LocationTheme();
 			$locationTheme->locationId = $this->locationId;

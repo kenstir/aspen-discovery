@@ -1,15 +1,10 @@
 import React from 'react';
 import _ from 'lodash';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { loadError } from '../../components/loadError';
 import { loadingSpinner } from '../../components/loadingSpinner';
-import { LibrarySystemContext } from '../../context/initialContext';
 import { getTermFromDictionary } from '../../translations/TranslationService';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getBasicRegistrationForm, submitBasicRegistration } from '../../util/api/library';
-import { Platform } from 'react-native';
+import { getSelfRegistrationForm, submitBasicRegistration } from '../../util/api/library';
 
-import { useKeyboard } from '../../util/useKeyboard';
 import { ScrollView, Box, Button, Center, FormControl, Input, Text } from 'native-base';
 
 export const SelfRegistration = () => {
@@ -31,7 +26,7 @@ export const SelfRegistration = () => {
 
 	React.useEffect(() => {
 		(async () => {
-			await getBasicRegistrationForm(libraryUrl).then((fields) => {
+			await getSelfRegistrationForm(libraryUrl).then((fields) => {
 				setFields(fields);
 			});
 			setIsLoading(false);

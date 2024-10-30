@@ -37,13 +37,13 @@
 	.overdueSlip.container {
 		border-top: 1px dashed #ccc !important;
 		page-break-inside: avoid !important;
-		width: 7in !important;
-		padding: 0 !important;
-		outline: 1px solid #0f0;
+		width: 8in !important;
+		padding: 10px 0 5px 0 !important;
+		/*outline: 1px solid #0f0;*/
 	}
 	.overdueSlip.container .row {
 		margin: 0 !important;
-		padding: 0 0 0 0 !important;
+		padding: 0 !important;
 	}
 	.patronHeader {
 		font-weight: bold;
@@ -53,26 +53,40 @@
 		overflow: hidden;
 	}
 	.overdueRecordTableMessage {
+		padding: 0 !important;
 	}
 	.overdueRecordContent.card {
+		padding: 10px 0 0 0 !important;
 	}
 	.card-body {
-		outline: #ff00ff 1px solid;
+		/*outline: #ff00ff 1px solid;*/
+		display: flex;
+		flex-wrap: nowrap;
 	}
 	.BOOK_COVER {
-		max-width: .75in;
+		max-height: 100px;
+		min-height: 100px;
+		overflow: hidden;
+		padding: 0 !important;
 	}
-	.BOOK_COVER img {
-		max-width: .7in;
-	}
+	/*.BOOK_COVER img {*/
+	/*	max-width: .7in;*/
+	/*}*/
 	.overdueRecordContentDetails {
+		padding: 0 !important;
+		flex: 1;
+	}
+	.overdueRecordContentDetails div {
 		hyphens: auto;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	.TITLE {
 		flex-wrap: wrap !important;
 	}
 	table#studentReportTable {
-		width: 8in;
+		/*width: 8in;*/
 		margin-left: 0;
 		margin-right: auto;
 		font: inherit;
@@ -90,10 +104,36 @@
 
 	@media print {
 		@page {
-			margin: .5in !important; /* Set the desired margin size */
+			margin: .25in !important; /* Set the desired margin size */
 		}
 
+		.col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6,
+		.col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+			float: left;
+		}
+		.col-md-12 { width: 100%; }
+		.col-md-11 { width: 91.66666667%; }
+		.col-md-10 { width: 83.33333333%; }
+		.col-md-9 { width: 75%; }
+		.col-md-8 { width: 66.66666667%; }
+		.col-md-7 { width: 58.33333333%; }
+		.col-md-6 { width: 50%; }
+		.col-md-5 { width: 41.66666667%; }
+		.col-md-4 { width: 33.33333333%; }
+		.col-md-3 { width: 25%; }
+		.col-md-2 { width: 16.66666667%; }
+		.col-md-1 { width: 8.33333333%; }
 
+		body {
+			margin: 0 !important;
+			padding: 0 !important;
+			/*width: 8in !important;*/
+		}
+		#page-container {
+			/*width: 8in !important;*/
+			margin: 0 !important;
+			padding: 0 !important;
+		}
 		div.breadcrumbs {
 			display: none !important;
 		}
@@ -117,13 +157,13 @@
 		}
 
 
-		/* Chromium + Safari */
-		/* fix for "Print Pages" */
-		@supports (not (-moz-appearance: none)) {
-			tr.overdueSlipContainer {
-				display: block;
-			}
-		}
+		/*!* Chromium + Safari *!*/
+		/*!* fix for "Print Pages" *!*/
+		/*@supports (not (-moz-appearance: none)) {*/
+		/*	tr.overdueSlipContainer {*/
+		/*		display: block;*/
+		/*	}*/
+		/*}*/
 	}
 </style>
 {/literal}
@@ -163,7 +203,7 @@
 									{elseif $showOverdueOnly == "checkedOut"}&nbsp;checked out
 									{elseif $showOverdueOnly == "fees"}&nbsp;billed{/if}
 									.&nbsp;
-									Please return them to your library. This notice was created {$reportDateTime}<br>
+									Return them to your library. This notice was created {$reportDateTime}<br>
 									Check your account online at https://school.library.nashville.org/<br>
 									Read off your fees in October and February! Learn more at https://limitlesslibraries.org/programs
 								</div>
@@ -171,19 +211,15 @@
 							<div class="overdueRecord row d-flex flex-wrap">
 		{assign var=previousPatron value=$dataRow.P_BARCODE}
 	{/if}
-								<div class="overdueRecordContent card col-md-4 mb-4">
+								<div class="overdueRecordContent card col-md-6 mb-4">
 									<div class="overdueRecordContent card-body">
-										<div class="row">
-											<div class="BOOK_COVER col-md-4"><img class="img-fluid" src="{$dataRow.coverUrl}"></div>
-											<div class="overdueRecordContentDetails col-md-8">
-{*												<div class="SYSTEM">{$dataRow.SYSTEM|replace:"1":"NPL"|replace:"2":"MNPS"}</div>*}
-{*												<div class="ITEM_ID">{$dataRow.ITEM}</div>*}
-{*												<div class="CALL_NUMBER">{$dataRow.CALL_NUMBER}</div>*}
+											<div class="BOOK_COVER col-md-3"><img class="img-fluid" src="{$dataRow.coverUrl}"></div>
+											<div class="overdueRecordContentDetails col-md-9">
 												<div class="TITLE">{$dataRow.TITLE|regex_replace:"/ *\/ *$/":""}</div>
-												<div class="DUE_DATE">DUE: {$dataRow.DUE_DATE}</div>
-												<div class="PRICE">{if $showOverdueOnly == "overdue" || $showOverdueOnly == "checkedOut"}PRICE{elseif $showOverdueOnly == "fees"}OWED{/if}: {$dataRow.OWED|regex_replace:"/^ *0\.00$/":"10.00"}</div>
+												<div class="DUE_DATE_AND_PRICE">DUE: {$dataRow.DUE_DATE} {if $showOverdueOnly == "overdue" || $showOverdueOnly == "checkedOut"}PRICE{elseif $showOverdueOnly == "fees"}OWED{/if}: {$dataRow.OWED|regex_replace:"/^ *0\.00$/":"10.00"}</div>
+												<div class="SYSTEM_AND_ITEM_ID">{$dataRow.SYSTEM|replace:"1":"NPL"|replace:"2":"MNPS"} {$dataRow.ITEM}</div>
+												<div class="CALL_NUMBER">{$dataRow.CALL_NUMBER}</div>
 											</div>
-										</div>
 									</div>
 								</div>
 {/foreach}

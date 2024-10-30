@@ -820,55 +820,55 @@ EOT;
         if ($showOverdueOnly == 'checkedOut' || $showOverdueOnly == 'overdue') {
             /** @noinspection SqlResolve */
             $sql = <<<EOT
-                    select
-                      patronbranch.branchcode AS Home_Lib_Code
-                      , patronbranch.branchname AS Home_Lib
-                      , bty_v2.btynumber AS P_Type
-                      , bty_v2.btyname AS Grd_Lvl
-                      , patron_v2.sponsor AS Home_Room
-                      , patron_v2.name AS Patron_Name
-                      , patron_v2.patronid AS P_Barcode
-                      , itembranch.branchgroup AS SYSTEM
-                      , item_v2.cn AS Call_Number
-                      , bbibmap_v2.title AS Title
-                      , to_char(transitem_v2.duedate,'MM/DD/YYYY') AS Due_Date
-                      , item_v2.price AS Owed
-                      , to_char(transitem_v2.duedate,'MM/DD/YYYY') AS Due_Date_Dup
-                      , item_v2.item AS Item
-                      , item_v2.bid AS recordId
-                    from 
-                      bbibmap_v2
-                      , branch_v2 patronbranch
-                      , branch_v2 itembranch
-                      , branchgroup_v2 patronbranchgroup
-                      , branchgroup_v2 itembranchgroup
-                      , bty_v2
-                      , item_v2
-                      , location_v2
-                      , patron_v2
-                      , transitem_v2
-                    where
-                      patron_v2.patronid = transitem_v2.patronid
-                      and patron_v2.bty = bty_v2.btynumber
-                      and transitem_v2.item = item_v2.item
-                      and bbibmap_v2.bid = item_v2.bid
-                      and patronbranch.branchnumber = patron_v2.defaultbranch
-                      and location_v2.locnumber = item_v2.location
-                      and itembranch.branchnumber = transitem_v2.holdingbranch
-                      and itembranchgroup.branchgroup = itembranch.branchgroup
-                      and $statuses
-                      and patronbranch.branchgroup = '2'
-                      and patronbranchgroup.branchgroup = patronbranch.branchgroup
-                      and bty in ('13','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','40','42','46','47','51')
-                      and patronbranch.branchcode = '$location'
-                    order by 
-                      patronbranch.branchcode
-                      , patron_v2.bty
-                      , patron_v2.sponsor
-                      , patron_v2.name
-                      , itembranch.branchgroup
-                      , item_v2.cn
-                      , bbibmap_v2.title
+				select
+					patronbranch.branchcode AS Home_Lib_Code
+					, patronbranch.branchname AS Home_Lib
+					, bty_v2.btynumber AS P_Type
+					, bty_v2.btyname AS Grd_Lvl
+					, patron_v2.sponsor AS Home_Room
+					, patron_v2.name AS Patron_Name
+					, patron_v2.patronid AS P_Barcode
+					, itembranch.branchgroup AS SYSTEM
+					, item_v2.cn AS Call_Number
+					, bbibmap_v2.title AS Title
+					, to_char(transitem_v2.duedate,'MM/DD/YYYY') AS Due_Date
+					, item_v2.price AS Owed
+					, to_char(transitem_v2.duedate,'MM/DD/YYYY') AS Due_Date_Dup
+					, item_v2.item AS Item
+					, item_v2.bid AS recordId
+				from 
+					bbibmap_v2
+					, branch_v2 patronbranch
+					, branch_v2 itembranch
+					, branchgroup_v2 patronbranchgroup
+					, branchgroup_v2 itembranchgroup
+					, bty_v2
+					, item_v2
+					, location_v2
+					, patron_v2
+					, transitem_v2
+				where
+					patron_v2.patronid = transitem_v2.patronid
+					and patron_v2.bty = bty_v2.btynumber
+					and transitem_v2.item = item_v2.item
+					and bbibmap_v2.bid = item_v2.bid
+					and patronbranch.branchnumber = patron_v2.defaultbranch
+					and location_v2.locnumber = item_v2.location
+					and itembranch.branchnumber = transitem_v2.holdingbranch
+					and itembranchgroup.branchgroup = itembranch.branchgroup
+					and $statuses
+					and patronbranch.branchgroup = '2'
+					and patronbranchgroup.branchgroup = patronbranch.branchgroup
+					and bty in ('13','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','40','42','46','47','51')
+					and patronbranch.branchcode = '$location'
+				order by 
+					patronbranch.branchcode
+					, patron_v2.bty
+					, patron_v2.sponsor
+					, patron_v2.name
+					, itembranch.branchgroup
+					, item_v2.cn
+					, bbibmap_v2.title
 EOT;
         } elseif ($showOverdueOnly == 'fees') {
             /** @noinspection SqlResolve */

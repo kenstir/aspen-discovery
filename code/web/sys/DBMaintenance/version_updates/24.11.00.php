@@ -201,3 +201,36 @@ function getUpdates24_11_00(): array {
 
 	];
 }
+
+
+/** @noinspection PhpUnused */
+function fixDuplicateVariations(&$update) : void {
+	global $aspen_db;
+	$numUpdated = 0;
+	$results = $aspen_db->query('SELECT MIN(id) as minId, groupedWorkId, primaryLanguageId, eContentSourceId, formatId, formatCategoryId, count(*) as numRecords FROM `grouped_work_variation` group by groupedWorkId, primaryLanguageId, eContentSourceId, formatId, formatCategoryId having numRecords > 1;', PDO::FETCH_ASSOC);
+	if ($results) {
+		require_once ROOT_DIR . '/sys/Grouping/GroupedWorkVariation.php';
+		while ($row = $results->fetch()){
+			$minId = $row['minId'];
+			$groupedWorkVariation = new GroupedWorkVariation();
+			$groupedWorkVariation->groupedWorkId = $row['groupedWorkId'];
+			$groupedWorkVariation->primaryLanguageId = $row['primaryLanguageId'];
+			$groupedWorkVariation->eContentSourceId = $row['eContentSourceId'];
+			$groupedWorkVariation->formatId = $row['formatId'];
+			$groupedWorkVariation->formatCategoryId = $row['formatCategoryId'];
+			$allVariationIds = $groupedWorkVariation->fetchAll('id', 'id');
+			foreach ($allVariationIds as $variationId) {
+				if ($variationId != $minId) {
+					$aspen_db->query("UPDATE grouped_work_record_items set groupedWorkVariationId = $minId WHERE groupedWorkVariationId = $variationId");
+					$groupedWorkVariation = new GroupedWorkVariation();
+					$groupedWorkVariation->id = $variationId;
+					$groupedWorkVariation->delete();
+					$numUpdated++;
+				}
+			}
+		}
+		$update['success'] = true;
+		$update['status'] = "Updated $numUpdated Variations";
+
+	}
+}

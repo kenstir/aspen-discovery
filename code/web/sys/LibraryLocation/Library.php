@@ -839,6 +839,7 @@ class Library extends DataObject {
 		require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveSettings.php';
 		$libraryOverDriveSettingsStructure = LibraryOverDriveSettings::getObjectStructure($context);
 		unset($libraryOverDriveSettingsStructure['libraryId']);
+		unset($libraryOverDriveSettingsStructure['weight']);
 
 		require_once ROOT_DIR . '/sys/AspenLiDA/NotificationSetting.php';
 		$notificationSetting = new NotificationSetting();
@@ -3828,23 +3829,6 @@ class Library extends DataObject {
 				'renderAsHeading' => true,
 				'permissions' => ['Library Records included in Catalog'],
 				'properties' => [
-					'overDriveScopes' => [
-						'property' => 'overDriveScopes',
-						'type' => 'oneToMany',
-						'label' => "OverDrive Scopes (records to include)",
-						'description' => "The OverDrive records included for each setting",
-						'keyThis' => 'libraryId',
-						'keyOther' => 'libraryId',
-						'subObjectType' => 'LibraryOverDriveScope',
-						'structure' => $libraryOverDriveScopeStructure,
-						'sortable' => true,
-						'storeDb' => true,
-						'allowEdit' => true,
-						'canEdit' => true,
-						'canAddNew' => true,
-						'canDelete' => true,
-						'forcesReindex' => true,
-					],
 					'overDriveSettings' => [
 						'property' => 'overDriveSettings',
 						'type' => 'oneToMany',
@@ -3854,6 +3838,23 @@ class Library extends DataObject {
 						'keyOther' => 'libraryId',
 						'subObjectType' => 'LibraryOverDriveSettings',
 						'structure' => $libraryOverDriveSettingsStructure,
+						'sortable' => true,
+						'storeDb' => true,
+						'allowEdit' => true,
+						'canEdit' => true,
+						'canAddNew' => true,
+						'canDelete' => true,
+						'forcesReindex' => true,
+					],
+					'overDriveScopes' => [
+						'property' => 'overDriveScopes',
+						'type' => 'oneToMany',
+						'label' => "OverDrive Scopes (records to include)",
+						'description' => "The OverDrive records included for each setting",
+						'keyThis' => 'libraryId',
+						'keyOther' => 'libraryId',
+						'subObjectType' => 'LibraryOverDriveScope',
+						'structure' => $libraryOverDriveScopeStructure,
 						'sortable' => true,
 						'storeDb' => true,
 						'allowEdit' => true,

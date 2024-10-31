@@ -42,6 +42,7 @@ class OverDriveSetting extends DataObject {
 
 		$libraryOverDriveSettingsStructure = LibraryOverDriveSettings::getObjectStructure($context);
 		unset($libraryOverDriveSettingsStructure['settingId']);
+		unset($libraryOverDriveSettingsStructure['weight']);
 
 		$objectStructure = [
 			'id' => [
@@ -197,7 +198,7 @@ class OverDriveSetting extends DataObject {
 				'keyOther' => 'settingId',
 				'subObjectType' => 'LibraryOverDriveSettings',
 				'structure' => $libraryOverDriveSettingsStructure,
-				'sortable' => false,
+				'sortable' => true,
 				'storeDb' => true,
 				'allowEdit' => true,
 				'canEdit' => true,

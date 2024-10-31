@@ -92,7 +92,7 @@ abstract class CircEntry extends DataObject {
 		return preg_replace('/^The\s|^A\s/i', '', $this->title);
 	}
 
-	public function getAuthor() : string {
+	public function getAuthor() : ?string {
 		return $this->author;
 	}
 

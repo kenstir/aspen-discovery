@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 require_once ROOT_DIR . '/sys/DB/DataObject.php';
 
@@ -12,9 +12,6 @@ class MaterialsRequestFormFields extends DataObject {
 	public $fieldType;
 
 	static $fieldTypeOptions = [
-//		'text'    => 'text',
-//		'textbox' => 'textarea',
-//		'yes/no'  => 'yes/no',
 		'about' => 'About',
 		'ageLevel' => 'Age Level',
 		'author' => 'Author',
@@ -47,15 +44,15 @@ class MaterialsRequestFormFields extends DataObject {
 	];
 
 
+	/** @noinspection PhpUnusedParameterInspection */
 	static function getObjectStructure($context = ''): array {
-		$structure = [
+		return [
 			'id' => [
 				'property' => 'id',
 				'type' => 'label',
 				'label' => 'Id',
 				'description' => 'The unique id',
 			],
-//			'libraryId'     => array(), // hidden value or internally updated.
 			'formCategory' => [
 				'property' => 'formCategory',
 				'type' => 'text',
@@ -85,12 +82,13 @@ class MaterialsRequestFormFields extends DataObject {
 				'default' => 0,
 			],
 		];
-		return $structure;
 	}
 
-
-	static function getDefaultFormFields($libraryId = -1) {
-		global $configArray;
+	/**
+	 * @param int|string $libraryId
+	 * @return MaterialsRequestFormFields[]
+	 */
+	static function getDefaultFormFields(int|string $libraryId = -1) : array {
 		$defaultFieldsToDisplay = [];
 
 		//This Replicates MyRequest Form structure.
@@ -101,7 +99,7 @@ class MaterialsRequestFormFields extends DataObject {
 		$defaultField->formCategory = 'Material Information';
 		$defaultField->fieldLabel = 'Format';
 		$defaultField->fieldType = 'format';
-		$defaultField->weight = count($defaultFieldsToDisplay) + 1;
+		$defaultField->weight = 1;
 		$defaultFieldsToDisplay[] = $defaultField;
 
 		$defaultField = new MaterialsRequestFormFields();

@@ -85,6 +85,8 @@ class User extends DataObject {
 	public $totalCostSavings;
 	public $currentCostSavings;
 
+	public $isLocalTestUser;
+
 	/** @var User $parentUser */
 	private $parentUser;
 	/** @var User[] $linkedUsers */
@@ -147,6 +149,7 @@ class User extends DataObject {
 			'updateMessageIsError',
 			'rememberHoldPickupLocation',
 			'materialsRequestSendEmailOnAssign',
+			'isLocalTestUser'
 		];
 	}
 
@@ -772,7 +775,7 @@ class User extends DataObject {
 
 	// Account Blocks //
 	private $blockAll = null; // set to null to signal unset, boolean when set
-	private $blockedAccounts = null; // set to null to signal unset, array when set
+	private array|null $blockedAccounts = null; // set to null to signal unset, array when set
 
 	/**
 	 * Checks if there is any settings disallowing the account $accountIdToCheck to be linked to this user.
@@ -833,9 +836,16 @@ class User extends DataObject {
 			$userHomeLibrary = Library::getPatronHomeLibrary($this);
 			if ($userHomeLibrary) {
 				if ($source == 'overdrive') {
-					if (array_key_exists('OverDrive', $enabledModules) && $userHomeLibrary->overDriveScopeId > 0) {
-						$driver = OverDriveDriver::getOverDriveDriver();
-						return $driver->isCirculationEnabled();
+					if (empty($this->getBarcode())){
+						return false;
+					}else if (array_key_exists('OverDrive', $enabledModules)) {
+						$overDriveSettings = $userHomeLibrary->getLibraryOverdriveSettings();
+						foreach ($overDriveSettings as $libraryOverDriveSetting) {
+							if ($libraryOverDriveSetting->circulationEnabled) {
+								return true;
+							}
+						}
+						return false;
 					} else {
 						return false;
 					}
@@ -851,6 +861,32 @@ class User extends DataObject {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * @return OverDriveSetting[]
+	 */
+	function getAvailableOverDriveSettings(string $readerName) : array {
+		$overDriveUsers = $this->getRelatedEcontentUsers('overdrive');
+
+		$relatedLibraries = [];
+		foreach ($overDriveUsers as $overDriveUser) {
+			$userLibrary = $overDriveUser->getHomeLibrary();
+			$relatedLibraries[$userLibrary->libraryId] = $userLibrary;
+		}
+
+		$overDriveSettings = [];
+		foreach ($relatedLibraries as $library) {
+			foreach ($library->getLibraryOverDriveSettings() as $libraryOverDriveSetting) {
+				if (!empty($libraryOverDriveSetting->getOverDriveSettings())) {
+					if (empty($readerName) || $libraryOverDriveSetting->getOverDriveSettings()->readerName == $readerName) {
+						$overDriveSettings[$libraryOverDriveSetting->id] = $libraryOverDriveSetting;
+					}
+				}
+			}
+		}
+
+		return $overDriveSettings;
 	}
 
 	function hasInterlibraryLoan(): bool {
@@ -1491,17 +1527,26 @@ class User extends DataObject {
 	}
 
 	/**
+	 * Returns the home library instance for the patron if known. The home library may be null for users not connected to an ILS.
+	 *
+	 * @param bool $forceReload whether or not a previously loaded home library can be used.
+	 * 		Useful to set in instance when the library is known to be changing.
 	 * @return Library|null
 	 */
-	function getHomeLibrary($forceReload = false) {
+	function getHomeLibrary(bool $forceReload = false) : ?Library {
 		if ($this->_homeLibrary == null || $forceReload) {
 			$this->_homeLibrary = Library::getPatronHomeLibrary($this);
 		}
 		return $this->_homeLibrary;
 	}
 
-	function getHomeLibrarySystemName() {
-		return $this->getHomeLibrary()->displayName;
+	function getHomeLibrarySystemName() : string {
+		$homeLibrary = $this->getHomeLibrary();
+		if ($homeLibrary == null) {
+			return 'No Home Library';
+		}else{
+			return $this->getHomeLibrary()->displayName;
+		}
 	}
 
 	/** @noinspection PhpUnused */
@@ -1660,18 +1705,6 @@ class User extends DataObject {
 			$this->__set('checkoutInfoLastLoaded', time());
 			$this->update();
 		} else {
-			if ($source == 'all' || $source == 'overdrive') {
-				global $interface;
-				$driver = new OverDriveDriver();
-				$settings = $driver->getSettings();
-				if ($settings != null) {
-					$fulfillmentMethod = (string)$driver->getSettings()->useFulfillmentInterface;
-					$interface->assign('fulfillmentMethod', $fulfillmentMethod);
-				} else {
-					$interface->assign('fulfillmentMethod', true);
-				}
-			}
-
 			//fetch cached checkouts
 			$checkout = new Checkout();
 			$checkout->userId = $this->id;
@@ -2386,10 +2419,10 @@ class User extends DataObject {
 	 * Get the user referred to by id. Will return false if the specified patron id is not
 	 * the id of this user or one of the users that is linked to this user.
 	 *
-	 * @param $patronId int The patron to check
+	 * @param int|string $patronId - The ID of the patron to use
 	 * @return User|false
 	 */
-	function getUserReferredTo($patronId) {
+	function getUserReferredTo(int|string $patronId) : User|false {
 		$patron = false;
 		//Get the correct patron based on the information passed in.
 		if ($patronId == $this->id) {
@@ -2750,7 +2783,7 @@ class User extends DataObject {
 		return $renewAllResults;
 	}
 
-	public function isReadingHistoryEnabled() {
+	public function isReadingHistoryEnabled() : bool {
 		$catalogDriver = $this->getCatalogDriver();
 		if ($catalogDriver != null) {
 			//Check to see if it's enabled by home library
@@ -2760,7 +2793,7 @@ class User extends DataObject {
 					//Check to see if it's enabled by PType
 					$patronType = $this->getPTypeObj();
 					if (!empty($patronType)) {
-						return $patronType->enableReadingHistory;
+						return (bool)$patronType->enableReadingHistory;
 					} else {
 						return true;
 					}
@@ -3347,9 +3380,9 @@ class User extends DataObject {
 		}
 	}
 
-	function getOverDriveOptions() {
+	function getOverDriveOptions($settingId) : array {
 		require_once ROOT_DIR . '/Drivers/OverDriveDriver.php';
-		$overDriveDriver = new OverDriveDriver();
+		$overDriveDriver = OverDriveDriver::getOverDriveDriver($settingId);
 		return $overDriveDriver->getOptions($this);
 	}
 
@@ -4036,26 +4069,24 @@ class User extends DataObject {
 		}
 
 		if (array_key_exists('OverDrive', $enabledModules)) {
-			$readerName = new OverDriveDriver();
-			$readerName = $readerName->getReaderName();
-			$sections['overdrive'] = new AdminSection($readerName);
-			$overDriveSettingsAction = new AdminAction('Settings', 'Define connection information between ' . $readerName . ' and Aspen Discovery.', '/OverDrive/Settings');
+			$sections['overdrive'] = new AdminSection('OverDrive');
+			$overDriveSettingsAction = new AdminAction('Settings', 'Define connection information between OverDrive and Aspen Discovery.', '/OverDrive/Settings');
 			$overDriveScopesAction = new AdminAction('Scopes', 'Define which records are loaded for each library and location.', '/OverDrive/Scopes');
 			if ($sections['overdrive']->addAction($overDriveSettingsAction, 'Administer Libby/Sora')) {
 				$overDriveSettingsAction->addSubAction($overDriveScopesAction, 'Administer Libby/Sora');
 			} else {
 				$sections['overdrive']->addAction($overDriveScopesAction, 'Administer Libby/Sora');
 			}
-			$sections['overdrive']->addAction(new AdminAction('Indexing Log', 'View the indexing log for ' . $readerName . '.', '/OverDrive/IndexingLog'), [
+			$sections['overdrive']->addAction(new AdminAction('Indexing Log', 'View the indexing log for OverDrive.', '/OverDrive/IndexingLog'), [
 				'View System Reports',
 				'View Indexing Logs',
 			]);
-			$sections['overdrive']->addAction(new AdminAction('Dashboard', 'View the usage dashboard for ' . $readerName . ' integration.', '/OverDrive/Dashboard'), [
+			$sections['overdrive']->addAction(new AdminAction('Dashboard', 'View the usage dashboard for OverDrive integration.', '/OverDrive/Dashboard'), [
 				'View Dashboards',
 				'View System Reports',
 			]);
-			$sections['overdrive']->addAction(new AdminAction('API Information', 'View API information for ' . $readerName . ' integration to test connections.', '/OverDrive/APIData'), 'View OverDrive Test Interface');
-			$sections['overdrive']->addAction(new AdminAction('Aspen Information', 'View information stored within Aspen about an ' . $readerName . ' product.', '/OverDrive/AspenData'), 'View OverDrive Test Interface');
+			$sections['overdrive']->addAction(new AdminAction('API Information', 'View API information for OverDrive integration to test connections.', '/OverDrive/APIData'), 'View OverDrive Test Interface');
+			$sections['overdrive']->addAction(new AdminAction('Aspen Information', 'View information stored within Aspen about an OverDrive product.', '/OverDrive/AspenData'), 'View OverDrive Test Interface');
 		}
 
 		if (array_key_exists('Palace Project', $enabledModules)) {

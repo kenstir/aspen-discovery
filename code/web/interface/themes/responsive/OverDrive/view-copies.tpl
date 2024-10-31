@@ -2,23 +2,26 @@
 {* Add availability as needed *}
 {if !empty($showAvailability) && $availability}
 	<div>
-		<table class="holdingsTable">
+		<table class="holdingsTable table table-striped table-responsive">
 			<thead>
-				<tr><th>{translate text="Library" isPublicFacing=true}</th><th>{translate text="Owned" isPublicFacing=true}</th><th>{translate text="Available" isPublicFacing=true}</th></tr>
+				<tr>
+					<th>{translate text="Collection" isPublicFacing=true}</th>
+					<th>{translate text="Owned" isPublicFacing=true}</th>
+					<th>{translate text="Available" isPublicFacing=true}</th>
+					<th>{translate text="Number of Holds" isPublicFacing=true}</th>
+				</tr>
 			</thead>
 			<tbody>
-				<tr><td>{$availability->getLibraryName()}</td><td>{$availability->copiesOwned}</td><td>{$availability->copiesAvailable}</td></tr>
+				{foreach from=$availability item="availabilityRow"}
+					<tr>
+						<td>{$availabilityRow->getSettingName()}</td>
+						<td>{if $availabilityRow->copiesOwned > 9999}{translate text="Always Available" isPublicFacing=true}{else}{$availabilityRow->copiesOwned}{/if}</td>
+						<td>{if $availabilityRow->copiesOwned <= 9999}{$availabilityRow->copiesAvailable}{/if}</td>
+						<td>{if $availabilityRow->copiesOwned <= 9999}{$availabilityRow->numberOfHolds}{/if}</td>
+					</tr>
+				{/foreach}
 			</tbody>
 		</table>
 	</div>
-{/if}
-{if $numberOfHolds > 0}
-	<p>
-		{if $numberOfHolds == 1}
-			{translate text="There is 1 hold on this title." isPublicFacing=true}
-		{else}
-			{translate text="There are %1% holds on this title." 1=$numberOfHolds isPublicFacing=true}
-		{/if}
-	</p>
 {/if}
 {/strip}

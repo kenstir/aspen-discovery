@@ -67,7 +67,7 @@ AspenDiscovery.Account = (function () {
 
 		/**
 		 * Do an ajax process, but only if the user is logged in.
-		 * If the user is not logged in, force them to login and then do the process.
+		 * If the user is not logged in, force them to log in and then do the process.
 		 * Can also be called without the ajax callback to just login and not go anywhere
 		 *
 		 * @param trigger

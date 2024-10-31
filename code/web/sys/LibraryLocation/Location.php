@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 /** @noinspection RequiredAttributes */
 /** @noinspection HtmlRequiredAltAttribute */
 
@@ -81,8 +81,6 @@ class Location extends DataObject {
 	public $browseCategoryGroupId;
 	public $restrictSearchByLocation;
 	public /** @noinspection PhpUnused */
-		$overDriveScopeId;
-	public /** @noinspection PhpUnused */
 		$hooplaScopeId;
 	public /** @noinspection PhpUnused */
 		$axis360ScopeId;
@@ -118,8 +116,6 @@ class Location extends DataObject {
 	public /** @noinspection PhpUnused */
 		$includeLibraryRecordsToInclude;
 
-	public $allowDonations;
-
 	//Combined Results (Bento Box)
 	public /** @noinspection PhpUnused */
 		$enableCombinedResults;
@@ -128,6 +124,7 @@ class Location extends DataObject {
 		$defaultToCombinedResults;
 	public $useLibraryCombinedResultsSettings;
 
+	/** @noinspection PhpUnused */
 	public $allowUpdatingHoursFromILS;
 
 	protected $_hours;
@@ -210,16 +207,6 @@ class Location extends DataObject {
 		// get the structure for the location's hours
 		$hoursStructure = LocationHours::getObjectStructure($context);
 
-		$cloudLibraryScopes = [];
-		$cloudLibraryScopes[-1] = 'none';
-		require_once ROOT_DIR . '/sys/CloudLibrary/CloudLibraryScope.php';
-		$cloudLibraryScope = new CloudLibraryScope();
-		$cloudLibraryScope->orderBy('name');
-		$cloudLibraryScope->find();
-		while ($cloudLibraryScope->fetch()) {
-			$cloudLibraryScopes[$cloudLibraryScope->id] = $cloudLibraryScope->name;
-		}
-
 		// we don't want to make the locationId property editable
 		// because it is associated with this location only
 		unset($hoursStructure['locationId']);
@@ -242,9 +229,6 @@ class Location extends DataObject {
 		unset($locationRecordToIncludeStructure['locationId']);
 		unset($locationRecordToIncludeStructure['weight']);
 
-		$locationSideLoadScopeStructure = LocationSideLoadScope::getObjectStructure($context);
-		unset($locationSideLoadScopeStructure['locationId']);
-
 		$combinedResultsStructure = LocationCombinedResultSection::getObjectStructure($context);
 		unset($combinedResultsStructure['locationId']);
 		unset($combinedResultsStructure['weight']);
@@ -263,70 +247,6 @@ class Location extends DataObject {
 			$groupedWorkDisplaySettings[$groupedWorkDisplaySetting->id] = $groupedWorkDisplaySetting->name;
 		}
 
-		require_once ROOT_DIR . '/sys/Hoopla/HooplaScope.php';
-		$hooplaScope = new HooplaScope();
-		$hooplaScope->orderBy('name');
-		$hooplaScopes = [];
-		$hooplaScope->find();
-		$hooplaScopes[-2] = 'None';
-		$hooplaScopes[-1] = 'Use Library Setting';
-		while ($hooplaScope->fetch()) {
-			$hooplaScopes[$hooplaScope->id] = $hooplaScope->name;
-		}
-
-		require_once ROOT_DIR . '/sys/Axis360/Axis360Scope.php';
-		$axis360Scope = new Axis360Scope();
-		$axis360Scope->orderBy('name');
-		$axis360Scopes = [];
-		$axis360Scope->find();
-		$axis360Scopes[-2] = 'None';
-		$axis360Scopes[-1] = 'Use Library Setting';
-		while ($axis360Scope->fetch()) {
-			$axis360Scopes[$axis360Scope->id] = $axis360Scope->name;
-		}
-
-		require_once ROOT_DIR . '/sys/PalaceProject/PalaceProjectScope.php';
-		$palaceProjectScope = new PalaceProjectScope();
-		$palaceProjectScope->orderBy('name');
-		$palaceProjectScopes = [];
-		$palaceProjectScope->find();
-		$palaceProjectScopes[-2] = 'None';
-		$palaceProjectScopes[-1] = 'Use Library Setting';
-		while ($palaceProjectScope->fetch()) {
-			$palaceProjectScopes[$palaceProjectScope->id] = $palaceProjectScope->name;
-		}
-
-		require_once ROOT_DIR . '/sys/OverDrive/OverDriveScope.php';
-		$overDriveScope = new OverDriveScope();
-		$overDriveScope->orderBy('name');
-		$overDriveScopes = [];
-		$overDriveScope->find();
-		$overDriveScopes[-2] = 'None';
-		$overDriveScopes[-1] = 'Use Library Setting';
-		while ($overDriveScope->fetch()) {
-			$overDriveScopes[$overDriveScope->id] = $overDriveScope->name;
-		}
-
-		require_once ROOT_DIR . '/sys/Ebsco/EBSCOhostSetting.php';
-		$ebscohostSetting = new EBSCOhostSearchSetting();
-		$ebscohostSetting->orderBy('name');
-		$ebscohostSettings = [];
-		$ebscohostSetting->find();
-		$ebscohostSettings[-2] = 'None';
-		while ($ebscohostSetting->fetch()) {
-			$ebscohostSettings[$ebscohostSetting->id] = $ebscohostSetting->name;
-		}
-
-		require_once ROOT_DIR . '/sys/AspenLiDA/LocationSetting.php';
-		$appLocationSetting = new LocationSetting();
-		$appLocationSetting->orderBy('name');
-		$appLocationSettings = [];
-		$appLocationSetting->find();
-		$appLocationSettings[-2] = 'None';
-		while ($appLocationSetting->fetch()) {
-			$appLocationSettings[$appLocationSetting->id] = $appLocationSetting->name;
-		}
-
 		require_once ROOT_DIR . '/sys/VDX/VdxSetting.php';
 		$vdxActive = false;
 		$vdxForms = [];
@@ -343,18 +263,17 @@ class Location extends DataObject {
 			}
 		}
 
-		require_once ROOT_DIR . '/sys/AspenLiDA/SelfCheckSetting.php';
-		$appSelfCheckSetting = new AspenLiDASelfCheckSetting();
-		$appSelfCheckSetting->orderBy('name');
-		$appSelfCheckSettings = [];
-		$appSelfCheckSetting->find();
-		$appSelfCheckSettings[-1] = 'none';
-		while ($appSelfCheckSetting->fetch()) {
-			$appSelfCheckSettings[$appSelfCheckSetting->id] = $appSelfCheckSetting->name;
+		$hasScoping = false;
+		$isKohaActive = false;
+		foreach (UserAccount::getAccountProfiles() as $accountProfileInfo) {
+			/** @var AccountProfile $accountProfile */
+			$accountProfile = $accountProfileInfo['accountProfile'];
+			if ($accountProfile->ils == 'sierra' || $accountProfile->ils == 'millennium') {
+				$hasScoping = true;
+				$isKohaActive= true;
+			}
 		}
-
-		$readerName = new OverDriveDriver();
-		$readerName = $readerName->getReaderName();
+		global $enabledModules;
 
 		$structure = [
 			'locationId' => [
@@ -1136,7 +1055,21 @@ class Location extends DataObject {
 					],
 				],
 			],
-			'axis360Section' => [
+		];
+
+		if (array_key_exists('Axis 360', $enabledModules)) {
+			require_once ROOT_DIR . '/sys/Axis360/Axis360Scope.php';
+			$axis360Scope = new Axis360Scope();
+			$axis360Scope->orderBy('name');
+			$axis360Scopes = [];
+			$axis360Scope->find();
+			$axis360Scopes[-2] = 'None';
+			$axis360Scopes[-1] = 'Use Library Setting';
+			while ($axis360Scope->fetch()) {
+				$axis360Scopes[$axis360Scope->id] = $axis360Scope->name;
+			}
+
+			$structure['axis360Section'] = [
 				'property' => 'axis360Section',
 				'type' => 'section',
 				'label' => 'Boundless',
@@ -1155,9 +1088,20 @@ class Location extends DataObject {
 						'forcesReindex' => true,
 					],
 				],
-			],
+			];
+		}
 
-			'cloudLibrarySection' => [
+		if (array_key_exists('Cloud Library', $enabledModules)) {
+			$cloudLibraryScopes = [];
+			$cloudLibraryScopes[-1] = 'none';
+			require_once ROOT_DIR . '/sys/CloudLibrary/CloudLibraryScope.php';
+			$cloudLibraryScope = new CloudLibraryScope();
+			$cloudLibraryScope->orderBy('name');
+			$cloudLibraryScope->find();
+			while ($cloudLibraryScope->fetch()) {
+				$cloudLibraryScopes[$cloudLibraryScope->id] = $cloudLibraryScope->name;
+			}
+			$structure['cloudLibrarySection'] = [
 				'property' => 'cloudLibrarySection',
 				'type' => 'section',
 				'label' => 'cloudLibrary',
@@ -1176,9 +1120,21 @@ class Location extends DataObject {
 						'forcesReindex' => true,
 					],
 				],
-			],
+			];
+		}
 
-			'hooplaSection' => [
+		if (array_key_exists('Hoopla', $enabledModules)) {
+			require_once ROOT_DIR . '/sys/Hoopla/HooplaScope.php';
+			$hooplaScope = new HooplaScope();
+			$hooplaScope->orderBy('name');
+			$hooplaScopes = [];
+			$hooplaScope->find();
+			$hooplaScopes[-2] = 'None';
+			$hooplaScopes[-1] = 'Use Library Setting';
+			while ($hooplaScope->fetch()) {
+				$hooplaScopes[$hooplaScope->id] = $hooplaScope->name;
+			}
+			$structure['hooplaSection'] = [
 				'property' => 'hooplaSection',
 				'type' => 'section',
 				'label' => 'Hoopla',
@@ -1197,30 +1153,56 @@ class Location extends DataObject {
 						'forcesReindex' => true,
 					],
 				],
-			],
+			];
+		}
 
-			'overdriveSection' => [
+		if (array_key_exists('OverDrive', $enabledModules)) {
+			require_once ROOT_DIR . '/sys/OverDrive/LocationOverDriveScope.php';
+			$locationOverDriveScopeStructure = LocationOverDriveScope::getObjectStructure($context);
+			unset($locationOverDriveScopeStructure['locationId']);
+			unset($locationOverDriveScopeStructure['weight']);
+
+			$structure['overdriveSection'] = [
 				'property' => 'overdriveSection',
 				'type' => 'section',
-				'label' => "$readerName",
+				'label' => "Libby/Sora",
 				'hideInLists' => true,
 				'renderAsHeading' => true,
 				'permissions' => ['Location Records included in Catalog'],
 				'properties' => [
-					'overDriveScopeId' => [
-						'property' => 'overDriveScopeId',
-						'type' => 'enum',
-						'values' => $overDriveScopes,
-						'label' => "$readerName Scope",
-						'description' => "The $readerName scope to use",
-						'hideInLists' => true,
-						'default' => -1,
+					'overDriveScopes' => [
+						'property' => 'overDriveScopes',
+						'type' => 'oneToMany',
+						'label' => "Libby/Sora Scopes",
+						'description' => "The Libby/Sora scopes to use",
+						'keyThis' => 'locationId',
+						'keyOther' => 'locationId',
+						'subObjectType' => 'LocationOverDriveScope',
+						'structure' => $locationOverDriveScopeStructure,
+						'sortable' => true,
+						'storeDb' => true,
+						'allowEdit' => true,
+						'canEdit' => true,
+						'canAddNew' => true,
+						'canDelete' => true,
 						'forcesReindex' => true,
 					],
 				],
-			],
+			];
+		}
 
-			'palaceProjectSection' => [
+		if (array_key_exists('Palace Project', $enabledModules)) {
+			require_once ROOT_DIR . '/sys/PalaceProject/PalaceProjectScope.php';
+			$palaceProjectScope = new PalaceProjectScope();
+			$palaceProjectScope->orderBy('name');
+			$palaceProjectScopes = [];
+			$palaceProjectScope->find();
+			$palaceProjectScopes[-2] = 'None';
+			$palaceProjectScopes[-1] = 'Use Library Setting';
+			while ($palaceProjectScope->fetch()) {
+				$palaceProjectScopes[$palaceProjectScope->id] = $palaceProjectScope->name;
+			}
+			$structure['palaceProjectSection'] = [
 				'property' => 'palaceProjectSection',
 				'type' => 'section',
 				'label' => 'Palace Project',
@@ -1239,12 +1221,23 @@ class Location extends DataObject {
 						'forcesReindex' => true,
 					],
 				],
-			],
+			];
+		}
 
-			'ebscoSection' => [
+		if (array_key_exists('EBSCOhost', $enabledModules)) {
+			require_once ROOT_DIR . '/sys/Ebsco/EBSCOhostSetting.php';
+			$ebscohostSetting = new EBSCOhostSearchSetting();
+			$ebscohostSetting->orderBy('name');
+			$ebscohostSettings = [];
+			$ebscohostSetting->find();
+			$ebscohostSettings[-2] = 'None';
+			while ($ebscohostSetting->fetch()) {
+				$ebscohostSettings[$ebscohostSetting->id] = $ebscohostSetting->name;
+			}
+			$structure['ebscoSection'] = [
 				'property' => 'ebscoSection',
 				'type' => 'section',
-				'label' => 'EBSCO',
+				'label' => 'EBSCOhost',
 				'hideInLists' => true,
 				'renderAsHeading' => true,
 				'permissions' => ['Location Records included in Catalog'],
@@ -1259,76 +1252,80 @@ class Location extends DataObject {
 						'default' => -2,
 					],
 				],
-			],
+			];
+		}
 
-			'hoursSection' => [
-				'property' => 'hoursSection',
-				'type' => 'section',
-				'label' => 'Library Hours',
-				'hideInLists' => true,
-				'renderAsHeading' => false,
-				'permissions' => ['Location ILS Connection', 'Location Address and Hours Settings'],
-				'properties' => [
-					'allowUpdatingHoursFromILS' =>[
-						'property' => 'allowUpdatingHoursFromILS',
-						'type' => 'checkbox',
-						'label' => 'Automatically update hours from the ILS',
-						'description' => 'Whether closures should be automatically updated (Koha Only).',
-						'hideInLists' => true,
-						'default' => 1,
-						'permissions' => ['Location ILS Connection'],
-					],
+		$structure['hoursSection'] = [
+			'property' => 'hoursSection',
+			'type' => 'section',
+			'label' => 'Library Hours',
+			'hideInLists' => true,
+			'renderAsHeading' => false,
+			'permissions' => ['Location ILS Connection', 'Location Address and Hours Settings'],
+			'properties' => [
+				'allowUpdatingHoursFromILS' =>[
+					'property' => 'allowUpdatingHoursFromILS',
+					'type' => 'checkbox',
+					'label' => 'Automatically update hours from the ILS',
+					'description' => 'Whether closures should be automatically updated (Koha Only).',
+					'hideInLists' => true,
+					'default' => 1,
+					'permissions' => ['Location ILS Connection'],
+				],
 
-					'hours' => [
-						'property' => 'hours',
-						'type' => 'oneToMany',
-						'keyThis' => 'locationId',
-						'keyOther' => 'locationId',
-						'subObjectType' => 'LocationHours',
-						'structure' => $hoursStructure,
-						'label' => 'Hours',
-						'renderAsHeading' => true,
-						'description' => 'Library Hours',
-						'sortable' => false,
-						'storeDb' => true,
-						'permissions' => ['Location Address and Hours Settings'],
-						'canAddNew' => true,
-						'canDelete' => true,
-					],
+				'hours' => [
+					'property' => 'hours',
+					'type' => 'oneToMany',
+					'keyThis' => 'locationId',
+					'keyOther' => 'locationId',
+					'subObjectType' => 'LocationHours',
+					'structure' => $hoursStructure,
+					'label' => 'Hours',
+					'renderAsHeading' => true,
+					'description' => 'Library Hours',
+					'sortable' => false,
+					'storeDb' => true,
+					'permissions' => ['Location Address and Hours Settings'],
+					'canAddNew' => true,
+					'canDelete' => true,
 				],
 			],
+		];
 
-			'recordsToInclude' => [
-				'property' => 'recordsToInclude',
-				'type' => 'oneToMany',
-				'label' => 'Records To Include',
-				'renderAsHeading' => true,
-				'description' => 'Information about what records to include in this scope',
-				'keyThis' => 'locationId',
-				'keyOther' => 'locationId',
-				'subObjectType' => 'LocationRecordToInclude',
-				'structure' => $locationRecordToIncludeStructure,
-				'sortable' => true,
-				'storeDb' => true,
-				'allowEdit' => false,
-				'canEdit' => false,
-				'forcesReindex' => true,
-				'permissions' => ['Location Records included in Catalog'],
-				'canAddNew' => true,
-				'canDelete' => true,
-			],
-			'includeLibraryRecordsToInclude' => [
-				'property' => 'includeLibraryRecordsToInclude',
-				'type' => 'checkbox',
-				'label' => 'Include Library Records To Include',
-				'description' => 'Whether or not the records to include from the parent library should be included for this location',
-				'hideInLists' => true,
-				'default' => true,
-				'forcesReindex' => true,
-				'permissions' => ['Location Records included in Catalog'],
-			],
+		$structure['recordsToInclude'] = [
+			'property' => 'recordsToInclude',
+			'type' => 'oneToMany',
+			'label' => 'Records To Include',
+			'renderAsHeading' => true,
+			'description' => 'Information about what records to include in this scope',
+			'keyThis' => 'locationId',
+			'keyOther' => 'locationId',
+			'subObjectType' => 'LocationRecordToInclude',
+			'structure' => $locationRecordToIncludeStructure,
+			'sortable' => true,
+			'storeDb' => true,
+			'allowEdit' => false,
+			'canEdit' => false,
+			'forcesReindex' => true,
+			'permissions' => ['Location Records included in Catalog'],
+			'canAddNew' => true,
+			'canDelete' => true,
+		];
+		$structure['includeLibraryRecordsToInclude'] = [
+			'property' => 'includeLibraryRecordsToInclude',
+			'type' => 'checkbox',
+			'label' => 'Include Library Records To Include',
+			'description' => 'Whether or not the records to include from the parent library should be included for this location',
+			'hideInLists' => true,
+			'default' => true,
+			'forcesReindex' => true,
+			'permissions' => ['Location Records included in Catalog'],
+		];
 
-			'sideLoadScopes' => [
+		if (array_key_exists('Side Loads', $enabledModules)) {
+			$locationSideLoadScopeStructure = LocationSideLoadScope::getObjectStructure($context);
+			unset($locationSideLoadScopeStructure['locationId']);
+			$structure['sideLoadScopes'] = [
 				'property' => 'sideLoadScopes',
 				'type' => 'oneToMany',
 				'label' => 'Side Loaded Content Scopes',
@@ -1346,9 +1343,31 @@ class Location extends DataObject {
 				'permissions' => ['Location Records included in Catalog'],
 				'canAddNew' => true,
 				'canDelete' => true,
-			],
+			];
+		}
 
-			'aspenLiDASection' => [
+		if (array_key_exists('Aspen LiDA', $enabledModules)) {
+			require_once ROOT_DIR . '/sys/AspenLiDA/LocationSetting.php';
+			$appLocationSetting = new LocationSetting();
+			$appLocationSetting->orderBy('name');
+			$appLocationSettings = [];
+			$appLocationSetting->find();
+			$appLocationSettings[-2] = 'None';
+			while ($appLocationSetting->fetch()) {
+				$appLocationSettings[$appLocationSetting->id] = $appLocationSetting->name;
+			}
+
+			require_once ROOT_DIR . '/sys/AspenLiDA/SelfCheckSetting.php';
+			$appSelfCheckSetting = new AspenLiDASelfCheckSetting();
+			$appSelfCheckSetting->orderBy('name');
+			$appSelfCheckSettings = [];
+			$appSelfCheckSetting->find();
+			$appSelfCheckSettings[-1] = 'none';
+			while ($appSelfCheckSetting->fetch()) {
+				$appSelfCheckSettings[$appSelfCheckSetting->id] = $appSelfCheckSetting->name;
+			}
+
+			$structure['aspenLiDASection'] = [
 				'property' => 'aspenLiDASection',
 				'type' => 'section',
 				'label' => 'Aspen LiDA',
@@ -1374,39 +1393,21 @@ class Location extends DataObject {
 						'hideInLists' => true,
 						'default' => -1,
 					]
-				],
-			],
-		];
+				]
+			];
+		}
 
 		if (!UserAccount::userHasPermission('Administer All Libraries')) {
 			unset($structure['isMainBranch']);
-		}
-		$hasScoping = false;
-		foreach (UserAccount::getAccountProfiles() as $accountProfileInfo) {
-			/** @var AccountProfile $accountProfile */
-			$accountProfile = $accountProfileInfo['accountProfile'];
-			if ($accountProfile->ils == 'sierra' || $accountProfile->ils == 'millennium') {
-				$hasCourseReserves = true;
-				$hasScoping = true;
-			}
 		}
 		if (!$hasScoping) {
 			unset($structure['ilsSection']['properties']['scope']);
 			unset($structure['ilsSection']['properties']['useScope']);
 		}
-		global $enabledModules;
-		if (!array_key_exists('OverDrive', $enabledModules)) {
-			unset($structure['overdriveSection']);
+		if (!$isKohaActive) {
+			unset($structure['curbsidePickupSettings']);
 		}
-		if (!array_key_exists('Hoopla', $enabledModules)) {
-			unset($structure['hooplaSection']);
-		}
-		if (!array_key_exists('Cloud Library', $enabledModules)) {
-			unset($structure['cloudLibrarySection']);
-		}
-		if (!array_key_exists('Side Loads', $enabledModules)) {
-			unset($structure['sideLoadScopes']);
-		}
+
 		if (!$vdxActive) {
 			unset($structure['interLibraryLoanSection']);
 		}
@@ -1423,11 +1424,11 @@ class Location extends DataObject {
 		return $this->_pickupUsers;
 	}
 
-	public function setPickupUsers($pickupUsers) {
+	public function setPickupUsers($pickupUsers) : void {
 		$this->_pickupUsers = $pickupUsers;
 	}
 
-	public function addPickupUser(string $userId) {
+	public function addPickupUser(string $userId) : void {
 		if ($this->_pickupUsers == null) {
 			$this->_pickupUsers = [];
 		}
@@ -1435,13 +1436,13 @@ class Location extends DataObject {
 	}
 
 	/**
-	 * @param User $patronProfile
+	 * @param User|bool|null $patronProfile
 	 * @param bool $isLinkedUser
 	 * @return Location[]
 	 */
-	function getPickupBranches($patronProfile, $isLinkedUser = false) {
+	function getPickupBranches(User|bool|null $patronProfile, bool $isLinkedUser = false) : array {
 		// Note: Some calls to this function will set $patronProfile to false. (No Patron is logged in)
-		// For Example: MaterialsRequest_NewRequest
+		// For example, MaterialsRequest_NewRequest
 		$homeLibraryInList = false;
 		$alternateLibraryInList = false;
 
@@ -1450,6 +1451,8 @@ class Location extends DataObject {
 		if ($patronProfile) {
 			/** @var Library $homeLibrary */
 			$homeLibrary = $librarySingleton->getLibraryForLocation($patronProfile->homeLocationId);
+		}else{
+			$homeLibrary = null;
 		}
 
 		//Set up our query to get the correct locations from the location table.
@@ -1469,18 +1472,18 @@ class Location extends DataObject {
 						$pickupIds[] = $pickupLocation->libraryId;
 					}
 				}
-				$this->whereAdd("libraryId IN (" . implode(',', $pickupIds) . ")", 'AND');
+				$this->whereAdd("libraryId IN (" . implode(',', $pickupIds) . ")");
 				//TODO: Do we need to limit based on validHoldPickupBranch
 			} else {
 				/** Only this system is valid */
-				$this->whereAdd("libraryId = {$homeLibrary->libraryId}", 'AND');
-				$this->whereAdd("validHoldPickupBranch = 1 OR validHoldPickupBranch = 3", 'AND');
+				$this->whereAdd("libraryId = $homeLibrary->libraryId");
+				$this->whereAdd("validHoldPickupBranch = 1 OR validHoldPickupBranch = 3");
 			}
 		} else {
 			//The user can pick up at any system
 			$this->whereAdd("validHoldPickupBranch = 1");
 			if ($homeLibrary !== null) {
-				$this->whereAdd("validHoldPickupBranch = 3 AND libraryId = {$homeLibrary->libraryId}", 'OR');
+				$this->whereAdd("validHoldPickupBranch = 3 AND libraryId = $homeLibrary->libraryId", 'OR');
 			}
 		}
 
@@ -1574,7 +1577,7 @@ class Location extends DataObject {
 	 *
 	 * @return Location|null
 	 */
-	function getActiveLocation() {
+	function getActiveLocation() : ?Location {
 		if (Location::$activeLocation != 'unset') {
 			return Location::$activeLocation;
 		}
@@ -1694,7 +1697,7 @@ class Location extends DataObject {
 		return Location::$_defaultLocationForUser;
 	}
 
-	function setActiveLocation($location) {
+	function setActiveLocation($location) : void {
 		Location::$activeLocation = $location;
 	}
 
@@ -1704,11 +1707,11 @@ class Location extends DataObject {
 	private static $userHomeLocation = 'unset';
 
 	/**
-	 * Get the home location for the currently logged in user.
+	 * Get the home location for the currently logged-in user.
 	 *
-	 * @return Location
+	 * @return Location|null
 	 */
-	static function getUserHomeLocation() {
+	static function getUserHomeLocation() : ?Location {
 		if (isset(Location::$userHomeLocation) && Location::$userHomeLocation != 'unset') {
 			return Location::$userHomeLocation;
 		}
@@ -1754,7 +1757,7 @@ class Location extends DataObject {
 	 */
 	private $_physicalLocation = 'unset';
 
-	function getPhysicalLocation() {
+	function getPhysicalLocation() : Location|null|string {
 		if ($this->_physicalLocation != 'unset') {
 			return $this->_physicalLocation;
 		}
@@ -1773,7 +1776,7 @@ class Location extends DataObject {
 	 * @param null $searchSource
 	 * @return Location|null
 	 */
-	static function getSearchLocation($searchSource = null) {
+	static function getSearchLocation($searchSource = null) : ?Location{
 		if ($searchSource == null) {
 			global $searchSource;
 		}
@@ -1826,7 +1829,7 @@ class Location extends DataObject {
 		require_once ROOT_DIR . '/sys/IP/IPAddress.php';
 		$this->_ipLocation = null;
 		$subnet = IPAddress::getIPAddressForIP($activeIp);
-		if ($subnet != false) {
+		if ($subnet !== false) {
 			$matchedLocation = new Location();
 			$matchedLocation->locationId = $subnet->locationid;
 			if ($matchedLocation->find(true)) {
@@ -1887,6 +1890,8 @@ class Location extends DataObject {
 			return $this->getRecordsToInclude();
 		} elseif ($name == 'sideLoadScopes') {
 			return $this->getSideLoadScopes();
+		} elseif ($name == 'overDriveScopes') {
+			return $this->getLocationOverDriveScopes();
 		} elseif ($name == 'combinedResultSections') {
 			return $this->getCombinedResultSections();
 		} elseif ($name == 'cloudLibraryScope') {
@@ -1907,6 +1912,8 @@ class Location extends DataObject {
 			$this->_recordsToInclude = $value;
 		} elseif ($name == 'sideLoadScopes') {
 			$this->_sideLoadScopes = $value;
+		} elseif ($name == 'overDriveScopes') {
+			$this->_locationOverDriveScopes = $value;
 		} elseif ($name == 'combinedResultSections') {
 			$this->_combinedResultSections = $value;
 		} elseif ($name == 'cloudLibraryScope') {
@@ -1930,6 +1937,7 @@ class Location extends DataObject {
 			$this->saveMoreDetailsOptions();
 			$this->saveRecordsToInclude();
 			$this->saveSideLoadScopes();
+			$this->saveOverDriveScopes();
 			$this->saveCombinedResultSections();
 			$this->saveCloudLibraryScopes();
 			$this->saveCoordinates();
@@ -1951,6 +1959,7 @@ class Location extends DataObject {
 			$this->saveMoreDetailsOptions();
 			$this->saveRecordsToInclude();
 			$this->saveSideLoadScopes();
+			$this->saveOverDriveScopes();
 			$this->saveCombinedResultSections();
 			$this->saveCloudLibraryScopes();
 			$this->saveCoordinates();
@@ -1970,7 +1979,7 @@ class Location extends DataObject {
 		return $ret;
 	}
 
-	public function getMoreDetailsOptions() {
+	public function getMoreDetailsOptions() : array {
 		if (!isset($this->_moreDetailsOptions)) {
 			$this->_moreDetailsOptions = [];
 			if (!empty($this->locationId)) {
@@ -1986,7 +1995,7 @@ class Location extends DataObject {
 		return $this->_moreDetailsOptions;
 	}
 
-	public function saveMoreDetailsOptions() {
+	public function saveMoreDetailsOptions() : void {
 		if (isset ($this->_moreDetailsOptions) && is_array($this->_moreDetailsOptions)) {
 			$this->saveOneToManyOptions($this->_moreDetailsOptions, 'locationId');
 			unset($this->_moreDetailsOptions);
@@ -2013,24 +2022,21 @@ class Location extends DataObject {
 		return $this->_combinedResultSections;
 	}
 
-	public function saveCombinedResultSections() {
+	public function saveCombinedResultSections() : void {
 		if (isset ($this->_combinedResultSections) && is_array($this->_combinedResultSections)) {
 			$this->saveOneToManyOptions($this->_combinedResultSections, 'locationId');
 			unset($this->_combinedResultSections);
 		}
 	}
 
-	public function saveHours() {
+	public function saveHours() : void {
 		if (isset ($this->_hours) && is_array($this->_hours)) {
 			$this->saveOneToManyOptions($this->_hours, 'locationId');
 			unset($this->_hours);
 		}
 	}
 
-	/**
-	 * @var CloudLibraryScope;
-	 */
-	public function getCloudLibraryScope() {
+	public function getCloudLibraryScope() : ?CloudLibraryScope {
 		if ($this->_cloudLibraryScope == null && $this->locationId) {
 			require_once ROOT_DIR . '/sys/CloudLibrary/LocationCloudLibraryScope.php';
 			$locationCloudLibraryScope = new LocationCloudLibraryScope();
@@ -2047,7 +2053,7 @@ class Location extends DataObject {
 		return $this->_cloudLibraryScope;
 	}
 
-	public function saveCloudLibraryScopes() {
+	public function saveCloudLibraryScopes() : void {
 		if (isset ($this->_cloudLibraryScope)) {
 			$locationCloudLibraryScope = new LocationCloudLibraryScope();
 			$locationCloudLibraryScope->locationId = $this->locationId;
@@ -2122,7 +2128,7 @@ class Location extends DataObject {
 					if (($openHours[$ctr]['open'] == $openHours[$ctr]['close'])) {
 						$openHours[$ctr]['closed'] = true;
 					}
-					if ($openHours[$ctr]['closed'] == false) {
+					if ($openHours[$ctr]['closed'] === false) {
 						$allClosed = false;
 					}
 					$ctr++;
@@ -2147,11 +2153,11 @@ class Location extends DataObject {
 		if ($location->find(true)) {
 			$todaysLibraryHours = Location::getLibraryHours($locationId, $today);
 			if (isset($todaysLibraryHours) && is_array($todaysLibraryHours)) {
-				if (isset($todaysLibraryHours['closed']) && ($todaysLibraryHours['closed'] == true || $todaysLibraryHours['closed'] == 1)) {
+				if (isset($todaysLibraryHours['closed']) && ($todaysLibraryHours['closed'] === true || $todaysLibraryHours['closed'] == 1)) {
 					if (isset($todaysLibraryHours['closureReason'])) {
 						$closureReason = $todaysLibraryHours['closureReason'];
 					}
-					//Library is closed now
+					//The library is closed now
 					$nextDay = time() + (24 * 60 * 60);
 					$nextDayHours = Location::getLibraryHours($locationId, $nextDay);
 					$daysChecked = 0;
@@ -2245,7 +2251,7 @@ class Location extends DataObject {
 						}
 					} elseif ($currentHour > $closeHour) {
 						$tomorrowsLibraryHours = Location::getLibraryHours($locationId, time() + (24 * 60 * 60));
-						if (isset($tomorrowsLibraryHours['closed']) && ($tomorrowsLibraryHours['closed'] == true || $tomorrowsLibraryHours['closed'] == 1)) {
+						if (isset($tomorrowsLibraryHours['closed']) && ($tomorrowsLibraryHours['closed'] === true || $tomorrowsLibraryHours['closed'] == 1)) {
 							if (isset($tomorrowsLibraryHours['closureReason'])) {
 								$libraryHoursMessage = translate([
 									'text' => "%1% will be closed tomorrow for %2%",
@@ -2398,6 +2404,53 @@ class Location extends DataObject {
 		if (isset ($this->_sideLoadScopes) && is_array($this->_sideLoadScopes)) {
 			$this->saveOneToManyOptions($this->_sideLoadScopes, 'locationId');
 			unset($this->_sideLoadScopes);
+		}
+	}
+
+	/** @var OverDriveScope[] */
+	private $_overdriveScopes = null;
+
+	/**
+	 * @return OverDriveScope[]
+	 */
+	public function getOverdriveScopeObjects() : array {
+		if ($this->_overdriveScopes == null) {
+			$this->_overdriveScopes = [];
+			if ($this->locationId > 0) {
+				$locationOverDriveScopes = $this->getLocationOverdriveScopes();
+
+				require_once ROOT_DIR . '/sys/OverDrive/OverDriveScope.php';
+				$overdriveScope = new OverDriveScope();
+				$overdriveScope->whereAddIn('id', array_keys($locationOverDriveScopes), false);
+				$this->_overdriveScopes = $overdriveScope->fetchAll(null, null, false, true);
+			}
+		}
+		return $this->_overdriveScopes;
+	}
+
+	/** @var LocationOverDriveScope[] */
+	private $_locationOverDriveScopes = null;
+
+	/**
+	 * @return LocationOverDriveScope[]
+	 */
+	public function getLocationOverdriveScopes() : array {
+		if ($this->_locationOverDriveScopes == null) {
+			$this->_locationOverDriveScopes = [];
+			if ($this->locationId > 0) {
+				require_once ROOT_DIR . '/sys/OverDrive/LocationOverDriveScope.php';
+				$locationOverDriveScope = new LocationOverDriveScope();
+				$locationOverDriveScope->locationId = $this->locationId;
+				$this->_locationOverDriveScopes = $locationOverDriveScope->fetchAll(null, null, false, true);
+			}
+		}
+		return $this->_locationOverDriveScopes;
+	}
+
+	public function saveOverDriveScopes() : void {
+		if (isset ($this->_locationOverDriveScopes) && is_array($this->_locationOverDriveScopes)) {
+			$this->saveOneToManyOptions($this->_locationOverDriveScopes, 'locationId');
+			unset($this->_libraryOverDriveScopes);
 		}
 	}
 
@@ -2911,6 +2964,13 @@ class Location extends DataObject {
 			$this->getSideLoadScopes();
 			$index = -1;
 			foreach ($this->_sideLoadScopes as $subObject) {
+				$subObject->id = $index;
+				unset($subObject->locationId);
+				$index--;
+			}
+			$this->getLocationOverdriveScopes();
+			$index = -1;
+			foreach ($this->_locationOverDriveScopes as $subObject) {
 				$subObject->id = $index;
 				unset($subObject->locationId);
 				$index--;

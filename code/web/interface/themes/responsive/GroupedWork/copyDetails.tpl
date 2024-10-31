@@ -5,7 +5,11 @@
 		<tr>
 			<th>{translate text="Available Copies" isPublicFacing=true}</th>
 			<th>{translate text="Location" isPublicFacing=true}</th>
-			<th>{translate text="Call #" isPublicFacing=true}</th>
+			{if !$isEContent}
+				<th>{translate text="Call #" isPublicFacing=true}</th>
+			{elseif $showEContentHoldCounts}
+				<th>{translate text="Holds" isPublicFacing=true}</th>
+			{/if}
 		</tr>
 		</thead>
 		<tbody>
@@ -19,14 +23,26 @@
 						<td>{translate text="Copies on order" isPublicFacing=true}</td>
 					{/if}
 				{else}
-					<td>{translate text="%1% of %2%" 1=$item.availableCopies 2=$item.totalCopies isPublicFacing=true}{if !empty($item.availableCopies)} <i class="fa fa-check"></i>{/if}</td>
+					{if $item.availableCopies > 9999}
+						<td>{translate text="Always Available" isPublicFacing=true}</td>
+					{else}
+						<td>{translate text="%1% of %2%" 1=$item.availableCopies 2=$item.totalCopies isPublicFacing=true}{if !empty($item.availableCopies)} <i class="fa fa-check"></i>{/if}</td>
+					{/if}
 				{/if}
 				<td class="notranslate">{$item.shelfLocation}</td>
-				<td class="notranslate">
-					{if empty($item.isEContent)}
+
+				{if empty($item.isEContent)}
+					<td class="notranslate">
 						{$item.callNumber}
-					{/if}
-				</td>
+					</td>
+				{elseif $showEContentHoldCounts}
+					<td class="notranslate">
+						{if $item.availableCopies <= 9999}
+							{$item.numHolds}
+						{/if}
+					</td>
+				{/if}
+
 			</tr>
 		{/foreach}
 		</tbody>

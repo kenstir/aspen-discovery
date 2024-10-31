@@ -1,5 +1,4 @@
-<?php
-
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 class GroupedWorkRecord extends DataObject {
 	public $__table = 'grouped_work_records';

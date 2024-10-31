@@ -111,7 +111,7 @@ class MaterialsRequest extends DataObject {
 				]
 			];
 		}else{
-			//This needs to be implemented and needs to be responsive to fields the library has setup
+			//This needs to be implemented and needs to be responsive to fields the library has set up
 			return [];
 		}
 	}
@@ -201,8 +201,8 @@ class MaterialsRequest extends DataObject {
 			return 'Unknown';
 		}
 	}
-	public function getFormatObject() {
-		if (!empty($this->libraryId) && !empty($this->format)) {
+	public function getFormatObject() : MaterialsRequestFormat|false {
+		if (!empty($this->libraryId) && !empty($this->formatId)) {
 			require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestFormat.php';
 			$format = new MaterialsRequestFormat();
 			$format->id = $this->formatId;
@@ -214,7 +214,25 @@ class MaterialsRequest extends DataObject {
 					if ($this->format == $defaultFormat->format) {
 						return $defaultFormat;
 					}
+				}
+			}
+		}
+		return false;
+	}
 
+	public function getFormatObjectByFormat() : MaterialsRequestFormat|false {
+		if (!empty($this->libraryId) && !empty($this->format)) {
+			require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestFormat.php';
+			$format = new MaterialsRequestFormat();
+			$format->format = $this->format;
+			$format->libraryId = $this->libraryId;
+			if ($format->find(true)) {
+				return $format;
+			} else {
+				foreach (MaterialsRequestFormat::getDefaultMaterialRequestFormats($this->libraryId) as $defaultFormat) {
+					if ($this->format == $defaultFormat->format) {
+						return $defaultFormat;
+					}
 				}
 			}
 		}
@@ -289,7 +307,7 @@ class MaterialsRequest extends DataObject {
 			}
 		}
 
-		// If we use another interface variable that is sorted by category, this should be a method in the Interface class
+		// If we use another interface variable which is sorted by category, this should be a method in the Interface class
 		$requestFormFields = [];
 		if ($fieldsToSortByCategory) {
 			foreach ($fieldsToSortByCategory as $formField) {
@@ -396,13 +414,13 @@ class MaterialsRequest extends DataObject {
 						$body = str_replace('{' . $fieldName . '}', $fieldValue, $body);
 					}
 				}
-				$error = $mail->send($this->email, translate([
+				$mailSent = $mail->send($this->email, translate([
 					'text' => "Your Materials Request Update",
 					'isPublicFacing' => true,
 				]), $body, $replyToAddress);
-				if ($error instanceof AspenError) {
+				if (!$mailSent) {
 					global $interface;
-					$interface->assign('error', $error->getMessage());
+					$interface->assign('error', 'Could not send material request update');
 				}
 			}
 		}
@@ -725,7 +743,7 @@ class MaterialsRequest extends DataObject {
 			$library = $allLibraries[$this->libraryId];
 			$links['library'] = empty($library->subdomain) ? $library->ilsCode : $library->subdomain;
 		}
-		//created  by
+		//created by
 		$user = new User();
 		$user->id = $this->createdBy;
 		if ($user->find(true)) {

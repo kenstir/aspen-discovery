@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 require_once ROOT_DIR . '/sys/OverDrive/OverDriveSetting.php';
 
@@ -10,23 +10,11 @@ class OverDriveScope extends DataObject {
 	public $includeAdult;
 	public $includeTeen;
 	public $includeKids;
-	public $clientSecret;
-	public $clientKey;
-	public $authenticationILSName;
-	public $requirePin;
-	public $readerName;
-	public /** @noinspection PhpUnused */
-		$overdriveAdvantageName;
-	public /** @noinspection PhpUnused */
-		$overdriveAdvantageProductsKey;
-	public $circulationEnabled;
 
-	private $_libraries;
-	private $_locations;
+	protected $_libraries;
+	protected $_locations;
 
-	public function getEncryptedFieldNames(): array {
-		return ['clientSecret'];
-	}
+
 
 	public static function getObjectStructure($context = ''): array {
 		$overdriveSettings = [];
@@ -36,8 +24,18 @@ class OverDriveScope extends DataObject {
 			$overdriveSettings[$overdriveSetting->id] = (string)$overdriveSetting;
 		}
 
-		$libraryList = Library::getLibraryList(!UserAccount::userHasPermission('Administer All Libraries'));
+		//$libraryList = Library::getLibraryList(!UserAccount::userHasPermission('Administer All Libraries'));
 		$locationList = Location::getLocationList(!UserAccount::userHasPermission('Administer All Libraries') || UserAccount::userHasPermission('Administer Home Library Locations'));
+
+		require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveScope.php';
+		$libraryOverDriveScopeStructure = LibraryOverDriveScope::getObjectStructure($context);
+		unset($libraryOverDriveScopeStructure['scopeId']);
+		unset($libraryOverDriveScopeStructure['weight']);
+
+		require_once ROOT_DIR . '/sys/OverDrive/LocationOverDriveScope.php';
+		$locationOverDriveScopeStructure = LocationOverDriveScope::getObjectStructure($context);
+		unset($locationOverDriveScopeStructure['scopeId']);
+		unset($locationOverDriveScopeStructure['weight']);
 
 		return [
 			'id' => [
@@ -58,68 +56,6 @@ class OverDriveScope extends DataObject {
 				'label' => 'Name',
 				'description' => 'The Name of the scope',
 				'maxLength' => 50,
-			],
-			'circulationEnabled' => [
-				'property' => 'circulationEnabled',
-				'type' => 'checkbox',
-				'label' => 'Circulation Enabled',
-				'description' => 'Whether or not circulation is enabled within Aspen',
-				'hideInLists' => true,
-				'default' => true,
-				'forcesReindex' => false,
-			],
-			'clientKey' => [
-				'property' => 'clientKey',
-				'type' => 'text',
-				'label' => 'Circulation Client Key (if different from settings)',
-				'description' => 'The client key provided by OverDrive when registering',
-			],
-			'clientSecret' => [
-				'property' => 'clientSecret',
-				'type' => 'storedPassword',
-				'label' => 'Circulation Client Secret (if different from settings)',
-				'description' => 'The client secret provided by OverDrive when registering',
-				'hideInLists' => true,
-			],
-			'authenticationILSName' => [
-				'property' => 'authenticationILSName',
-				'type' => 'text',
-				'label' => 'The ILS Name Overdrive uses for user Authentication',
-				'description' => 'The name of the ILS that OverDrive uses to authenticate users logging into the Overdrive website.',
-				'size' => '20',
-				'hideInLists' => true,
-			],
-			'requirePin' => [
-				'property' => 'requirePin',
-				'type' => 'checkbox',
-				'label' => 'Is a Pin Required to log into Overdrive website?',
-				'description' => 'Turn on to allow repeat search in Overdrive functionality.',
-				'hideInLists' => true,
-				'default' => 0,
-			],
-			'overdriveAdvantageName' => [
-				'property' => 'overdriveAdvantageName',
-				'type' => 'text',
-				'label' => 'Overdrive Advantage Name',
-				'description' => 'The name of the OverDrive Advantage account if any.',
-				'size' => '80',
-				'hideInLists' => true,
-				'forcesReindex' => true,
-			],
-			'overdriveAdvantageProductsKey' => [
-				'property' => 'overdriveAdvantageProductsKey',
-				'type' => 'text',
-				'label' => 'Overdrive Advantage Products Key',
-				'description' => 'The products key for use when building urls to the API from the advantageAccounts call.',
-				'size' => '80',
-				'hideInLists' => false,
-				'forcesReindex' => true,
-			],
-			'readerName' => [
-				'property' => 'readerName',
-				'type' => 'text',
-				'label' => 'Reader Name',
-				'description' => 'Name of Libby product to display to patrons. Default is Libby',
 			],
 			'includeAdult' => [
 				'property' => 'includeAdult',
@@ -145,56 +81,57 @@ class OverDriveScope extends DataObject {
 				'default' => true,
 				'forcesReindex' => true,
 			],
+
 			'libraries' => [
 				'property' => 'libraries',
-				'type' => 'multiSelect',
-				'listStyle' => 'checkboxSimple',
-				'label' => 'Libraries',
-				'description' => 'Define libraries that use this scope',
-				'values' => $libraryList,
+				'type' => 'oneToMany',
+				'label' => "Libraries",
+				'description' => "The libraries that use this scope",
+				'keyThis' => 'id',
+				'keyOther' => 'scopeId',
+				'subObjectType' => 'LibraryOverDriveScope',
+				'structure' => $libraryOverDriveScopeStructure,
+				'sortable' => false,
+				'storeDb' => true,
+				'allowEdit' => true,
+				'canEdit' => true,
+				'canAddNew' => true,
+				'canDelete' => true,
 				'forcesReindex' => true,
 			],
 
 			'locations' => [
 				'property' => 'locations',
-				'type' => 'multiSelect',
-				'listStyle' => 'checkboxSimple',
-				'label' => 'Locations',
-				'description' => 'Define locations that use this scope',
-				'values' => $locationList,
+				'type' => 'oneToMany',
+				'label' => "Locations",
+				'description' => "The locations that use this scope",
+				'keyThis' => 'id',
+				'keyOther' => 'scopeId',
+				'subObjectType' => 'LocationOverDriveScope',
+				'structure' => $locationOverDriveScopeStructure,
+				'sortable' => false,
+				'storeDb' => true,
+				'allowEdit' => true,
+				'canEdit' => true,
+				'canAddNew' => true,
+				'canDelete' => true,
 				'forcesReindex' => true,
 			],
 		];
 	}
 
-	/** @noinspection PhpUnused */
+	/** @noinspection PhpUnused
+	 * @noinspection PhpUnusedParameterInspection
+	 */
 	public function getEditLink($context): string {
 		return '/OverDrive/Scopes?objectAction=edit&id=' . $this->id;
 	}
 
 	public function __get($name) {
 		if ($name == "libraries") {
-			if (!isset($this->_libraries) && $this->id) {
-				$this->_libraries = [];
-				$obj = new Library();
-				$obj->overDriveScopeId = $this->id;
-				$obj->find();
-				while ($obj->fetch()) {
-					$this->_libraries[$obj->libraryId] = $obj->libraryId;
-				}
-			}
-			return $this->_libraries;
+			return $this->getLibraries();
 		} elseif ($name == "locations") {
-			if (!isset($this->_locations) && $this->id) {
-				$this->_locations = [];
-				$obj = new Location();
-				$obj->overDriveScopeId = $this->id;
-				$obj->find();
-				while ($obj->fetch()) {
-					$this->_locations[$obj->locationId] = $obj->locationId;
-				}
-			}
-			return $this->_locations;
+			return $this->getLocations();
 		} else {
 			return parent::__get($name);
 		}
@@ -210,7 +147,7 @@ class OverDriveScope extends DataObject {
 		}
 	}
 
-	public function update($context = '') {
+	public function update($context = '') : bool {
 		$ret = parent::update();
 		if ($ret !== FALSE) {
 			$this->saveLibraries();
@@ -219,7 +156,7 @@ class OverDriveScope extends DataObject {
 		return true;
 	}
 
-	public function insert($context = '') {
+	public function insert($context = '') : int {
 		$ret = parent::insert();
 		if ($ret !== FALSE) {
 			$this->saveLibraries();
@@ -228,96 +165,67 @@ class OverDriveScope extends DataObject {
 		return $ret;
 	}
 
-	public function saveLibraries() {
+	public function saveLibraries() : void {
 		if (isset ($this->_libraries) && is_array($this->_libraries)) {
-			$libraryList = Library::getLibraryList(!UserAccount::userHasPermission('Administer All Libraries'));
-			foreach ($libraryList as $libraryId => $displayName) {
-				$library = new Library();
-				$library->libraryId = $libraryId;
-				$library->find(true);
-				if (in_array($libraryId, $this->_libraries)) {
-					//We want to apply the scope to this library
-					if ($library->overDriveScopeId != $this->id) {
-						$library->overDriveScopeId = $this->id;
-						$library->update();
-					}
-				} else {
-					//It should not be applied to this scope. Only change if it was applied to the scope
-					if ($library->overDriveScopeId == $this->id) {
-						$library->overDriveScopeId = -1;
-						$library->update();
-					}
-				}
-			}
+			$this->saveOneToManyOptions($this->_libraries, 'scopeId');
 			unset($this->_libraries);
 		}
 	}
 
-	public function saveLocations() {
+	public function saveLocations() : void {
 		if (isset ($this->_locations) && is_array($this->_locations)) {
-			$locationList = Location::getLocationList(!UserAccount::userHasPermission('Administer All Libraries') || UserAccount::userHasPermission('Administer Home Library Locations'));
-			/**
-			 * @var int $locationId
-			 * @var Location $location
-			 */
-			foreach ($locationList as $locationId => $displayName) {
-				$location = new Location();
-				$location->locationId = $locationId;
-				$location->find(true);
-				if (in_array($locationId, $this->_locations)) {
-					//We want to apply the scope to this library
-					if ($location->overDriveScopeId != $this->id) {
-						$location->overDriveScopeId = $this->id;
-						$location->update();
-					}
-				} else {
-					//It should not be applied to this scope. Only change if it was applied to the scope
-					if ($location->overDriveScopeId == $this->id) {
-						$library = new Library();
-						$library->libraryId = $location->libraryId;
-						$library->find(true);
-						if ($library->overDriveScopeId != -1) {
-							$location->overDriveScopeId = -1;
-						} else {
-							$location->overDriveScopeId = -2;
-						}
-						$location->update();
-					}
-				}
-			}
+			$this->saveOneToManyOptions($this->_libraries, 'scopeId');
 			unset($this->_locations);
 		}
 	}
 
-	/** @return Library[] */
-	public function getLibraries() {
+	/** @return LibraryOverDriveScope[] */
+	public function getLibraries() : array {
+		if (!isset($this->_libraries) && $this->id) {
+			$this->_libraries = [];
+			if ($this->id > 0) {
+				require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveScope.php';
+				$libraryOverDriveScope = new LibraryOverDriveScope();
+				$libraryOverDriveScope->scopeId = $this->id;
+				$this->_libraries = $libraryOverDriveScope->fetchAll(null, null, false, true);
+			}
+		}
 		return $this->_libraries;
 	}
 
 	/** @return Location[]
 	 * @noinspection PhpUnused
 	 */
-	public function getLocations() {
+	public function getLocations() : array {
+		if (!isset($this->_locations)) {
+			$this->_locations = [];
+			if ($this->id > 0) {
+				require_once ROOT_DIR . '/sys/OverDrive/LocationOverDriveScope.php';
+				$locationOverDriveScope = new LocationOverDriveScope();
+				$locationOverDriveScope->scopeId = $this->id;
+				$this->_locations = $locationOverDriveScope->fetchAll(null, null, false, true);
+			}
+		}
 		return $this->_locations;
 	}
 
 	/** @noinspection PhpUnused */
-	public function setLibraries($val) {
+	public function setLibraries($val) : void {
 		$this->_libraries = $val;
 	}
 
 	/** @noinspection PhpUnused */
-	public function setLocations($val) {
+	public function setLocations($val) : void {
 		$this->_libraries = $val;
 	}
 
-	public function clearLibraries() {
+	public function clearLibraries() : void {
 		$this->clearOneToManyOptions('Library', 'overDriveScopeId');
 		unset($this->_libraries);
 	}
 
 	/** @noinspection PhpUnused */
-	public function clearLocations() {
+	public function clearLocations() : void {
 		$this->clearOneToManyOptions('Location', 'overDriveScopeId');
 		unset($this->_locations);
 	}

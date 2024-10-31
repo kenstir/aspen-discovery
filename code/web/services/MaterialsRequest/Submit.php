@@ -10,7 +10,7 @@ require_once ROOT_DIR . "/sys/MaterialsRequests/MaterialsRequestStatus.php";
  */
 class MaterialsRequest_Submit extends Action {
 
-	function launch() {
+	function launch() : void {
 		global $interface;
 		global $library;
 
@@ -23,19 +23,27 @@ class MaterialsRequest_Submit extends Action {
 
 		//Make sure that the user is valid
 		$processForm = true;
+		$user = null;
 		if (!UserAccount::isLoggedIn()) {
-			$user = UserAccount::login();
-			if ($user == null) {
-				$interface->assign('error', translate([
-					'text' => 'Sorry, we could not log you in.  Please enter a valid barcode and pin number submit a materials request.',
-					'isPublicFacing' => true,
-				]));
-				$processForm = false;
+			try {
+				$user = UserAccount::login();
+			} catch (UnknownAuthenticationMethodException) {
+				//This is handled later because $user is null
 			}
+		}else{
+			$user = UserAccount::getLoggedInUser();
+		}
+		if ($user == null) {
+			$interface->assign('success', false);
+			$interface->assign('error', translate([
+				'text' => 'Sorry, we could not log you in.  Please enter a valid barcode and pin number submit a materials request.',
+				'isPublicFacing' => true,
+			]));
+			$processForm = false;
 		}
 		if ($processForm) {
 			//Check to see if the user type is ok to submit a request
-			$enableMaterialsRequest = true;
+			$enableMaterialsRequest = $user->canSuggestMaterials();
 			if (!$enableMaterialsRequest) {
 				$interface->assign('success', false);
 				$interface->assign('error', translate([
@@ -71,7 +79,7 @@ class MaterialsRequest_Submit extends Action {
 							'text' => "You've already reached your maximum limit of %1% materials requests open at one time. Once we've processed your existing materials requests, you'll be able to submit again.",
 							1 => $maxActiveRequests,
 							'isPublicFacing' => true,
-						]) . "<a href='{$accountPageLink}' class='btn btn-info'>" . translate([
+						]) . "<a href='$accountPageLink' class='btn btn-info'>" . translate([
 							'text' => 'View Materials Requests',
 							'isPublicFacing' => true,
 						]) . "</a>.");
@@ -80,7 +88,7 @@ class MaterialsRequest_Submit extends Action {
 					$materialsRequest = new MaterialsRequest();
 					$materialsRequest->createdBy = UserAccount::getActiveUserId();
 					$materialsRequest->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
-					//To be fair, don't include any requests that were cancelled by the patron
+					//To be fair, don't include any requests that were canceled by the patron
 					$statusQuery = new MaterialsRequestStatus();
 					$statusQuery->isPatronCancel = 0;
 					$materialsRequest->joinAdd($statusQuery, 'INNER', 'status', 'status', 'id');
@@ -92,7 +100,7 @@ class MaterialsRequest_Submit extends Action {
 								'text' => "You've already reached your maximum limit of %1% materials requests per year.",
 								1 => $maxRequestsPerYear,
 								'isPublicFacing' => true,
-							]) . "<a href='{$accountPageLink}' class='btn btn-info'>" . translate([
+							]) . "<a href='$accountPageLink' class='btn btn-info'>" . translate([
 								'text' => 'View Materials Requests',
 								'isPublicFacing' => true,
 							]) . "</a>.");
@@ -137,7 +145,7 @@ class MaterialsRequest_Submit extends Action {
 
 								$materialsRequest->libraryId = $homeLibrary->libraryId;
 
-								$formatObject = $materialsRequest->getFormatObject();
+								$formatObject = $materialsRequest->getFormatObjectByFormat();
 								if (!empty($formatObject->id)) {
 									$materialsRequest->formatId = $formatObject->id;
 								}

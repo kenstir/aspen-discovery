@@ -1817,7 +1817,7 @@ class GroupedWorkDriver extends IndexRecordDriver {
 	 * @param $recordIdentifier
 	 * @return Grouping_Record
 	 */
-	public function getRelatedRecord($recordIdentifier) {
+	public function getRelatedRecord($recordIdentifier) : ?Grouping_Record {
 		$this->loadRelatedRecords();
 		if (isset($this->relatedRecords[$recordIdentifier])) {
 			return $this->relatedRecords[$recordIdentifier];
@@ -2949,7 +2949,7 @@ class GroupedWorkDriver extends IndexRecordDriver {
 						//Load the correct record based on the variation since the same record can exist in multiple variations
 						if (isset($allRecords[$scopedItem['groupedWorkRecordId'] . ':' . $relatedVariation->manifestation->format])) {
 							$relatedRecord = $allRecords[$scopedItem['groupedWorkRecordId'] . ':' . $relatedVariation->manifestation->format];
-							$scopedItem['isEcontent'] = $relatedVariation->isEcontent;
+							$scopedItem['isEContent'] = $relatedVariation->isEContent;
 							$scopedItem['eContentSource'] = $relatedVariation->econtentSource;
 							$scopedItem['scopeId'] = $scopeId;
 							//Look for urls for the item

@@ -1,9 +1,12 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 require_once ROOT_DIR . '/sys/OverDrive/OverDriveScope.php';
+require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveSettings.php';
 
 class OverDriveSetting extends DataObject {
 	public $__table = 'overdrive_settings';    // table name
 	public $id;
+	public $name;
+	public $readerName;
 	public $url;
 	public $patronApiUrl;
 	public $clientSecret;
@@ -12,17 +15,22 @@ class OverDriveSetting extends DataObject {
 	public $websiteId;
 	public $productsKey;
 	public $runFullUpdate;
-	public $useFulfillmentInterface;
 	public $showLibbyPromo;
+	/** @noinspection PhpUnused */
 	public $allowLargeDeletes;
+	/** @noinspection PhpUnused */
 	public $numExtractionThreads;
+	/** @noinspection PhpUnused */
 	public $numRetriesOnError;
+	/** @noinspection PhpUnused */
 	public $productsToUpdate;
 	public $lastUpdateOfChangedRecords;
 	public $lastUpdateOfAllRecords;
+	/** @noinspection PhpUnused */
 	public $enableRequestLogging;
 
 	public $_scopes;
+	public $_librarySettings;
 
 	public function getEncryptedFieldNames(): array {
 		return ['clientSecret'];
@@ -32,12 +40,34 @@ class OverDriveSetting extends DataObject {
 		$overdriveScopeStructure = OverDriveScope::getObjectStructure($context);
 		unset($overdriveScopeStructure['settingId']);
 
+		$libraryOverDriveSettingsStructure = LibraryOverDriveSettings::getObjectStructure($context);
+		unset($libraryOverDriveSettingsStructure['settingId']);
+		unset($libraryOverDriveSettingsStructure['weight']);
+
 		$objectStructure = [
 			'id' => [
 				'property' => 'id',
 				'type' => 'label',
 				'label' => 'Id',
 				'description' => 'The unique id',
+			],
+			'name' => [
+				'property' => 'name',
+				'type' => 'text',
+				'label' => 'Name',
+				'description' => 'The name to be shown to patrons to identify the collection (useful with multiple collections)',
+				'default' => 'Libby',
+				'maxLength' => 125,
+				'canBatchUpdate' => false,
+			],
+			'readerName' => [
+				'property' => 'readerName',
+				'type' => 'text',
+				'label' => 'Reader Name',
+				'description' => 'Name of Libby product to display to patrons. Default is Libby',
+				'default' => 'Libby',
+				'maxLength' => 25,
+				'canBatchUpdate' => true,
 			],
 			'url' => [
 				'property' => 'url',
@@ -103,13 +133,6 @@ class OverDriveSetting extends DataObject {
 				'description' => 'Whether or not Aspen can delete more than 500 records or 5% of the collection',
 				'default' => 1,
 			],
-			'useFulfillmentInterface' => [
-				'property' => 'useFulfillmentInterface',
-				'type' => 'checkbox',
-				'label' => 'Enable updated checkout fulfillment interface',
-				'description' => 'Whether or not to use the updated fulfillment interface',
-				'default' => 1,
-			],
 			'showLibbyPromo' => [
 				'property' => 'showLibbyPromo',
 				'type' => 'checkbox',
@@ -166,6 +189,23 @@ class OverDriveSetting extends DataObject {
 				'description' => 'Whether or not request logging is done while extracting from Aspen.',
 				'default' => 0,
 			],
+			'librarySettings' => [
+				'property' => 'librarySettings',
+				'type' => 'oneToMany',
+				'label' => 'Library Settings',
+				'description' => 'Define scopes for the settings',
+				'keyThis' => 'id',
+				'keyOther' => 'settingId',
+				'subObjectType' => 'LibraryOverDriveSettings',
+				'structure' => $libraryOverDriveSettingsStructure,
+				'sortable' => true,
+				'storeDb' => true,
+				'allowEdit' => true,
+				'canEdit' => true,
+				'additionalOneToManyActions' => [],
+				'canAddNew' => true,
+				'canDelete' => true,
+			],
 			'scopes' => [
 				'property' => 'scopes',
 				'type' => 'oneToMany',
@@ -191,18 +231,19 @@ class OverDriveSetting extends DataObject {
 	}
 
 	public function __toString() {
-		return $this->url;
+		return "$this->name ($this->url)";
 	}
 
-	public function update($context = '') {
+	public function update($context = '') : bool {
 		$ret = parent::update();
 		if ($ret !== FALSE) {
 			$this->saveScopes();
+			$this->saveLibrarySettings();
 		}
 		return true;
 	}
 
-	public function insert($context = '') {
+	public function insert($context = '') : int {
 		$ret = parent::insert();
 		if ($ret !== FALSE) {
 			if (empty($this->_scopes)) {
@@ -216,14 +257,22 @@ class OverDriveSetting extends DataObject {
 				$this->_scopes[] = $allScope;
 			}
 			$this->saveScopes();
+			$this->saveLibrarySettings();
 		}
 		return $ret;
 	}
 
-	public function saveScopes() {
+	public function saveScopes() : void {
 		if (isset ($this->_scopes) && is_array($this->_scopes)) {
 			$this->saveOneToManyOptions($this->_scopes, 'settingId');
 			unset($this->_scopes);
+		}
+	}
+
+	public function saveLibrarySettings() : void {
+		if (isset ($this->_librarySettings) && is_array($this->_librarySettings)) {
+			$this->saveOneToManyOptions($this->_librarySettings, 'settingId');
+			unset($this->_librarySettings);
 		}
 	}
 
@@ -239,7 +288,18 @@ class OverDriveSetting extends DataObject {
 				}
 			}
 			return $this->_scopes;
-		} else {
+		} elseif ($name == "librarySettings") {
+			if (!isset($this->_librarySettings) && $this->id) {
+				$this->_librarySettings = [];
+				$librarySetting = new LibraryOverDriveSettings();
+				$librarySetting->settingId = $this->id;
+				$librarySetting->find();
+				while ($librarySetting->fetch()) {
+					$this->_librarySettings[$librarySetting->id] = clone($librarySetting);
+				}
+			}
+			return $this->_librarySettings;
+		}else{
 			return parent::__get($name);
 		}
 	}
@@ -247,6 +307,8 @@ class OverDriveSetting extends DataObject {
 	public function __set($name, $value) {
 		if ($name == "scopes") {
 			$this->_scopes = $value;
+		} elseif ($name == "librarySettings") {
+			$this->_librarySettings = $value;
 		} else {
 			parent::__set($name, $value);
 		}

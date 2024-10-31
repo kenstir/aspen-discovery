@@ -755,8 +755,6 @@ class UInterface extends Smarty {
 		$this->assign('displayExploreMoreBarInCatalogSearch', $library->displayExploreMoreBarInCatalogSearch);
 		$this->assign('displayExploreMoreBarInEbscoHost', $library->displayExploreMoreBarInEbscoHost);
 
-
-
 		if ($location != null) {
 			$this->assign('showDisplayNameInHeader', $location->showDisplayNameInHeader);
 			$this->assign('languageAndDisplayInHeader', $location->languageAndDisplayInHeader);
@@ -764,11 +762,11 @@ class UInterface extends Smarty {
 			$this->assign('displayExploreMoreBarInSummon', $location->displayExploreMoreBarInSummon);
 			$this->assign('displayExploreMoreBarInEbscoEds', $location->displayExploreMoreBarInEbscoEds);
 			$this->assign('displayExploreMoreBarInCatalogSearch', $location->displayExploreMoreBarInCatalogSearch);
-
+			$this->assign('displayExploreMoreBarInEbscoHost', $location->displayExploreMoreBarInEbscoHost);
 		}
 
 		if (!$fromBookCoverProcessing) {
-			//Determine whether or not materials request functionality should be enabled
+			//Determine if materials request functionality should be enabled
 			if (file_exists(ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php')) {
 				require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php';
 				$this->assign('enableAspenMaterialsRequest', MaterialsRequest::enableAspenMaterialsRequest());

@@ -1,13 +1,11 @@
 {strip}
-{*	{if !empty($format) && ($format == 'Journal' || $format == 'Newspaper' || $format == 'Print Periodical' || $format == 'Magazine')}*}
-{*		{if !empty($recordViewUrl) && ($showQuickCopy != 0)}*}
-{*			<div class="itemSummary">*}
-{*				&nbsp;&nbsp;<a href="{$recordViewUrl}#copiesPanelBody">*}
-{*					{translate text="Where is it?" isPublicFacing=true}*}
-{*				</a>*}
-{*			</div>*}
-{*		{/if}*}
-{*	{else}*}
+	{if $isEContent}
+		<div class="itemSummary">
+			<a href="#" onclick="return AspenDiscovery.GroupedWork.showCopyDetails('{$workId}', '{if !empty($relatedManifestation)}{$relatedManifestation->format|urlencode}{else}{$format}{/if}', '{$itemSummaryId}');">
+				{translate text="where_is_it_button" defaultText="Where is it?" isPublicFacing=true}
+			</a>
+		</div>
+	{else}
 		{assign var=numDefaultItems value="0"}
 		{assign var=numRowsShown value="0"}
 		{if $showQuickCopy != 3}
@@ -49,5 +47,5 @@
 				{/if}
 			{/if}
 		{/if}
-{*	{/if}*}
+	{/if}
 {/strip}

@@ -14,10 +14,6 @@
 			{if !empty($offline)}
 				<div class="alert alert-warning"><strong>{translate text=$offlineMessage isPublicFacing=true}</strong></div>
 			{else}
-				{* MDN 7/26/2019 Do not allow access for linked users *}
-				{*				{include file="MyAccount/switch-linked-user-form.tpl" label="View Account Settings for" actionPath="/MyAccount/OverDriveOptions"}*}
-
-				{* Empty action attribute uses the page loaded. this keeps the selected user patronId in the parameters passed back to server *}
 				<form action="" method="post">
 					<input type="hidden" name="updateScope" value="overdrive">
 					<div class="form-group propertyRow">
@@ -26,26 +22,31 @@
 					</div>
 					<div class="form-group propertyRow">
 						<label for="promptForOverdriveEmail" class="control-label">{translate text='Prompt for %1% email' 1=$readerName isPublicFacing=true}</label>&nbsp;
-                        {if $edit == true}
+						{if $edit == true}
 							<input type="checkbox" name="promptForOverdriveEmail" id="promptForOverdriveEmail" {if $profile->promptForOverdriveEmail==1}checked='checked'{/if} data-switch="">
-                        {else}
-                            {if $profile->promptForOverdriveEmail==0}{translate text="No" isPublicFacing=true}{else}{translate text="Yes" isPublicFacing=true}{/if}
-                        {/if}
+						{else}
+							{if $profile->promptForOverdriveEmail==0}{translate text="No" isPublicFacing=true}{else}{translate text="Yes" isPublicFacing=true}{/if}
+						{/if}
 					</div>
-					{if !empty($options.lendingPeriods)}
 					<h2>{translate text="Default Lending Periods" isPublicFacing=true}</h2>
-					{foreach from=$options.lendingPeriods item=lendingPeriod}
-						<div class="form-group propertyRow">
-							<label class="control-label" id="{$lendingPeriod.formatType}Label">{translate text=$lendingPeriod.formatType isPublicFacing=true}&nbsp;
-								<select class="form-control" aria-labelledby="{$lendingPeriod.formatType}Label" name="{$lendingPeriod.formatType}">
-								{foreach from=$lendingPeriod.options key=value item=optionName}
-									<option value="{$optionName}" {if $optionName == $lendingPeriod.lendingPeriod}selected{/if}>{translate text="%1% days" 1=$optionName isPublicFacing=true}</option>
-								{/foreach}
-								</select>
-							</label>
-						</div>
+					{foreach from=$availableSettings item=setting}
+						{assign var=settingId value=$setting->id}
+						{assign var="options" value=$optionsBySetting.$settingId}
+						{if !empty($options.lendingPeriods)}
+							<h3>{translate text=$setting->name isPublicFacing=true}</h3>
+							{foreach from=$options.lendingPeriods item=lendingPeriod}
+								<div class="form-group propertyRow">
+									<label class="control-label" id="{$lendingPeriod.formatType}_{$settingId}_Label">{translate text=$lendingPeriod.formatType isPublicFacing=true}&nbsp;
+										<select class="form-control" aria-labelledby="{$lendingPeriod.formatType}_{$settingId}_Label" name="{$lendingPeriod.formatType}_{$settingId}">
+										{foreach from=$lendingPeriod.options key=value item=optionName}
+											<option value="{$optionName}" {if $optionName == $lendingPeriod.lendingPeriod}selected{/if}>{translate text="%1% days" 1=$optionName isPublicFacing=true}</option>
+										{/foreach}
+										</select>
+									</label>
+								</div>
+							{/foreach}
+						{/if}
 					{/foreach}
-					{/if}
 					{if empty($offline) && $edit == true}
 						<div class="form-group propertyRow">
 							<button type="submit" name="updateOverDrive" class="btn btn-sm btn-primary">{translate text="Update Options" isPublicFacing=true}</button>

@@ -27,6 +27,19 @@ class MaterialsRequest_RequestsNeedingHolds extends ObjectEditor {
 		return $list;
 	}
 
+	function getNumObjects(): int {
+		if ($this->_numObjects == null) {
+			$object = new MaterialsRequest();
+			$object->readyForHolds = 1;
+			$object->holdsCreated = 0;
+			//TODO: Filter by assignee as well?
+
+			$this->applyFilters($object);
+			$this->_numObjects = $object->count();
+		}
+		return $this->_numObjects;
+	}
+
 	function getBreadcrumbs(): array {
 		$breadcrumbs = [];
 		$breadcrumbs[] = new Breadcrumb('/MaterialsRequest/ManageRequests', 'Manage Materials Requests');

@@ -43,7 +43,7 @@
 										<li class="myAccountLink">
 											&nbsp;&nbsp;&raquo;&nbsp;
 											<a href="/MyAccount/CheckedOut?tab=overdrive" id="checkedOutOverDrive" title="View checkouts from OverDrive">
-												{$readerName}{if empty($offline)}<span class="badge"><span class="overdrive-checkouts-placeholder">??</span></span>{/if}
+												{$readerName} {if empty($offline)}<span class="badge"><span class="overdrive-checkouts-placeholder">??</span></span>{/if}
 											</a>
 										</li>
 									{/if}
@@ -107,7 +107,7 @@
 										<li class="myAccountLink">
 											&nbsp;&nbsp;&raquo;&nbsp;
 											<a href="/MyAccount/Holds?tab=overdrive" id="holdsOverDrive" title="View holds from OverDrive">
-												{$readerName}{if empty($offline)}<span class="badge"><span class="overdrive-holds-placeholder">??</span></span> <span class="overdrive-available-holds" style="display: none"> <span class="label label-success"><span class="overdrive-available-holds-placeholder"></span> {translate text="Available Now" isPublicFacing=true}</span></span>{/if}
+												{$readerName} {if empty($offline)}<span class="badge"><span class="overdrive-holds-placeholder">??</span></span> <span class="overdrive-available-holds" style="display: none"> <span class="label label-success"><span class="overdrive-available-holds-placeholder"></span> {translate text="Available Now" isPublicFacing=true}</span></span>{/if}
 											</a>
 										</li>
 									{/if}
@@ -115,7 +115,7 @@
 										<li class="myAccountLink">
 											&nbsp;&nbsp;&raquo;&nbsp;
 											<a href="/MyAccount/Holds?tab=palace_project" id="holdsPalaceProject" title="View holds from Palace Project">
-                                                {translate text="Palace Project" isPublicFacing=true}{if empty($offline)}<span class="badge"><span class="palace_project-holds-placeholder">??</span></span> <span class="palace_project-available-holds" style="display: none"> <span class="label label-success"><span class="palace_project-available-holds-placeholder"></span> {translate text="Available Now" isPublicFacing=true}</span></span>{/if}
+                                                {translate text="Palace Project" isPublicFacing=true} {if empty($offline)}<span class="badge"><span class="palace_project-holds-placeholder">??</span></span> <span class="palace_project-available-holds" style="display: none"> <span class="label label-success"><span class="palace_project-available-holds-placeholder"></span> {translate text="Available Now" isPublicFacing=true}</span></span>{/if}
 											</a>
 										</li>
 									{/if}

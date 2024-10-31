@@ -432,7 +432,7 @@ class Axis360RecordDriver extends GroupedWorkSubDriver {
 		return $configArray['Site']['url'] . '/Axis360/' . $this->id . '/AccessOnline?patronId=' . $patron->id;
 	}
 
-	function getStatusSummary() {
+	function getStatusSummary() : array {
 		$relatedRecord = $this->getRelatedRecord();
 		$statusSummary = [];
 		if ($relatedRecord == null) {

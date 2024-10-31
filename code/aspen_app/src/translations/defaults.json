@@ -580,5 +580,12 @@
   "open": "Open",
   "alternate_library_card": "Alternate Library Card",
   "manage_alternate_library_card": "Manage Alternate Library Card",
-  "add_alternate_library_card": "Add Alternate Library Card"
+  "add_alternate_library_card": "Add Alternate Library Card",
+  "register_for_a_library_card": "Register for a Library Card",
+  "self_registration": "Self Registration",
+  "self_registration_message": "This page allows you to register as a patron of our library online. You will have limited privileges initially.",
+  "register": "Register",
+  "self_registration_success": "Congratulations, you have successfully registered for a new library card. You will have limited privileges initially. Please bring a valid ID to the library to receive a physical library card with full privileges.",
+  "self_registration_error": "Sorry, we were unable to create a library card for you. You may already have an account or there may be an error with the information you entered. Please try again or visit the library in person (with a valid ID) so we can create a card for you."
+
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import _ from 'lodash';
-import { Text, CheckIcon, Heading, HStack, VStack, Badge, BadgeText, FlatList, Button, ButtonGroup, ButtonText, ButtonIcon, Box, Icon, Center, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogBackdrop, Select, SelectTrigger, SelectInput, SelectIcon, SelectPortal, SelectBackdrop, SelectContent, SelectDragIndicatorWrapper, SelectDragIndicator, SelectItem, SelectScrollView } from '@gluestack-ui/themed';
+import { Text, ChevronDownIcon, Heading, HStack, VStack, Badge, BadgeText, FlatList, Button, ButtonGroup, ButtonText, ButtonIcon, Box, Icon, Center, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogBackdrop, Select, SelectTrigger, SelectInput, SelectIcon, SelectPortal, SelectBackdrop, SelectContent, SelectDragIndicatorWrapper, SelectDragIndicator, SelectItem, SelectScrollView } from '@gluestack-ui/themed';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -234,7 +234,7 @@ export const Editions = () => {
                                                        <SelectTrigger>
                                                             <SelectInput placeholder="Select option" />
                                                             <SelectIcon mr="$3">
-                                                                 <Icon as={CheckIcon} />
+                                                                 <Icon as={ChevronDownIcon} color={textColor} />
                                                             </SelectIcon>
                                                        </SelectTrigger>
                                                        <SelectPortal>

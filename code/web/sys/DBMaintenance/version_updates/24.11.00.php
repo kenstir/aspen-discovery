@@ -150,6 +150,13 @@ function getUpdates24_11_00(): array {
 				'ALTER TABLE user_checkout ADD COLUMN collectionName varchar(128) DEFAULT null'
 			]
 		], //overdrive_collection_name_for_circ
+		'add_test_user_flag' => [
+			'title' => 'Add Test User Flag',
+			'description' => 'Add a test user flag to indicate users that are for testing only',
+			'sql' => [
+				'ALTER TABLE user ADD COLUMN isLocalTestUser TINYINT(1) DEFAULT 0'
+			]
+		],
 
 		//TODO: Make sure all migration from old structure to new works properly
 

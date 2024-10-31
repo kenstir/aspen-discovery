@@ -85,6 +85,8 @@ class User extends DataObject {
 	public $totalCostSavings;
 	public $currentCostSavings;
 
+	public $isLocalTestUser;
+
 	/** @var User $parentUser */
 	private $parentUser;
 	/** @var User[] $linkedUsers */
@@ -147,6 +149,7 @@ class User extends DataObject {
 			'updateMessageIsError',
 			'rememberHoldPickupLocation',
 			'materialsRequestSendEmailOnAssign',
+			'isLocalTestUser'
 		];
 	}
 
@@ -2780,7 +2783,7 @@ class User extends DataObject {
 		return $renewAllResults;
 	}
 
-	public function isReadingHistoryEnabled() {
+	public function isReadingHistoryEnabled() : bool {
 		$catalogDriver = $this->getCatalogDriver();
 		if ($catalogDriver != null) {
 			//Check to see if it's enabled by home library
@@ -2790,7 +2793,7 @@ class User extends DataObject {
 					//Check to see if it's enabled by PType
 					$patronType = $this->getPTypeObj();
 					if (!empty($patronType)) {
-						return $patronType->enableReadingHistory;
+						return (bool)$patronType->enableReadingHistory;
 					} else {
 						return true;
 					}

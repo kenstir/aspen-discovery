@@ -20,7 +20,17 @@
 	</div>
 	<form id="generateReadingHistoryForm" method="get" role="form">
 		<div class='editor'>
+			{/strip}
 			<div class="form-group">
+				<label for="generationType" class="control-label">{translate text='Generate Reading History For' isPublicFacing=true}</label>
+				<select id="generationType" name="generationType" class="form-control" onchange="{literal}if ($('#generationType option:selected').val() === '3') {$('#patronBarcodeRow').show();}else{$('#patronBarcodeRow').hide();}{/literal}">
+					<option value="1" selected>Test Users with no Reading History</option>
+					<option value="2">All Test Users</option>
+					<option value="3">Specified Patron</option>
+				</select>
+			</div>
+			{strip}
+			<div class="form-group" id="patronBarcodeRow" style="display: none">
 				<label for="patronBarcode" class="control-label">{translate text='Patron Barcode (must have logged into Aspen previously)' isPublicFacing=true}</label>
 				<input type="text" id="patronBarcode" name="patronBarcode" class="form-control">
 			</div>

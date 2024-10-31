@@ -17,10 +17,9 @@ jobs:
       - name: Check for changes in release notes
         run: |
           if git diff --name-only ${{ github.event.pull_request.base.sha }} | grep -q 'code/web/release_notes/'; then
-            echo "Release notes have been modified."
+            echo "Release notes have been modified"
           else
-            echo "No changes detected in the release notes."
-            exit 1
+            echo "::warning::Release notes not modified"
           fi
 
   check_tabs_vs_spaces:

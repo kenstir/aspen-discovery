@@ -20,6 +20,7 @@ import LaunchStackNavigator from '../navigations/LaunchStackNavigator';
 import { LoginScreen } from '../screens/Auth/Login';
 import { SelfRegistration } from '../screens/Auth/SelfRegistration';
 import { SplashScreen } from '../screens/Auth/Splash';
+import { getTermFromDictionary } from '../translations/TranslationService';
 import { GLOBALS } from '../util/globals';
 import { updateAspenLiDABuild } from '../util/greenhouse';
 import { LIBRARY } from '../util/loadLibrary';
@@ -375,7 +376,11 @@ export function App() {
                                                                                      name="SelfRegistration"
                                                                                      component={SelfRegistration}
                                                                                      options={{
-                                                                                          presentation: 'modal',
+                                                                                          title: getTermFromDictionary('en', 'register_for_a_library_card'),
+                                                                                          headerShown: true,
+                                                                                          presentation: 'card',
+                                                                                          gestureEnabled: false,
+                                                                                          headerBackTitleVisible: false,
                                                                                      }}
                                                                                 />
                                                                            </Stack.Navigator>

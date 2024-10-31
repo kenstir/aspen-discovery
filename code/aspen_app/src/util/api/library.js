@@ -221,7 +221,7 @@ export async function getCatalogStatus(url = null) {
  * Returns basic registration form fields
  * @param {string} url
  **/
-export async function getBasicRegistrationForm(url = '') {
+export async function getSelfRegistrationForm(url = '') {
      const apiUrl = url ?? LIBRARY.url;
      const api = create({
           baseURL: apiUrl + '/API',
@@ -229,12 +229,12 @@ export async function getBasicRegistrationForm(url = '') {
           headers: getHeaders(),
           auth: createAuthTokens(),
      });
-     const response = await api.get('/RegistrationAPI?method=getBasicRegistrationForm');
+     const response = await api.get('/RegistrationAPI?method=getSelfRegistrationForm');
      if (response.ok) {
           if (response?.data?.result) {
                let fields = [];
-               if (response?.data?.result?.basicFormDefinition) {
-                    fields = response.data.result.basicFormDefinition;
+               if (response?.data?.result) {
+                    fields = response.data.result;
                }
                return fields;
           }
@@ -244,6 +244,25 @@ export async function getBasicRegistrationForm(url = '') {
      return [];
 }
 
-export async function submitBasicRegistration(url = '', data = []) {
-     return [];
+export async function submitSelfRegistration(url = '', data = []) {
+     const apiUrl = url ?? LIBRARY.url;
+     const api = create({
+          baseURL: apiUrl + '/API',
+          timeout: GLOBALS.timeoutAverage,
+          headers: getHeaders(),
+          auth: createAuthTokens(),
+          params: data,
+     });
+     const response = await api.post('/RegistrationAPI?method=processSelfRegistration');
+     if (response.ok) {
+          if (response?.data?.result) {
+               return response.data.result;
+          }
+          return response.data;
+     }
+
+     return {
+          success: false,
+          message: 'Unable to connect to library'
+     }
 }

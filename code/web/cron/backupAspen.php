@@ -42,7 +42,7 @@ foreach ($currentFilesInBackup as $file) {
 	if ($okToProcess) {
 		//Backup files we should delete after 3 days
 		$lastModified = filemtime($backupDir . '/'. $file);
-		if ($lastModified != false && $lastModified < $earliestTimeToKeep) {
+		if ($lastModified !== false && $lastModified < $earliestTimeToKeep) {
 			unlink($backupDir . '/'. $file);
 		}
 	}
@@ -53,7 +53,6 @@ $curDateTime = date('ymdHis');
 $backupFile = "$backupDir/aspen.$serverName.$curDateTime.tar";
 //exec("tar -cf $backupFile");
 if ($configArray['System']['operatingSystem'] != 'windows') {
-	/** @noinspection PhpConditionAlreadyCheckedInspection */
 	exec_advanced("cd $backupDir", $debug);
 }
 
@@ -74,13 +73,11 @@ foreach ($allTables as $table) {
 	}else{
 		$dumpCommand = "mariadb-dump -u$dbUser -p$dbPassword -h$dbHost -P$dbPort --no-data $dbName $table > $fullExportFilePath";
 	}
-	/** @noinspection PhpConditionAlreadyCheckedInspection */
 	exec_advanced($dumpCommand, $debug);
 
 	//Add the file to the archive
 	if (file_exists($fullExportFilePath)) {
 		if ($configArray['System']['operatingSystem'] != 'windows') {
-			/** @noinspection PhpConditionAlreadyCheckedInspection */
 			exec_advanced("cd $backupDir; tar -rf $backupFile $exportFile", $debug);
 
 			unlink($fullExportFilePath);
@@ -91,11 +88,10 @@ $listTablesStmt->closeCursor();
 
 //zip up the archive
 if ($configArray['System']['operatingSystem'] != 'windows') {
-	/** @noinspection PhpConditionAlreadyCheckedInspection */
 	exec_advanced("gzip $backupFile", $debug);
 }
 
-//Optionally move the file to the Google backup bucket
+//Optionally, move the file to the Google backup bucket
 // Load the system settings
 require_once ROOT_DIR . '/sys/SystemVariables.php';
 $systemVariables = new SystemVariables();
@@ -113,7 +109,7 @@ die();
 
 /////// END OF PROCESS ///////
 
-function exec_advanced($command, $log) {
+function exec_advanced($command, $log) : void {
 	if ($log) {
 		console_log($command, 'RUNNING: ');
 	}
@@ -122,7 +118,7 @@ function exec_advanced($command, $log) {
 		console_log($result, 'RESULT: ');
 	}
 }
-function console_log($message, $prefix = '') {
+function console_log($message, $prefix = '') : void {
 	$STDERR = fopen("php://stderr", "w");
 	fwrite($STDERR, $prefix.$message."\n");
 	fclose($STDERR);

@@ -5249,11 +5249,15 @@ class Library extends DataObject {
 		if ($this->_libraryOverDriveScopes == null) {
 			$this->_libraryOverDriveScopes = [];
 			if ($this->libraryId > 0) {
-				require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveScope.php';
-				$libraryOverDriveScope = new LibraryOverDriveScope();
-				$libraryOverDriveScope->libraryId = $this->libraryId;
-				$libraryOverDriveScope->orderBy('weight');
-				$this->_libraryOverDriveScopes = $libraryOverDriveScope->fetchAll(null, null, false, true);
+				try {
+					require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveScope.php';
+					$libraryOverDriveScope = new LibraryOverDriveScope();
+					$libraryOverDriveScope->libraryId = $this->libraryId;
+					$libraryOverDriveScope->orderBy('weight');
+					$this->_libraryOverDriveScopes = $libraryOverDriveScope->fetchAll(null, null, false, true);
+				}catch (Exception) {
+					//this happens before the table exists
+				}
 			}
 		}
 		return $this->_libraryOverDriveScopes;
@@ -5276,11 +5280,15 @@ class Library extends DataObject {
 		if ($this->_libraryOverDriveSettings == null) {
 			$this->_libraryOverDriveSettings = [];
 			if ($this->libraryId > 0) {
-				require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveSettings.php';
-				$libraryOverDriveSetting = new LibraryOverDriveSettings();
-				$libraryOverDriveSetting->libraryId = $this->libraryId;
-				$libraryOverDriveSetting->orderBy('weight');
-				$this->_libraryOverDriveSettings = $libraryOverDriveSetting->fetchAll(null, null, false, true);
+				try {
+					require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveSettings.php';
+					$libraryOverDriveSetting = new LibraryOverDriveSettings();
+					$libraryOverDriveSetting->libraryId = $this->libraryId;
+					$libraryOverDriveSetting->orderBy('weight');
+					$this->_libraryOverDriveSettings = $libraryOverDriveSetting->fetchAll(null, null, false, true);
+				}catch (Exception) {
+					//This happens if the table has not been created yet.
+				}
 			}
 		}
 		return $this->_libraryOverDriveSettings;

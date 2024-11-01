@@ -9,7 +9,7 @@ class MockILS extends AbstractIlsDriver{
 	}
 
 	public function getCheckouts(User $patron): array {
-		// TODO: Implement getCheckouts() method.
+		return [];
 	}
 
 	public function hasFastRenewAll(): bool {
@@ -25,7 +25,10 @@ class MockILS extends AbstractIlsDriver{
 	}
 
 	public function getHolds(User $patron): array {
-		// TODO: Implement getHolds() method.
+		return [
+			'available' => [],
+			'unavailable' => []
+		];
 	}
 
 	function placeHold(User $patron, $recordId, $pickupBranch = null, $cancelDate = null) {

@@ -125,9 +125,11 @@ class OverDriveDriver extends AbstractEContentDriver {
 				$activeLibrary = $library;
 			}
 
-			$librarySettings = $activeLibrary->getLibraryOverdriveSettings();
-			foreach ($librarySettings as $librarySetting) {
-				$this->_availableSettings[$librarySetting->settingId] = $librarySetting->getOverDriveSettings();
+			if ($activeLibrary != null) {
+				$librarySettings = $activeLibrary->getLibraryOverdriveSettings();
+				foreach ($librarySettings as $librarySetting) {
+					$this->_availableSettings[$librarySetting->settingId] = $librarySetting->getOverDriveSettings();
+				}
 			}
 		}
 

@@ -1481,7 +1481,7 @@ AspenDiscovery.Account = (function () {
 			// noinspection JSUnresolvedFunction
 			$.getJSON(url, params, function (data) {
 				if (data.success) {
-					location.href = Globals.path + '/MyAccount/Home';
+					location.href = data.returnTo;
 				} else {
 					$('#masqueradeLoading').hide();
 					$('#masqueradeAsError').html(data.error).show();
@@ -1494,8 +1494,17 @@ AspenDiscovery.Account = (function () {
 			var url = Globals.path + "/MyAccount/AJAX";
 			var params = {method: "endMasquerade"};
 			// noinspection JSUnresolvedFunction
-			$.getJSON(url, params).done(function () {
-				location.href = Globals.path + '/MyAccount/Home';
+			$.getJSON(url, params).done(function (data) {
+				if (data.success) {
+					if (data.returnTo !== '/MyAccount/Home') {
+						var returnTo = data.returnTo;
+					} else {
+						var returnTo = Globals.path + '/MyAccount/Home';
+					}
+					location.href = returnTo;
+				} else {
+					// TO DO: Handle error if needed
+				}
 			}).fail(AspenDiscovery.ajaxFail);
 			return false;
 		},

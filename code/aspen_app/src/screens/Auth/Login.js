@@ -137,8 +137,12 @@ export const LoginScreen = () => {
                     }
 
                     if (result.catalogRegistrationCapabilities) {
-                         if (result.catalogRegistrationCapabilities.basicRegistration) {
-                              setEnableSelfRegistration(result.catalogRegistrationCapabilities.basicRegistration);
+                         if (result.catalogRegistrationCapabilities.enableSelfRegistration) {
+                              if(result.catalogRegistrationCapabilities.enableSelfRegistration === '1' && result.catalogRegistrationCapabilities.enableSelfRegistrationInApp === '1') {
+                                   setEnableSelfRegistration(1);
+                              } else {
+                                   setEnableSelfRegistration(0);
+                              }
                          }
                     }
                }
@@ -180,7 +184,7 @@ export const LoginScreen = () => {
                     </Button.Group>
                     {enableSelfRegistration ? (
                          <Button mt={3} variant="ghost" colorScheme="primary" onPress={openSelfRegistration}>
-                              Register New Card
+                              {getTermFromDictionary('en', 'register_for_a_library_card')}
                          </Button>
                     ) : null}
                     {isCommunity && Platform.OS !== 'android' ? (

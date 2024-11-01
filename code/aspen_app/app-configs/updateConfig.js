@@ -181,6 +181,7 @@ const app_config = {
           patch: version['patch'],
      },
      plugins: [
+          'expo-secure-store',
           'expo-localization',
           [
                'expo-barcode-scanner',

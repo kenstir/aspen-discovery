@@ -124,6 +124,11 @@ export async function placeHold(url, itemId, source, patronId, pickupBranch, vol
           id = variationId;
           holdType = 'item';
      }
+     if(volumeId && itemId) {
+          if(holdType === 'item') {
+               holdType = 'volume';
+          }
+     }
      const setParams = {
           itemId: id,
           itemSource: source,

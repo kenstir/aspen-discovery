@@ -18,7 +18,9 @@ import { navigationRef } from '../helpers/RootNavigator';
 import LaunchStackNavigator from '../navigations/LaunchStackNavigator';
 
 import { LoginScreen } from '../screens/Auth/Login';
+import { SelfRegistration } from '../screens/Auth/SelfRegistration';
 import { SplashScreen } from '../screens/Auth/Splash';
+import { getTermFromDictionary } from '../translations/TranslationService';
 import { GLOBALS } from '../util/globals';
 import { updateAspenLiDABuild } from '../util/greenhouse';
 import { LIBRARY } from '../util/loadLibrary';
@@ -368,6 +370,17 @@ export function App() {
                                                                                      component={LibraryCardScanner}
                                                                                      options={{
                                                                                           presentation: 'modal',
+                                                                                     }}
+                                                                                />
+                                                                                <Stack.Screen
+                                                                                     name="SelfRegistration"
+                                                                                     component={SelfRegistration}
+                                                                                     options={{
+                                                                                          title: getTermFromDictionary('en', 'register_for_a_library_card'),
+                                                                                          headerShown: true,
+                                                                                          presentation: 'card',
+                                                                                          gestureEnabled: false,
+                                                                                          headerBackTitleVisible: false,
                                                                                      }}
                                                                                 />
                                                                            </Stack.Navigator>

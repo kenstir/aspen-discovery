@@ -342,6 +342,31 @@ export async function getPatronCheckedOutItems(source = 'all', url, refresh = tr
      }
 }
 
+/**
+ * Deletes the Aspen user and related data. Does not delete the user from the ILS.
+ * @param {string} url
+ **/
+export async function deleteAspenUser(url) {
+     const postBody = await postData();
+     const discovery = create({
+          baseURL: url + '/API',
+          timeout: GLOBALS.timeoutFast,
+          headers: getHeaders(true),
+          auth: createAuthTokens(),
+     });
+     const results = await discovery.post('/UserAPI?method=deleteAspenUser', postBody);
+     if (results.ok) {
+          if(results?.data?.result) {
+               return results.data.result;
+          } else {
+               return {
+                    success: false,
+                    message: 'Unknown error trying to complete request.'
+               }
+          }
+     }
+}
+
 /** *******************************************************************
  * Browse Category Management
  ******************************************************************* **/

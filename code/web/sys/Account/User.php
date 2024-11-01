@@ -435,7 +435,7 @@ class User extends DataObject {
 			}
 
 			// delete materials_request (createdBy)
-			require_once ROOT_DIR . '/sys/MaterialsRequest.php';
+			require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php';
 			$userMaterialsRequests = new MaterialsRequest();
 			$userMaterialsRequests->createdBy = $this->id;
 			$userMaterialsRequests->find();

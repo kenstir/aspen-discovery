@@ -268,6 +268,7 @@
   "error_device_block_browser": "There was a problem opening item. Try again",
   "error_invalid_session": "There was a problem retrieving your previous session. Please log in again.",
   "error_invalid_credentials": "Your previously used credentials for logging in are no longer valid. Please log in again.",
+  "error_deleting_account": "There was an error trying to delete your account. Please try again later or contact your library.",
   "update_available": "Update Available",
   "update_message": "An update is available",
   "update_now": "Update Now",
@@ -586,6 +587,9 @@
   "self_registration_message": "This page allows you to register as a patron of our library online. You will have limited privileges initially.",
   "register": "Register",
   "self_registration_success": "Congratulations, you have successfully registered for a new library card. You will have limited privileges initially. Please bring a valid ID to the library to receive a physical library card with full privileges.",
-  "self_registration_error": "Sorry, we were unable to create a library card for you. You may already have an account or there may be an error with the information you entered. Please try again or visit the library in person (with a valid ID) so we can create a card for you."
-
+  "self_registration_error": "Sorry, we were unable to create a library card for you. You may already have an account or there may be an error with the information you entered. Please try again or visit the library in person (with a valid ID) so we can create a card for you.",
+  "delete_account": "Delete Account",
+  "confirm_delete_account_message": "This will only delete your Aspen Discovery account with your library, including any personal data on Aspen Discovery such as lists and saved searches, but will not delete your card with the library. If you want to close your library account, you must contact your library.",
+  "confirm_delete_account": "Yes, Delete Account",
+  "deleting": "Deleting"
 }

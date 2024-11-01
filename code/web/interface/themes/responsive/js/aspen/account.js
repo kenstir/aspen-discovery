@@ -1490,6 +1490,24 @@ AspenDiscovery.Account = (function () {
 			return false;
 		},
 
+		initiateMasqueradeWithCardNumber: function (cardNumber, redirectPath = '/MyAccount/Home') {
+			var url = Globals.path + "/MyAccount/AJAX";
+			var params = {
+				method: "initiateMasquerade",
+				cardNumber: cardNumber
+			};
+			$('#masqueradeAsError').hide();
+			$('#masqueradeLoading').show();
+			$.getJSON(url, params, function (data) {
+				if (data.success) {
+					location.href = Globals.path + redirectPath;
+				} else {
+					$('#masqueradeLoading').hide();
+					$('#masqueradeAsError').html(data.error).show();
+				}
+			}).fail(AspenDiscovery.ajaxFail);
+		},
+
 		endMasquerade: function () {
 			var url = Globals.path + "/MyAccount/AJAX";
 			var params = {method: "endMasquerade"};

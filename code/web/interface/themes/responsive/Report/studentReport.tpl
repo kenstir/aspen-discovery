@@ -193,7 +193,16 @@
 							<div class="patronHeader row">
 								<div class="P_TYPE col-md-2">{$dataRow.GRD_LVL|replace:' student':''}</div>
 								<div class="HOME_ROOM col-md-3">{$dataRow.HOME_ROOM|lower|capitalize:true}</div>
-								<div class="PATRON_NAME col-md-5">{$dataRow.PATRON_NAME|upper}</div>
+								<div class="PATRON_NAME col-md-5"><a href="javascript:void(0);" onclick="
+										AspenDiscovery.Account.initiateMasqueradeWithCardNumber(
+											{$dataRow.P_BARCODE},
+											{if $showOverdueOnly == "overdue" || $showOverdueOnly == "checkedOut"}
+												'/MyAccount/CheckedOut?source=ils'
+											{elseif $showOverdueOnly == "fees"}
+												'/MyAccount/Fines'
+											{/if},
+											window.location.pathname
+										)">{$dataRow.PATRON_NAME|upper}</a></div>
 								<div class="P_BARCODE col-md-2">{$dataRow.P_BARCODE}</div>
 							</div>
 							<div class="overdueRecordTable row">

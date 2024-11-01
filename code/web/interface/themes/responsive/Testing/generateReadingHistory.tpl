@@ -4,13 +4,9 @@
 			<h1 id="pageTitle">{$pageTitleShort}</h1>
 		</div>
 	</div>
-	{if isset($results)}
-		<div class="row">
-			<div class="col-xs-12">
-				<div class="alert {if !empty($results.success)}alert-success{else}alert-danger{/if}">
-					{$results.message}
-				</div>
-			</div>
+	{if !empty($updateMessage)}
+		<div class="alert {if !empty($updateMessageIsError)}alert-danger{else}alert-info{/if}">
+			{$updateMessage}
 		</div>
 	{/if}
 	<div class="row">

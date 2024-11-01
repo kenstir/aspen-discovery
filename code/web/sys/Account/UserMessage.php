@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 class UserMessage extends DataObject {
 	public $__table = 'user_messages';
@@ -13,6 +13,7 @@ class UserMessage extends DataObject {
 	public $action2Title;
 	public $action2;
 	public $addendum;
+	public $relatedObjectId;
 
 	public function getNumericColumnNames(): array {
 		return [
@@ -49,7 +50,7 @@ class UserMessage extends DataObject {
 		return $links;
 	}
 
-	public function loadEmbeddedLinksFromJSON($jsonData, $mappings, $overrideExisting = 'keepExisting') {
+	public function loadEmbeddedLinksFromJSON($jsonData, $mappings, $overrideExisting = 'keepExisting') : void {
 		parent::loadEmbeddedLinksFromJSON($jsonData, $mappings, $overrideExisting);
 		if (isset($jsonData['user'])) {
 			$username = $jsonData['user'];

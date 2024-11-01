@@ -157,9 +157,29 @@ function getUpdates24_11_00(): array {
 				'ALTER TABLE user ADD COLUMN isLocalTestUser TINYINT(1) DEFAULT 0'
 			]
 		],
-
-		//TODO: Make sure all migration from old structure to new works properly
-
+		'background_process' => [
+			'title' => 'Background Process',
+			'description' => 'Add table to store information about Background Processes run from the Aspen UI',
+			'sql' => [
+				"CREATE TABLE background_process (
+					id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					owningUserId INT NOT NULL,
+					name VARCHAR(255) NOT NULL,
+					notes MEDIUMTEXT,
+					startTime INT NOT NULL,
+					endTime INT,
+					isRunning TINYINT(1) DEFAULT 1,
+					INDEX owningUserId (owningUserId)
+				) ENGINE INNODB CHARACTER SET utf8 COLLATE utf8_general_ci",
+			],
+		],
+		'user_message_related_object' => [
+			'title' => 'User Message Related Object',
+			'description' => 'Add a related object id to user messages to allow for automatic dismissal and other behavior',
+			'sql' => [
+				'ALTER TABLE user_messages ADD COLUMN relatedObjectId INT',
+			]
+		],
 		/*
 		//TODO: Remove this when 24.10 is closer to done
 		'remove_library_and_location_overdrive_scopes' => [

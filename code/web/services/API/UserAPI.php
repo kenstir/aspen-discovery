@@ -2536,7 +2536,7 @@ class UserAPI extends AbstractAPI {
 			$patron = $user->getUserReferredTo($user->id);
 			require_once ROOT_DIR . '/Drivers/OverDriveDriver.php';
 			$driver = new OverDriveDriver();
-			$accessLink = $driver->getDownloadLink($overDriveId, $formatId, $patron);
+			$accessLink = $driver->getDownloadLink($overDriveId, $patron);
 			return [
 				'success' => true,
 				'title' => 'Download Url',
@@ -6253,7 +6253,7 @@ class UserAPI extends AbstractAPI {
 
 			$materialsRequest->libraryId = $homeLibrary->libraryId;
 
-			$formatObject = $materialsRequest->getFormatObject();
+			$formatObject = $materialsRequest->getFormatObjectByFormat();
 			if (!empty($formatObject->id)) {
 				$materialsRequest->formatId = $formatObject->id;
 			}

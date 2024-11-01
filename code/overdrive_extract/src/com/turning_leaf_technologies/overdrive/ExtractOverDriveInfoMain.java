@@ -101,6 +101,16 @@ public class ExtractOverDriveInfoMain {
 				System.exit(1);
 			}
 
+			//Check to see if the jar has changes before processing records, and if so quit
+			if (myChecksumAtStart != JarUtil.getChecksumForJar(logger, processName, "./" + processName + ".jar")){
+				IndexingUtils.markNightlyIndexNeeded(dbConn, logger);
+				return;
+			}
+			if (reindexerChecksumAtStart != JarUtil.getChecksumForJar(logger, "reindexer", "../reindexer/reindexer.jar")){
+				IndexingUtils.markNightlyIndexNeeded(dbConn, logger);
+				return;
+			}
+
 			ExecutorService es = Executors.newCachedThreadPool();
 			for(OverDriveSetting setting : settings) {
 				boolean finalExtractSingleWork = extractSingleWork;
@@ -108,17 +118,8 @@ public class ExtractOverDriveInfoMain {
 				es.execute(() -> {
 					Connection localDBConnection;
 					try {
+						//Get a local database connection, so we don't have issues with conflicts between the different threads
 						localDBConnection = DriverManager.getConnection(databaseConnectionInfo);
-
-						//Check to see if the jar has changes before processing records, and if so quit
-						if (myChecksumAtStart != JarUtil.getChecksumForJar(logger, processName, "./" + processName + ".jar")){
-							IndexingUtils.markNightlyIndexNeeded(dbConn, logger);
-							return;
-						}
-						if (reindexerChecksumAtStart != JarUtil.getChecksumForJar(logger, "reindexer", "../reindexer/reindexer.jar")){
-							IndexingUtils.markNightlyIndexNeeded(dbConn, logger);
-							return;
-						}
 
 						OverDriveExtractLogEntry logEntry = new OverDriveExtractLogEntry(localDBConnection, setting, logger);
 						if (!logEntry.saveResults()) {

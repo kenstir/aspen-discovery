@@ -2,37 +2,37 @@
 
 
 class Grouping_StatusInformation {
-	private $_available = false;
-	private $_availableLocally = false;
-	private $_availableHere = false;
-	private $_availableOnline = false;
-	private $_inLibraryUseOnly = true;
-	private $_allLibraryUseOnly = true;
-	private $_hasLocalItem = false;
-	public $_groupedStatus = 'Currently Unavailable';
-	private $_onOrderCopies = 0;
-	private $_numHolds = 0;
-	private $_copies = 0;
-	private $_availableCopies = 0;
-	private $_localCopies = 0;
-	private $_localAvailableCopies = 0;
-	private $_holdableCopies = 0;
-	private $_isEcontent = false;
-	private $_isShowStatus = false;
-	private $_isLocallyOwned = false;
-	private $_isLibraryOwned = false;
+	private bool $_available = false;
+	private bool $_availableLocally = false;
+	private bool $_availableHere = false;
+	private bool $_availableOnline = false;
+	private bool $_inLibraryUseOnly = true;
+	private bool $_allLibraryUseOnly = true;
+	private bool $_hasLocalItem = false;
+	public string $_groupedStatus = 'Currently Unavailable';
+	private int $_onOrderCopies = 0;
+	private int $_numHolds = 0;
+	private int $_copies = 0;
+	private int $_availableCopies = 0;
+	private int $_localCopies = 0;
+	private int $_localAvailableCopies = 0;
+	private int $_holdableCopies = 0;
+	private bool $_isEContent = false;
+	private bool $_isShowStatus = false;
+	private bool $_isLocallyOwned = false;
+	private bool $_isLibraryOwned = false;
 
 	/**
 	 * @return bool
 	 */
-	public function isAvailable() {
+	public function isAvailable() : bool {
 		return $this->_available;
 	}
 
 	/**
 	 * @param Grouping_StatusInformation $statusInformation
 	 */
-	public function updateStatus($statusInformation) {
+	public function updateStatus(Grouping_StatusInformation $statusInformation) : void {
 		if ($statusInformation->isAvailableLocally()) {
 			$this->_availableLocally = true;
 		}
@@ -43,7 +43,7 @@ class Grouping_StatusInformation {
 			$this->_availableOnline = true;
 		}
 		if ($statusInformation->isEContent()) {
-			$this->_isEcontent = true;
+			$this->_isEContent = true;
 		}
 		if (!$this->_available && $statusInformation->isAvailable()) {
 			$this->_available = true;
@@ -105,9 +105,9 @@ class Grouping_StatusInformation {
 	}
 
 	/**
-	 * @return bool|mixed
+	 * @return bool
 	 */
-	public function hasLocalItem() {
+	public function hasLocalItem() : bool {
 		return $this->_hasLocalItem;
 	}
 
@@ -142,28 +142,28 @@ class Grouping_StatusInformation {
 	/**
 	 * @return int
 	 */
-	public function getOnOrderCopies() {
+	public function getOnOrderCopies() : int {
 		return $this->_onOrderCopies;
 	}
 
 	/**
 	 * @return int
 	 */
-	public function getCopies() {
+	public function getCopies() : int {
 		return $this->_copies;
 	}
 
 	/**
 	 * @return int
 	 */
-	public function getAvailableCopies() {
+	public function getAvailableCopies() : int {
 		return $this->_availableCopies;
 	}
 
 	/**
 	 * @return int
 	 */
-	public function getHoldableCopies() {
+	public function getHoldableCopies() : int {
 		return $this->_holdableCopies;
 	}
 
@@ -241,7 +241,7 @@ class Grouping_StatusInformation {
 	/**
 	 * @param int $copies
 	 */
-	function addCopies(int $copies) {
+	function addCopies(int $copies) : void {
 		$this->_copies += $copies;
 	}
 
@@ -259,12 +259,13 @@ class Grouping_StatusInformation {
 		$this->_onOrderCopies += $numCopies;
 	}
 
-	function getNumberOfCopiesMessage() {
+	function getNumberOfCopiesMessage() : string {
 		//Build the string to be translated
 		$numberOfCopiesMessage = '';
 		global $library;
 		//If we don't have holds or on order copies, we don't need to show anything.
 		if (($this->getNumHolds() == 0 || $this->getHoldableCopies() == 0) && $this->getOnOrderCopies() == 0 && $library->showGroupedHoldCopiesCount != 3) {
+			/** @noinspection PhpConditionAlreadyCheckedInspection */
 			$numberOfCopiesMessage = '';
 		} else {
 			if ($this->getAvailableCopies() > 9999) {
@@ -331,12 +332,17 @@ class Grouping_StatusInformation {
 		]);
 	}
 
-	public function setIsEContent(bool $flag) {
-		$this->_isEcontent = $flag;
+	public function setIsEContent(bool $flag) : void {
+		$this->_isEContent = $flag;
 	}
 
-	public function isEContent() {
-		return $this->_isEcontent;
+	public function isEContent() : bool {
+		return $this->_isEContent;
+	}
+
+	/** @noinspection PhpUnused */
+	public function showCopySummary() : bool {
+		return !$this->_isEContent;
 	}
 
 	/**
@@ -353,7 +359,7 @@ class Grouping_StatusInformation {
 		$this->_isShowStatus = $isShowStatus;
 	}
 
-	public function isLocallyOwned() {
+	public function isLocallyOwned() : bool {
 		return $this->_isLocallyOwned;
 	}
 
@@ -361,7 +367,7 @@ class Grouping_StatusInformation {
 		$this->_isLocallyOwned = $isLocallyOwned;
 	}
 
-	public function isLibraryOwned() {
+	public function isLibraryOwned() : bool {
 		return $this->_isLibraryOwned;
 	}
 

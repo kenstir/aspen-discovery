@@ -18,9 +18,7 @@ class OverDrive_Settings extends ObjectEditor {
 	}
 
 	function getPageTitle(): string {
-		$readerName = new OverDriveDriver();
-		$readerName = $readerName->getReaderName();
-		return $readerName . ' Settings';
+		return 'OverDrive Settings';
 	}
 
 	function getAllObjects($page, $recordsPerPage): array {
@@ -61,11 +59,9 @@ class OverDrive_Settings extends ObjectEditor {
 	}
 
 	function getBreadcrumbs(): array {
-		$readerName = new OverDriveDriver();
-		$readerName = $readerName->getReaderName();
 		$breadcrumbs = [];
 		$breadcrumbs[] = new Breadcrumb('/Admin/Home', 'Administration Home');
-		$breadcrumbs[] = new Breadcrumb('/Admin/Home#overdrive', $readerName);
+		$breadcrumbs[] = new Breadcrumb('/Admin/Home#overdrive', 'OverDrive');
 		$breadcrumbs[] = new Breadcrumb('/OverDrive/Settings', 'Settings');
 		return $breadcrumbs;
 	}

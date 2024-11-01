@@ -1,6 +1,5 @@
 <?php
 
-
 class SystemUtils {
 	// Returns a file size limit in bytes based on the PHP upload_max_filesize
 	// and post_max_size
@@ -117,5 +116,91 @@ class SystemUtils {
 		}
 
 		return false;
+	}
+
+	static function startBackgroundProcess($processName, $additionalArguments = null) : array {
+		if (file_exists(ROOT_DIR . "/cron/$processName.php")) {
+			if (!UserAccount::isLoggedIn()) {
+				return [
+					'success' => false,
+					'message' => 'Cannot start background process when not logged in.'
+				];
+			}elseif (!UserAccount::isStaff()) {
+				return [
+					'success' => false,
+					'message' => 'Only Staff can start background processes.'
+				];
+			}else{
+				require_once ROOT_DIR . '/sys/Administration/BackgroundProcess.php';
+				$backgroundProcess = new BackgroundProcess();
+				$backgroundProcess->name = $processName;
+				$backgroundProcess->startTime = time();
+				$backgroundProcess->isRunning = 1;
+				$backgroundProcess->owningUserId = UserAccount::getActiveUserId();
+				if ($backgroundProcess->insert()) {
+					$backgroundProcessId = $backgroundProcess->id;
+					foreach ($additionalArguments as $argument) {
+						if (str_contains($argument, ';')) {
+							return [
+								'success' => false,
+								'message' => 'Invalid argument.'
+							];
+						}
+					}
+					$args = "";
+					if (!empty($additionalArguments)) {
+						$args = implode(" ", $additionalArguments);
+					}
+					global $serverName;
+
+					$phpProcess = "php";
+					if (str_starts_with(php_uname(), "Windows")){
+						$phpProcess = $_SERVER['PHPRC'] . '\php.exe';
+					}
+					if (SystemUtils::execInBackground($phpProcess . ' ' . ROOT_DIR . "/cron/$processName.php $serverName $backgroundProcessId $args")){
+						return [
+							'success' => true,
+							'message' => 'Background process has been started.',
+							'backgroundProcessId' => $backgroundProcessId
+						];
+					}else{
+						return [
+							'success' => false,
+							'message' => 'Could not add background process to the database.'
+						];
+					}
+				}else{
+					return [
+						'success' => false,
+						'message' => 'Could not add background process to the database.'
+					];
+				}
+			}
+		}else{
+			return [
+				'success' => false,
+				'message' => 'Invalid process name'
+			];
+		}
+	}
+
+	private static function execInBackground($cmd) : bool {
+		if (str_starts_with(php_uname(), "Windows")){
+			$cmd = str_replace('/', '\\', $cmd);
+			$fullCommand = "start /B ". $cmd . ' 2>&1 &';
+			$processHnd = proc_open($fullCommand, [], $pipes, null, null);
+			if ($processHnd === false) {
+				return false;
+			}else{
+				proc_close($processHnd);
+				return true;
+			}
+		} else {
+			if (exec($cmd . " > /dev/null &") === false) {
+				return false;
+			}else{
+				return true;
+			}
+		}
 	}
 }

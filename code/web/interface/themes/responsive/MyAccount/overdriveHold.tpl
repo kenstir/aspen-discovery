@@ -85,6 +85,15 @@
 					</div>
 					{/if}
 
+					{if $record->collectionName}
+						<div class="row">
+							<div class="result-label col-tn-4">{translate text='Collection' isPublicFacing=true}</div>
+							<div class="col-tn-8 result-value">
+								{$record->collectionName}
+							</div>
+						</div>
+					{/if}
+
 					{if $record->createDate}
 						<div class="row">
 							<div class="result-label col-tn-4">{translate text='Date Placed' isPublicFacing=true}</div>

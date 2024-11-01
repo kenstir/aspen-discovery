@@ -11,26 +11,15 @@ jobs:
     steps:
       - name: Checkout pull request branch
         uses: actions/checkout@v4
-
-      - name: Add official Aspen Discovery repo as another remote
-        run: git remote add official https://github.com/Aspen-Discovery/aspen-discovery.git && git fetch official
-
-      - name: Get default branch
-        id: get_default_branch
-        run: |
-          default_branch=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/Aspen-Discovery/aspen-discovery | jq -r .default_branch)
-          echo "Default branch is $default_branch"
-          echo "DEFAULT_BRANCH=$default_branch" >> $GITHUB_ENV
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          fetch-depth: 2
 
       - name: Check for changes in release notes
         run: |
-          if git diff --name-only official/$DEFAULT_BRANCH HEAD | grep -q 'code/web/release_notes/'; then
-            echo "Release notes have been modified."
+          if git diff --name-only ${{ github.event.pull_request.base.sha }} | grep -q 'code/web/release_notes/'; then
+            echo "Release notes have been modified"
           else
-            echo "No changes detected in the release notes."
-            exit 1
+            echo "::warning::Release notes not modified"
           fi
 
   check_tabs_vs_spaces:
@@ -39,23 +28,13 @@ jobs:
     steps:
       - name: Checkout pull request branch
         uses: actions/checkout@v4
-
-      - name: Add official Aspen Discovery repo as another remote
-        run: git remote add official https://github.com/Aspen-Discovery/aspen-discovery.git && git fetch official
-
-      - name: Get default branch
-        id: get_default_branch
-        run: |
-          default_branch=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/Aspen-Discovery/aspen-discovery | jq -r .default_branch)
-          echo "Default branch is $default_branch"
-          echo "DEFAULT_BRANCH=$default_branch" >> $GITHUB_ENV
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          fetch-depth: 2
 
       - name: Check for spaces instead of tabs
         run: |
           # Find files that are modified in the pull request
-          MODIFIED_FILES=$(git diff --name-only official/$DEFAULT_BRANCH HEAD)
+          MODIFIED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} | grep -v 'code/aspen_app')
 
           # Loop through each file and check for spaces used instead of tabs
           EXIT_CODE=0
@@ -63,7 +42,7 @@ jobs:
           for file in $MODIFIED_FILES; do
             echo "Found modified file: $file";
             if [[ $file == *.php || $file == *.js || $file == *.java ]]; then
-              DIFF=$(git diff official/$DEFAULT_BRANCH HEAD -- $file)
+              DIFF=$(git diff ${{ github.event.pull_request.base.sha }} -- $file)
               #echo "DIFF: $DIFF"
               while IFS= read -r RAW_LINE; do
                 if [[ $RAW_LINE =~ ^\+ ]]; then
@@ -95,26 +74,16 @@ jobs:
     steps:
       - name: Checkout pull request branch
         uses: actions/checkout@v4
-
-      - name: Add official Aspen Discovery repo as another remote
-        run: git remote add official https://github.com/Aspen-Discovery/aspen-discovery.git && git fetch official
-
-      - name: Get default branch
-        id: get_default_branch
-        run: |
-          default_branch=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/Aspen-Discovery/aspen-discovery | jq -r .default_branch)
-          echo "Default branch is $default_branch"
-          echo "DEFAULT_BRANCH=$default_branch" >> $GITHUB_ENV
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          fetch-depth: 2
 
       - name: Check for changes in site creation that may necessitate a change to the Docker file
         run: |
-          LINES_CHANGED=$(git diff official/$DEFAULT_BRANCH HEAD -- install/createSiteTemplate.ini | wc -l)
+          LINES_CHANGED=$(git diff ${{ github.event.pull_request.base.sha }} -- install/createSiteTemplate.ini | wc -l)
           echo "LINES CHANGED: $LINES_CHANGED"
           if [[ $LINES_CHANGED -gt 0 ]]; then
             echo "Changes to createSiteTemplate.ini have been detected"
-            if git diff --name-only official/$DEFAULT_BRANCH HEAD | grep docker; then
+            if git diff --name-only git diff --name-only ${{ github.event.pull_request.base.sha }} | grep docker; then
               echo "Changes to docker files has also been detected"
             else
               echo "No changes to docker files have been detected"

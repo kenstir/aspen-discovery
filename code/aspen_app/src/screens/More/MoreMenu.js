@@ -4,26 +4,53 @@ import * as WebBrowser from 'expo-web-browser';
 import { useNavigation } from '@react-navigation/native';
 import _ from 'lodash';
 import moment from 'moment';
-import { Box, Divider, FlatList, HStack, Icon, Pressable, ScrollView, Text, useColorModeValue, useContrastText, useToken, VStack } from 'native-base';
+import { Box, Divider, FlatList, HStack, Icon, Pressable, ScrollView, Heading, Button, Text, useColorModeValue, useToken, VStack, Modal } from 'native-base';
 import React from 'react';
-import { popToast } from '../../components/loadError';
+import { popAlert, popToast } from '../../components/loadError';
+import { AuthContext } from '../../components/navigation';
 import { LanguageContext, LibraryBranchContext, LibrarySystemContext } from '../../context/initialContext';
 import { navigate } from '../../helpers/RootNavigator';
 import { getTermFromDictionary } from '../../translations/TranslationService';
+import { createList } from '../../util/api/list';
+import { deleteAspenUser } from '../../util/api/user';
 import { GLOBALS } from '../../util/globals';
 import { LIBRARY } from '../../util/loadLibrary';
 
 export const MoreMenu = () => {
+     const { language } = React.useContext(LanguageContext);
      const { locations } = React.useContext(LibraryBranchContext);
+     const { library } = React.useContext(LibrarySystemContext);
      const { menu } = React.useContext(LibrarySystemContext);
+     const { signOut } = React.useContext(AuthContext);
      const hasMenuItems = _.size(menu);
      const navigation = useNavigation();
+     const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] = React.useState(false);
+     const [showDeleteResultsModal, setShowDeleteResultsModal] = React.useState(false);
+     const [deleteResults, setDeleteResults] = React.useState('');
+     const [deleting, setDeleting] = React.useState(false);
 
      React.useLayoutEffect(() => {
           navigation.setOptions({
                headerLeft: null,
           });
      }, [navigation]);
+
+     const initiateDeleteAspenUser = async () => {
+          setDeleting(true);
+          await deleteAspenUser(library.baseUrl).then((results) => {
+               setDeleteResults(results);
+          })
+
+     }
+
+     const toggleDeleteConfirmationModal = () => {
+          setShowDeleteConfirmationModal(!showDeleteConfirmationModal);
+     };
+
+     const toggleDeleteResultsModal = () => {
+          setShowDeleteResultsModal(!showDeleteResultsModal);
+     };
+
      return (
           <ScrollView>
                <Box>
@@ -38,10 +65,76 @@ export const MoreMenu = () => {
                                         <ViewAllLocations />
                                         <Settings />
                                         <PrivacyPolicy />
+                                        {library.catalogRegistrationCapabilities?.enableSelfRegistration === '1' && library.catalogRegistrationCapabilities.enableSelfRegistrationInApp === '1' ? (
+                                        <Pressable px="2" py="3" onPress={toggleDeleteConfirmationModal}>
+                                             <HStack space="1" alignItems="center">
+                                                  <Icon as={MaterialIcons} name="chevron-right" size="7" onPress={() => setShowDeleteConfirmationModal(true)}/>
+                                                  <Text fontWeight="500">{getTermFromDictionary(language, 'delete_account')}</Text>
+                                             </HStack>
+                                        </Pressable>
+                                        ) : null}
                                    </VStack>
                               </VStack>
                          </VStack>
                     </VStack>
+                    <Modal isOpen={showDeleteConfirmationModal} onClose={toggleDeleteConfirmationModal}>
+                         <Modal.Content bg="white" _dark={{ bg: 'coolGray.800' }}>
+                              <Modal.CloseButton />
+                              <Modal.Header>
+                                   <Heading size="md">{getTermFromDictionary(language, 'delete_account')}</Heading>
+                              </Modal.Header>
+                              <Modal.Body>
+                                   <Text>
+                                        {getTermFromDictionary(language, 'confirm_delete_account_message')}
+                                   </Text>
+                              </Modal.Body>
+                              <Modal.Footer>
+                                   <Button.Group>
+                                        <Button variant="outline" onPress={toggleDeleteConfirmationModal}>
+                                             {getTermFromDictionary(language, 'cancel')}
+                                        </Button>
+                                        <Button
+                                            isLoading={deleting}
+                                            isLoadingText={getTermFromDictionary(language, 'deleting', true)}
+                                            onPress={async () => {
+                                                 await initiateDeleteAspenUser().then(() => {
+                                                      setShowDeleteConfirmationModal(false);
+                                                      setShowDeleteResultsModal(true);
+                                                 });
+                                            }}>
+                                             {getTermFromDictionary(language, 'confirm_delete_account')}
+                                        </Button>
+                                   </Button.Group>
+                              </Modal.Footer>
+                         </Modal.Content>
+                    </Modal>
+                    <Modal isOpen={showDeleteResultsModal}>
+                         <Modal.Content bg="white" _dark={{ bg: 'coolGray.800' }}>
+                              <Modal.CloseButton />
+                              <Modal.Header>
+                                   <Heading size="md">{getTermFromDictionary(language, 'delete_account')}</Heading>
+                              </Modal.Header>
+                              <Modal.Body>
+                                   {deleteResults?.message ? (
+                                       <Text>{deleteResults.message}</Text>
+                                   ) : (
+                                       <Text>{getTermFromDictionary(language, 'error_deleting_account')}</Text>
+                                   )}
+                              </Modal.Body>
+                              <Modal.Footer>
+                                        {deleteResults.success === true ? (
+                                            <Button variant="primary" onPress={signOut}>
+                                                 {getTermFromDictionary(language, 'button_ok')}
+                                            </Button>
+                                        ) : (
+                                            <Button variant="primary" onPress={toggleDeleteResultsModal}>
+                                                 {getTermFromDictionary(language, 'button_ok')}
+                                            </Button>
+                                        )}
+
+                              </Modal.Footer>
+                         </Modal.Content>
+                    </Modal>
                </Box>
           </ScrollView>
      );
@@ -140,6 +233,19 @@ const Settings = () => {
                     <Text fontWeight="500">{getTermFromDictionary(language, 'preferences')}</Text>
                </HStack>
           </Pressable>
+     );
+};
+
+const DeleteAccount = () => {
+     const { language } = React.useContext(LanguageContext);
+
+     return (
+         <Pressable px="2" py="3" onPress={() => navigate('MyPreferences')}>
+              <HStack space="1" alignItems="center">
+                   <Icon as={MaterialIcons} name="chevron-right" size="7" />
+                   <Text fontWeight="500">{getTermFromDictionary(language, 'preferences')}</Text>
+              </HStack>
+         </Pressable>
      );
 };
 

@@ -406,9 +406,10 @@ public class GroupedWorkSolr2 extends AbstractGroupedWorkSolr implements Cloneab
 
 					String readerName = "Libby";
 
-					if ((scopingInfo.getScope().getOverDriveScope()) != null){
-						readerName = scopingInfo.getScope().getOverDriveScope().getReaderName();
-					}
+					//Loading reader name here isn't really needed since it gets set for the item based on scope
+//					if ((scopingInfo.getScope().getOverDriveScope()) != null){
+//						readerName = scopingInfo.getScope().getOverDriveScope().getReaderName();
+//					}
 					ItemInfo curItem = scopingInfo.getItem();
 					try {
 						formatsForItem = curItem.getFormatsForIndexing();

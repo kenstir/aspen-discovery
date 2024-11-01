@@ -18,6 +18,10 @@ class ReadingHistoryEntry extends DataObject {
 	public $isIll;
 	public $costSavings;
 
+	function getNumericColumnNames() : array {
+		return ['userId', 'checkOutDate', 'checkInDate', 'deleted', 'isIll', 'costSavings'];
+	}
+
 	function objectHistoryEnabled() : bool {
 		return false;
 	}

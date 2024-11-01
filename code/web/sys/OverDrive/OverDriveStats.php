@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 class OverDriveStats extends DataObject {
 	public $__table = 'overdrive_stats';

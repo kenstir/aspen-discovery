@@ -1,9 +1,8 @@
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogBackdrop, Badge, BadgeText, FlatList, Heading, Select, VStack, Button, ButtonGroup, ButtonIcon, ButtonText, Box, Center, HStack, Text, SafeAreaView, ScrollView, SelectTrigger, SelectInput, SelectIcon, SelectPortal, SelectBackdrop, SelectContent, SelectDragIndicatorWrapper, SelectDragIndicator, SelectItem, Icon, SelectScrollView } from '@gluestack-ui/themed';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogBackdrop, Badge, BadgeText, FlatList, Heading, Select, VStack, Button, ButtonGroup, ButtonIcon, ButtonText, Box, Center, HStack, Text, SafeAreaView, ScrollView, SelectTrigger, SelectInput, SelectIcon, SelectPortal, SelectBackdrop, SelectContent, SelectDragIndicatorWrapper, SelectDragIndicator, SelectItem, Icon, SelectScrollView, ChevronDownIcon } from '@gluestack-ui/themed';
 import { MapPinIcon } from 'lucide-react-native';
 import { useRoute } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import _ from 'lodash';
-import { CheckIcon } from 'native-base';
 import React from 'react';
 import { Platform } from 'react-native';
 import { ActionButton } from '../../components/Action/ActionButton';
@@ -201,7 +200,7 @@ export const Variations = (props) => {
                                                        <SelectTrigger>
                                                             <SelectInput placeholder="Select option" />
                                                             <SelectIcon mr="$3">
-                                                                 <Icon as={CheckIcon} />
+                                                                 <Icon as={ChevronDownIcon} color={textColor} />
                                                             </SelectIcon>
                                                        </SelectTrigger>
                                                        <SelectPortal>

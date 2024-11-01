@@ -31,7 +31,7 @@ class Report_StudentReport extends Admin_Admin {
 		$now = time();
 		$data = CatalogFactory::getCatalogConnectionInstance()->getStudentReportData($selectedLocation, $showOverdueOnly, $now);
 		$interface->assign('reportData', $data);
-		$interface->assign('reportDateTime', date("Y-m-d\TH:i:sO", $now));
+		$interface->assign('reportDateTime', date("Y-m-d g:i A", $now));
 
 		if (isset($_REQUEST['download'])) {
 			header('Content-Type: text/csv');

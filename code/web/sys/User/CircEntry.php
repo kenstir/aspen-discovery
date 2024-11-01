@@ -1,5 +1,4 @@
-<?php
-
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 abstract class CircEntry extends DataObject {
 	public $id;
@@ -19,20 +18,12 @@ abstract class CircEntry extends DataObject {
 		return false;
 	}
 
-	public function getShortId() {
-		if (!empty($this->shortId)) {
-			return $this->shortId;
-		} else {
-			return $this->recordId;
-		}
-	}
-
 	protected $_recordDriver = null;
 
 	/**
 	 * @return GroupedWorkSubDriver|false
 	 */
-	public function getRecordDriver() {
+	public function getRecordDriver() : GroupedWorkSubDriver|false {
 		if ($this->_recordDriver == null) {
 			if ($this->type == 'ils') {
 				require_once ROOT_DIR . '/RecordDrivers/MarcRecordDriver.php';
@@ -81,33 +72,34 @@ abstract class CircEntry extends DataObject {
 		return $this->title;
 	}
 
+	/** @noinspection PhpMissingReturnTypeInspection */
 	public function getSubtitle() {
 		$recordDriver = $this->getRecordDriver();
-		if ($recordDriver != false) {
+		if (!empty($recordDriver)) {
 			return $recordDriver->getSubtitle();
 		} else {
 			return '';
 		}
 	}
 
-	public function getSortTitle() {
+	public function getSortTitle() : string {
 		if (empty($this->title)) {
 			$recordDriver = $this->getRecordDriver();
-			if ($recordDriver != false) {
+			if (!empty($recordDriver)) {
 				return $recordDriver->getSortableTitle();
 			}
 		}
 		return preg_replace('/^The\s|^A\s/i', '', $this->title);
 	}
 
-	public function getAuthor() {
+	public function getAuthor() : ?string {
 		return $this->author;
 	}
 
 	public function getFormats() {
 		if (empty($this->format)) {
 			$recordDriver = $this->getRecordDriver();
-			if ($recordDriver != false && $recordDriver != null) {
+			if (!empty($recordDriver)) {
 				return $recordDriver->getFormats();
 			} else {
 				return 'Unknown';
@@ -117,27 +109,27 @@ abstract class CircEntry extends DataObject {
 		}
 	}
 
-	public function getPrimaryFormat() {
+	public function getPrimaryFormat() : string {
 		$recordDriver = $this->getRecordDriver();
-		if ($recordDriver != false) {
+		if (!empty($recordDriver)) {
 			return $recordDriver->getPrimaryFormat();
 		} else {
 			return 'Unknown';
 		}
 	}
 
-	public function getIsbn() {
+	public function getIsbn() : ?string {
 		$recordDriver = $this->getRecordDriver();
-		if ($recordDriver != false) {
+		if (!empty($recordDriver)) {
 			return $recordDriver->getCleanISBN();
 		} else {
 			return null;
 		}
 	}
 
-	public function getUPC() {
+	public function getUPC() : ?string {
 		$recordDriver = $this->getRecordDriver();
-		if ($recordDriver != false) {
+		if (!empty($recordDriver)) {
 			return $recordDriver->getCleanUPC();
 		} else {
 			return null;
@@ -146,17 +138,17 @@ abstract class CircEntry extends DataObject {
 
 	public function getFormatCategory() {
 		$recordDriver = $this->getRecordDriver();
-		if ($recordDriver != false) {
+		if (!empty($recordDriver)) {
 			return $recordDriver->getFormatCategory();
 		} else {
 			return null;
 		}
 	}
 
-	public function getCoverUrl() {
+	public function getCoverUrl() : ?string {
 		if (empty($this->coverUrl)) {
 			$recordDriver = $this->getRecordDriver();
-			if ($recordDriver != false) {
+			if (!empty($recordDriver)) {
 				return $recordDriver->getBookcoverUrl('medium', true);
 			} else {
 				return null;
@@ -166,10 +158,10 @@ abstract class CircEntry extends DataObject {
 		}
 	}
 
-	public function getLinkUrl() {
+	public function getLinkUrl() : ?string {
 		if (empty($this->linkUrl)) {
 			$recordDriver = $this->getRecordDriver();
-			if ($recordDriver != false) {
+			if (!empty($recordDriver)) {
 				return $recordDriver->getLinkUrl();
 			} else {
 				return null;
@@ -185,12 +177,12 @@ abstract class CircEntry extends DataObject {
 		return $workAPI->getRatingData($this->groupedWorkId);
 	}
 
-	public function getGroupedWorkId() {
+	public function getGroupedWorkId() : ?string {
 		if (!empty($this->groupedWorkId)) {
 			return $this->groupedWorkId;
 		} else {
 			$recordDriver = $this->getRecordDriver();
-			if ($recordDriver != false) {
+			if (!empty($recordDriver)) {
 				return $recordDriver->getGroupedWorkId();
 			} else {
 				return null;
@@ -200,7 +192,7 @@ abstract class CircEntry extends DataObject {
 
 	public function getPublicationDates() {
 		$recordDriver = $this->getRecordDriver();
-		if ($recordDriver != false) {
+		if (!empty($recordDriver)) {
 			return $recordDriver->getPublicationDates();
 		} else {
 			return null;
@@ -210,7 +202,7 @@ abstract class CircEntry extends DataObject {
 	/** @var User */
 	protected $_user = null;
 
-	public function getUser() {
+	public function getUser() : User|false {
 		if ($this->_user == null) {
 			$this->_user = new User();
 			$this->_user->id = $this->userId;
@@ -222,7 +214,7 @@ abstract class CircEntry extends DataObject {
 	}
 
 	/** @noinspection PhpUnused */
-	public function getUserName() {
+	public function getUserName() : string {
 		if ($this->getUser()) {
 			return $this->getUser()->getNameAndLibraryLabel();
 		} else {
@@ -233,7 +225,7 @@ abstract class CircEntry extends DataObject {
 	/**
 	 * @param GroupedWorkSubDriver $recordDriver
 	 */
-	public function updateFromRecordDriver($recordDriver) {
+	public function updateFromRecordDriver(GroupedWorkSubDriver $recordDriver) : void {
 		$this->title = $recordDriver->getTitle();
 		$this->author = $recordDriver->getPrimaryAuthor();
 		$this->groupedWorkId = $recordDriver->getPermanentId();
@@ -252,7 +244,7 @@ abstract class CircEntry extends DataObject {
 		}
 	}
 
-	public function getSourceId() {
+	public function getSourceId() : string {
 		return $this->sourceId;
 	}
 }

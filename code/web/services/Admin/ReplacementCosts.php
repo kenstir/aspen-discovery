@@ -77,108 +77,38 @@ class Admin_ReplacementCosts extends ObjectEditor {
 
 	/** @noinspection PhpUnused */
 	function recalculateHistoricCostSavings() : void {
-		$replacementCosts = ReplacementCost::getReplacementCostsByFormat();
-
-		require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
-		$readingHistoryEntry = new ReadingHistoryEntry();
+		require_once ROOT_DIR . '/sys/Utils/SystemUtils.php';
+		$additionalParameters = [];
 		if (isset($_REQUEST['format'])) {
-			$format = $_REQUEST['format'];
-			$readingHistoryEntry->format = $format;
+			$additionalParameters[] = $_REQUEST['format'];
 		}
-		$readingHistoryEntry->find();
-		$numUpdated = 0;
-		//Recalculate all reading history entries
-		while ($readingHistoryEntry->fetch()) {
-			$lowerFormat = strtolower($readingHistoryEntry->format);
-			if (array_key_exists($lowerFormat, $replacementCosts)) {
-				if ($replacementCosts[$lowerFormat] > 0) {
-					//Update the costSavings for the reading history entry and update the total cost savings for the user
-					$readingHistoryEntryToUpdate = new ReadingHistoryEntry();
-					$readingHistoryEntryToUpdate->id = $readingHistoryEntry->id;
-					if ($readingHistoryEntryToUpdate->find(true)) {
-						$readingHistoryEntryToUpdate->costSavings = $replacementCosts[$lowerFormat];
-						$readingHistoryEntryToUpdate->update();
-						$numUpdated++;
-					}
-				}
-			}
-		}
-
-		//Now get the total cost savings for users that have checked something out in the format
-		$readingHistoryEntry = new ReadingHistoryEntry();
-		if (isset($_REQUEST['format'])) {
-			$format = $_REQUEST['format'];
-			$readingHistoryEntry->format = $format;
-		}
-		$readingHistoryEntry->selectAdd();
-		$readingHistoryEntry->selectAdd("DISTINCT userId as userId");
-
-		$numUsersUpdated = 0;
-		$readingHistoryEntry->find();
-		while ($readingHistoryEntry->fetch()) {
-			$userToUpdate = new User();
-			$userToUpdate->id = $readingHistoryEntry->userId;
-			if ($userToUpdate->find(true)) {
-				$tmpReadingHistory = new ReadingHistoryEntry();
-				$tmpReadingHistory->userId = $userToUpdate->id;
-				$tmpReadingHistory->selectAdd();
-				$tmpReadingHistory->selectAdd("SUM(costSavings) as costSavings");
-				if ($tmpReadingHistory->costSavings != $userToUpdate->totalCostSavings) {
-					if ($tmpReadingHistory->find(true)) {
-						$userToUpdate->__set('totalCostSavings', $tmpReadingHistory->costSavings);
-					} else {
-						$userToUpdate->__set('totalCostSavings', 0);
-					}
-					$userToUpdate->update();
-				}
-			}
-			$numUsersUpdated++;
-		}
+		$result = SystemUtils::startBackgroundProcess("recalculateHistoricCostSavings", $additionalParameters);
 
 		$activeUser = UserAccount::getActiveUserObj();
-		$activeUser->__set('updateMessage', translate(['text'=>'Updated %1% historic cost savings for %2% users.', 1=>$numUpdated, 2=>$numUsersUpdated, 'isAdminFacing' => true]));
+		if ($result['success']) {
+			$activeUser->__set('updateMessage', translate(['text'=>'Successfully started background process %1% to recalculate historic cost savings.', 1=>$result['backgroundProcessId'], 'isAdminFacing' => true]));
+		}else{
+			$activeUser->__set('updateMessage', translate(['text'=>'Could not start background process to recalculate historic cost savings.', 'isAdminFacing' => true]) . "<br/> " . $result['message']);
+		}
 		$activeUser->update();
 		header("Location: /Admin/ReplacementCosts");
 	}
 
 	/** @noinspection PhpUnused */
 	function recalculateZeroCostSavings() : void {
-		$replacementCosts = ReplacementCost::getReplacementCostsByFormat();
-
-		require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
-		$readingHistoryEntry = new ReadingHistoryEntry();
-		$readingHistoryEntry->costSavings = 0;
+		require_once ROOT_DIR . '/sys/Utils/SystemUtils.php';
+		$additionalParameters = [];
 		if (isset($_REQUEST['format'])) {
-			$format = $_REQUEST['format'];
-			$readingHistoryEntry->format = $format;
+			$additionalParameters[] = $_REQUEST['format'];
 		}
-		$readingHistoryEntry->find();
-		$numUpdated = 0;
-		while ($readingHistoryEntry->fetch()) {
-			$lowerFormat = strtolower($readingHistoryEntry->format);
-			if (array_key_exists($lowerFormat, $replacementCosts)) {
-				if ($replacementCosts[$lowerFormat] > 0) {
-					//Update the costSavings for the reading history entry and update the total cost savings for the user
-					$readingHistoryEntryToUpdate = new ReadingHistoryEntry();
-					$readingHistoryEntryToUpdate->id = $readingHistoryEntry->id;
-					if ($readingHistoryEntryToUpdate->find(true)) {
-						$readingHistoryEntryToUpdate->costSavings = $replacementCosts[$lowerFormat];
-						$readingHistoryEntryToUpdate->update();
-					}
-
-					$userToUpdate = new User();
-					$userToUpdate->id = $readingHistoryEntryToUpdate->userId;
-					if ($userToUpdate->find(true)) {
-						$userToUpdate->totalCostSavings += $replacementCosts[$lowerFormat];
-						$userToUpdate->update();
-					}
-					$numUpdated++;
-				}
-			}
-		}
+		$result = SystemUtils::startBackgroundProcess("recalculateZeroCostSavings", $additionalParameters);
 
 		$activeUser = UserAccount::getActiveUserObj();
-		$activeUser->__set('updateMessage', translate(['text'=>'Updated %1% historic cost savings that were previously 0.', 1=>$numUpdated, 'isAdminFacing' => true]));
+		if ($result['success']) {
+			$activeUser->__set('updateMessage', translate(['text'=>'Successfully started background process %1% to recalculate zero cost savings.', 1=>$result['backgroundProcessId'], 'isAdminFacing' => true]));
+		}else{
+			$activeUser->__set('updateMessage', translate(['text'=>'Could not start background process to recalculate zero cost savings.', 'isAdminFacing' => true]) . "<br/> " . $result['message']);
+		}
 		$activeUser->update();
 		header("Location: /Admin/ReplacementCosts");
 	}

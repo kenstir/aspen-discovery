@@ -8,6 +8,7 @@ import java.util.HashSet;
 
 public class OverDriveSetting {
 	private final long id;
+	private String readerName;
 	private String clientSecret;
 	private final String clientKey;
 	private final String accountId;
@@ -28,6 +29,7 @@ public class OverDriveSetting {
 			System.err.println("Error loading client secret for " + serverName);
 			clientSecret = settingRS.getString("clientSecret");
 		}
+		readerName = settingRS.getString("readerName");
 		clientKey = settingRS.getString("clientKey");
 		accountId = settingRS.getString("accountId");
 		productsKey = settingRS.getString("productsKey");
@@ -102,4 +104,9 @@ public class OverDriveSetting {
 	public String getProductsToUpdateNextTimeAsString(){
 		return String.join("\n", productsToUpdateNextTime);
 	}
+
+	public String getReaderName() {
+		return readerName;
+	}
+
 }

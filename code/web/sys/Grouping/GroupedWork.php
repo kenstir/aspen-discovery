@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 class GroupedWork extends DataObject {
 	public $__table = 'grouped_work';    // table name
@@ -7,14 +7,13 @@ class GroupedWork extends DataObject {
 	public $full_title;
 	public $author;
 	public $grouping_category;
-	public $primary_language;
 	public $date_updated;
 	public $referenceCover;
 
 	/**
 	 * @param bool $updatePrimaryIdentifiers Updating primary identifiers will force regrouping and is a bit slower
 	 */
-	public function forceReindex(bool $updatePrimaryIdentifiers = false) {
+	public function forceReindex(bool $updatePrimaryIdentifiers = false) : void {
 		require_once ROOT_DIR . '/sys/Indexing/GroupedWorkScheduledWorkIndex.php';
 		$scheduledWork = new GroupedWorkScheduledWorkIndex();
 		$scheduledWork->permanent_id = $this->permanent_id;

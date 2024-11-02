@@ -18,7 +18,6 @@ class UserPayment extends DataObject {
 	public $totalPaid;
 	public $transactionDate;
 	public $transactionType;
-	public $snappayToken;
 	public $squareToken;
 	public $stripeToken;
 	public $aciToken;
@@ -1087,73 +1086,119 @@ class UserPayment extends DataObject {
 		];
 	}
 
-	public static function completeSnapPayPayment($payload): array {
-		$success = false;
-		$error = '';
-		$message = '';
-
+	public static function completeSnapPayPayment(): array {
 		$userPayment = new UserPayment();
+		$payload = $_REQUEST;
 		$userPayment->id = $payload['udf1'];
 		if($userPayment->find(true)) {
+			$userPayment->error = false;
+			$userPayment->message = '';
 			$userPayment->transactionId = $payload['paymenttransactionid'];
-
-			if ($payload['transactionstatus'] != 'Y') {
-				// transaction failed
+			if ($payload['transactionstatus'] != 'Y') { // SnapPay payment transaction failed
 				$userPayment->error = true;
-				$message = 'Unable to process payment. ';
-				$message .= $payload['returnmessage'];
-				$userPayment->message = $message;
+				$userPayment->message = translate(
+					[
+						'text' => 'Unable to process payment Reference ID %1%. SnapPay server returned message: ',
+						'isPublicFacing' => true,
+						1 => $userPayment->id,
+					]
+				);
+				$userPayment->message .= translate(
+					[
+						'text' => $payload['returnmessage'],
+						'isPublicFacing' => true,
+					]
+				);
 				$userPayment->update();
+			} elseif ($userPayment->completed != 0) { // Check to see whether the payment was already processed (whether this is a double-payment that requires staff review)
+				$userPayment->error = true;
+				$userPayment->message = translate(
+					[
+						'text' => 'SnapPay Payment has already been processed for Payment Reference ID %1%',
+						'isPublicFacing' => true,
+						1 => $userPayment->id,
+					]
+				);
+			} elseif ($userPayment->totalPaid != $payload['transactionamount']) { // Ensure SnapPay-reported transaction amount (which does not include convenience fee) equals Aspen-expected total paid
+				$userPayment->error = true;
+				$userPayment->message = translate(
+					[
+						'text' => 'SnapPay Payment does not equal Aspen expected payment for Payment Reference ID %1% : %2% != %3%',
+						'isPublicFacing' => true,
+						1 => $userPayment->id,
+						2 => $payload['transactionamount'],
+						3 => $userPayment->totalPaid,
+					]
+				);
 			} else {
-				// transaction completed
-				$userPayment->completed = 1;
-				$userPayment->totalPaid = $payload['total_amount'];
+				$userPayment->completed = true;
+				$userPayment->totalPaid = $payload['transactionamount'];
 				$userPayment->update();
-
-				if ($userPayment->transactionType == 'donation') {
-					//Check to see if we have a donation for this payment
+				if ($userPayment->transactionType == 'donation') { //Check to see if we have a donation for this payment
 					require_once ROOT_DIR . '/sys/Donations/Donation.php';
 					$donation = new Donation();
 					$donation->paymentId = $userPayment->id;
 					if ($donation->find(true)) {
-						$success = true;
-						$message = translate([
+						$userPayment->message = translate([
 							'text' => 'Your donation payment has been completed. ',
 							'isPublicFacing' => true,
 						]);
-						$userPayment->message .= 'Donation payment completed, TransactionId = ' . $payload['transaction_id'] . ', TotalAmount = ' . $payload['total_amount'] . '.';
+						$userPayment->message .= translate(
+							[
+								'text' => 'Donation payment completed, TransactionId = %1%, TotalAmount = %2%.',
+								'isPublicFacing' => true,
+								1 => $payload['transaction_id'],
+								2 => $payload['total_amount'],
+							]
+						);
 						$userPayment->update();
-
 						$donation->sendReceiptEmail();
 					} else {
-						$message = translate([
+						$userPayment->message = translate([
 							'text' => 'Unable to locate donation with given payment id %1%',
 							'isPublicFacing' => true,
 							1 => $userPayment->id,
 						]);
 					}
-				} else {
+				} else { // Complete fee/fine payment (i.e., not a donation)
 					$user = new User();
 					$user->id = $userPayment->userId;
 					if ($user->find(true)) {
 						$completePayment = $user->completeFinePayment($userPayment);
+// TO DO: check here... should I just return $user->completeFinePayment($userPayment) instead of doing what follows???
 						if ($completePayment['success']) {
-							$success = true;
-							$message = translate([]);
-							$userPayment->message .= 'Payment completed, TransactionId = ' . $payload['transaction_id'] . ', TotalAmount = ' . $payload['total_amount'] . '.';
+							$userPayment->message .= translate(
+								[
+									'text' => 'Payment completed, TransactionId = %1%, TotalAmount = %2%.',
+									'isPublicFacing' => true,
+									1 => $payload['transaction_id'],
+									2 => $payload['total_amount'],
+								]
+							);
 						} else {
 							$userPayment->error = true;
-							$userPayment->message .= $completePayment['message'];
+							$userPayment->message .= translate(
+								[
+									'text' => $completePayment['message'],
+									'isPublicFacing' => true,
+								]
+							);
 						}
 					} else {
 						$userPayment->error = true;
-						$userPayment->message .= 'Could not find user to mark the fine paid in the ILS. ';
+						$userPayment->message .= translate(
+							[
+								'text' => 'Could not find user to mark the fine paid in the ILS. ',
+								'isPublicFacing' => true,
+							]
+						);
 					}
 				}
 			}
 		}
+		return $userPayment->toArray(); // TO DO: is this for real right?
 	}
-		public function toArray($includeRuntimeProperties = true, $encryptFields = false): array {
+	public function toArray($includeRuntimeProperties = true, $encryptFields = false): array {
 		$return = parent::toArray($includeRuntimeProperties, $encryptFields);
 		unset($return['userId']);
 		return $return;

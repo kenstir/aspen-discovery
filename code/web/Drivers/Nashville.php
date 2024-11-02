@@ -35,10 +35,10 @@ class Nashville extends CarlX {
 
 		$result = parent::completeFinePayment($patron, $payment);
 		if ($result['success'] === false) {
-			$message = "Online payment CarlX update failed for Payment Reference ID $payment->id . See messages.log for details on individual items.";
+			$message = "Online payment CarlX update failed for Payment Reference ID $payment->id. See messages.log for details on individual items.";
 			$level = Logger::LOG_ERROR;
 		} else {
-			$message = "Online payment successfully recorded in CarlX for Payment Reference ID $payment->id .";
+			$message = "Online payment successfully recorded in CarlX for Payment Reference ID $payment->id.";
 			$level = Logger::LOG_DEBUG;
 		}
 		$logger->log($message, $level);

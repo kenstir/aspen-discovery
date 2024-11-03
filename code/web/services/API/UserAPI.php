@@ -5639,11 +5639,13 @@ class UserAPI extends AbstractAPI {
 
 								$_SESSION['guidingUserId'] = $guidingUser->id;
 								$_SESSION['activeUserId'] = $user->id;
+								$_SESSION['returnTo'] = $_SERVER['HTTP_REFERER'];
 								@session_write_close();
 								//TODO: For calls from LiDA we would need the entire patron profile
 								return [
 									'success' => true,
 									'activeUserId' => $user->id,
+									'returnTo' => $_SERVER['HTTP_REFERER'],
 								];
 							} else {
 								unset($_SESSION['guidingUserId']);
@@ -5740,6 +5742,7 @@ class UserAPI extends AbstractAPI {
 				}
 
 				if (!empty($user) && !($user instanceof AspenError)) {
+					$returnTo = isset($_SESSION['returnTo']) ? $_SESSION['returnTo'] : '/MyAccount/Home';
 					session_destroy();
 					session_name('aspen_session');
 					$newSessionId = session_create_id('');
@@ -5753,7 +5756,10 @@ class UserAPI extends AbstractAPI {
 						$_SESSION['loggedInViaSSO'] = true;
 					}
 
-					return ['success' => true];
+					return [
+						'success' => true,
+						'returnTo' => $returnTo
+					];
 				} else {
 					UserAccount::softLogout();
 				}

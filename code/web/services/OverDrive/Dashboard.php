@@ -7,7 +7,7 @@ require_once ROOT_DIR . '/sys/OverDrive/OverDriveRecordUsage.php';
 require_once ROOT_DIR . '/sys/OverDrive/OverDriveStats.php';
 
 class OverDrive_Dashboard extends Admin_Dashboard {
-	function launch() {
+	function launch() : void {
 		global $interface;
 
 		$instanceName = $this->loadInstanceInformation('UserOverDriveUsage');
@@ -92,7 +92,7 @@ class OverDrive_Dashboard extends Admin_Dashboard {
 	 * @param string|null $year
 	 * @return int
 	 */
-	public function getUserStats($instanceName, $month, $year): int {
+	public function getUserStats(?string $instanceName, ?string $month, ?string $year): int {
 		$userUsage = new UserOverDriveUsage();
 		if (!empty($instanceName)) {
 			$userUsage->instance = $instanceName;
@@ -103,8 +103,7 @@ class OverDrive_Dashboard extends Admin_Dashboard {
 		if ($year != null) {
 			$userUsage->year = $year;
 		}
-		$activeUsersThisMonth = $userUsage->count();
-		return $activeUsersThisMonth;
+		return $userUsage->count();
 	}
 
 	/**
@@ -113,7 +112,7 @@ class OverDrive_Dashboard extends Admin_Dashboard {
 	 * @param string|null $year
 	 * @return array
 	 */
-	public function getRecordStats($instanceName, $month, $year): array {
+	public function getRecordStats(?string $instanceName, ?string $month, ?string $year): array {
 		$usage = new OverDriveRecordUsage();
 		if (!empty($instanceName)) {
 			$usage->instance = $instanceName;
@@ -124,7 +123,7 @@ class OverDrive_Dashboard extends Admin_Dashboard {
 		if ($year != null) {
 			$usage->year = $year;
 		}
-		$usage->selectAdd(null);
+		$usage->selectAdd();
 		$usage->selectAdd('COUNT(id) as recordsUsed');
 		$usage->selectAdd('SUM(timesHeld) as totalHolds');
 		$usage->selectAdd('SUM(timesCheckedOut) as totalCheckouts');
@@ -165,7 +164,7 @@ class OverDrive_Dashboard extends Admin_Dashboard {
 	 * @param string|null $year
 	 * @return OverDriveStats
 	 */
-	public function getStats($instanceName, $month, $year): OverDriveStats {
+	public function getStats(?string $instanceName, ?string $month, ?string $year): OverDriveStats {
 		$stats = new OverDriveStats();
 		if (!empty($instanceName)) {
 			$stats->instance = $instanceName;
@@ -176,7 +175,7 @@ class OverDrive_Dashboard extends Admin_Dashboard {
 		if ($year != null) {
 			$stats->year = $year;
 		}
-		$stats->selectAdd(null);
+		$stats->selectAdd();
 		$stats->selectAdd('SUM(numCheckouts) as numCheckouts');
 		$stats->selectAdd('SUM(numFailedCheckouts) as numFailedCheckouts');
 		$stats->selectAdd('SUM(numRenewals) as numRenewals');

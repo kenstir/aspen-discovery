@@ -6,7 +6,7 @@ global $configArray;
 
 class OverDrive_AJAX extends JSON_Action {
 
-	function launch($method = null) {
+	function launch($method = null) : void {
 		$method = $_GET['method'];
 		//Backwards compatibility with old Pika calls
 		switch ($method) {
@@ -26,14 +26,14 @@ class OverDrive_AJAX extends JSON_Action {
 		parent::launch($method);
 	}
 
-	function placeHold() {
+	function placeHold() : array {
 		global $logger;
 		$logger->log("Starting OverDrive/placeHold session: " . session_id(), Logger::LOG_DEBUG);
 
 		$overDriveId = $_REQUEST['overDriveId'];
 		if (UserAccount::isLoggedIn()) {
 			$user = UserAccount::getLoggedInUser();
-			$logger->log("User is logged in {$user->id}", Logger::LOG_ERROR);
+			$logger->log("User is logged in $user->id", Logger::LOG_ERROR);
 			$patronId = $_REQUEST['patronId'];
 			$patron = $user->getUserReferredTo($patronId);
 			if ($patron) {
@@ -56,7 +56,7 @@ class OverDrive_AJAX extends JSON_Action {
 				$driver = new OverDriveDriver();
 				return $driver->placeHold($patron, $overDriveId);
 			} else {
-				$logger->log("Logged in user {$user->id} not valid for patron {$patronId}", Logger::LOG_DEBUG);
+				$logger->log("Logged in user $user->id not valid for patron $patronId", Logger::LOG_DEBUG);
 				return [
 					'result' => false,
 					'message' => translate([
@@ -74,7 +74,7 @@ class OverDrive_AJAX extends JSON_Action {
 		}
 	}
 
-	function renewCheckout() {
+	function renewCheckout() : array {
 		$user = UserAccount::getLoggedInUser();
 		$overDriveId = $_REQUEST['overDriveId'];
 		if ($user) {
@@ -98,7 +98,7 @@ class OverDrive_AJAX extends JSON_Action {
 		}
 	}
 
-	function checkOutTitle() {
+	function checkOutTitle() : array {
 		$user = UserAccount::getLoggedInUser();
 		$overDriveId = $_REQUEST['overDriveId'];
 		if ($user) {
@@ -131,7 +131,7 @@ class OverDrive_AJAX extends JSON_Action {
 	}
 
 	/** @noinspection PhpUnused */
-	function returnCheckout() {
+	function returnCheckout() : array {
 		$user = UserAccount::getLoggedInUser();
 		$overDriveId = $_REQUEST['overDriveId'];
 		if ($user) {
@@ -156,33 +156,7 @@ class OverDrive_AJAX extends JSON_Action {
 	}
 
 	/** @noinspection PhpUnused */
-	function selectOverDriveDownloadFormat() {
-		$user = UserAccount::getLoggedInUser();
-		$overDriveId = $_REQUEST['overDriveId'];
-		$formatId = $_REQUEST['formatId'];
-		if ($user) {
-			$patronId = $_REQUEST['patronId'];
-			$patron = $user->getUserReferredTo($patronId);
-			if ($patron) {
-				require_once ROOT_DIR . '/Drivers/OverDriveDriver.php';
-				$driver = new OverDriveDriver();
-				return $driver->selectOverDriveDownloadFormat($overDriveId, $formatId, $patron);
-			} else {
-				return [
-					'result' => false,
-					'message' => 'Sorry, it looks like you don\'t have permissions to download titles for that user.',
-				];
-			}
-		} else {
-			return [
-				'result' => false,
-				'message' => 'You must be logged in to download a title.',
-			];
-		}
-	}
-
-	/** @noinspection PhpUnused */
-	function getDownloadLink() {
+	function getDownloadLink() : array {
 		$user = UserAccount::getLoggedInUser();
 		$overDriveId = $_REQUEST['overDriveId'];
 		$formatId = $_REQUEST['formatId'];
@@ -193,7 +167,7 @@ class OverDrive_AJAX extends JSON_Action {
 			if ($patron) {
 				require_once ROOT_DIR . '/Drivers/OverDriveDriver.php';
 				$driver = new OverDriveDriver();
-				return $driver->getDownloadLink($overDriveId, $formatId, $patron, $isSupplement);
+				return $driver->getDownloadLink($overDriveId, $patron);
 			} else {
 				return [
 					'result' => false,
@@ -209,16 +183,17 @@ class OverDrive_AJAX extends JSON_Action {
 	}
 
 	/** @noinspection PhpUnused */
-	function getHoldPrompts() {
+	function getHoldPrompts() : array {
 		if (!UserAccount::isLoggedIn()) {
 			return [
 				'success' => false,
-				'message' => 'You must be logged in to place holds, please login again.',
+				'message' => translate(['text'=>'You must be logged in to place holds, please login again.', 'isPublicFacing'=>true]),
 			];
 		}
 		$user = UserAccount::getLoggedInUser();
 		global $interface;
 		$id = $_REQUEST['id'];
+
 		$interface->assign('overDriveId', $id);
 		if ($user->overdriveEmail == 'undefined') {
 			$user->overdriveEmail = '';
@@ -265,13 +240,13 @@ class OverDrive_AJAX extends JSON_Action {
 				'patronId' => reset($overDriveUsers)->id,
 				'promptNeeded' => false,
 				'overdriveEmail' => $user->overdriveEmail,
-				'promptForOverdriveEmail' => $promptForEmail,
+				'promptForOverdriveEmail' => false,
 			];
 		}
 	}
 
 	/** @noinspection PhpUnused */
-	function getCheckOutPrompts() {
+	function getCheckOutPrompts() : array {
 		if (UserAccount::isLoggedIn()) {
 			$user = UserAccount::getLoggedInUser();
 			global $interface;
@@ -363,21 +338,21 @@ class OverDrive_AJAX extends JSON_Action {
 			$patronId = $_REQUEST['patronId'];
 			$patronOwningHold = $user->getUserReferredTo($patronId);
 
-			if ($patronOwningHold == false) {
+			if (!$patronOwningHold) {
 				$result['message'] = translate([
 					'text' => 'Sorry, you do not have access to freeze holds for the supplied user.',
 					'isPublicFacing' => true,
 				]);
 			} else {
 				if (empty($_REQUEST['overDriveId'])) {
-					// We aren't getting all the expected data, so make a log entry & tell user.
+					// We aren't getting all the expected data, so make a log entry and tell the user.
 					$result['message'] = translate([
 						'text' => 'Information about the hold to be frozen was not provided.',
 						'isPublicFacing' => true,
 					]);
 				} else {
 					$overDriveId = $_REQUEST['overDriveId'];
-					$reactivationDate = isset($_REQUEST['reactivationDate']) ? $_REQUEST['reactivationDate'] : null;
+					$reactivationDate = $_REQUEST['reactivationDate'] ?? null;
 					$result = $patronOwningHold->freezeOverDriveHold($overDriveId, $reactivationDate);
 					if ($result['success']) {
 						$message = '<div class="alert alert-success">' . $result['message'] . '</div>';
@@ -389,12 +364,12 @@ class OverDrive_AJAX extends JSON_Action {
 						$messageArray = $result['message'];
 						$result['message'] = implode('; ', $messageArray);
 						// Millennium Holds assumes there can be more than one item processed. Here we know only one got processed,
-						// but do implode as a fallback
+						// but call the implode function just in case
 					}
 				}
 			}
 		} else {
-			// We aren't getting all the expected data, so make a log entry & tell user.
+			// We aren't getting all the expected data, so make a log entry and tell user.
 			global $logger;
 			$logger->log('Freeze Hold, no patron Id was passed in AJAX call.', Logger::LOG_ERROR);
 			$result['message'] = translate([
@@ -407,13 +382,13 @@ class OverDrive_AJAX extends JSON_Action {
 	}
 
 	/** @noinspection PhpUnused */
-	function getReactivationDateForm() {
+	function getReactivationDateForm() : array {
 		global $interface;
 
 		$user = UserAccount::getLoggedInUser();
 		$patronId = $_REQUEST['patronId'];
 		$patronOwningHold = $user->getUserReferredTo($patronId);
-		if ($patronOwningHold != false) {
+		if ($patronOwningHold !== false) {
 			$interface->assign('patronId', $patronId);
 			$interface->assign('overDriveId', $_REQUEST['overDriveId']);
 
@@ -456,7 +431,7 @@ class OverDrive_AJAX extends JSON_Action {
 			$patronId = $_REQUEST['patronId'];
 			$patronOwningHold = $user->getUserReferredTo($patronId);
 
-			if ($patronOwningHold == false) {
+			if ($patronOwningHold === false) {
 				$result['message'] = translate([
 					'text' => 'Sorry, you do not have access to thaw holds for the supplied user.',
 					'isPublicFacing' => true,
@@ -473,7 +448,7 @@ class OverDrive_AJAX extends JSON_Action {
 				}
 			}
 		} else {
-			// We aren't getting all the expected data, so make a log entry & tell user.
+			// We aren't getting all the expected data, so make a log entry and tell the user.
 			global $logger;
 			$logger->log('Thaw Hold, no patron Id was passed in AJAX call.', Logger::LOG_ERROR);
 			$result['message'] = 'No Patron was specified.';
@@ -482,7 +457,7 @@ class OverDrive_AJAX extends JSON_Action {
 		return $result;
 	}
 
-	function getStaffView() {
+	function getStaffView() : array {
 		$result = [
 			'success' => false,
 			'message' => 'Unknown error loading staff view',
@@ -504,7 +479,7 @@ class OverDrive_AJAX extends JSON_Action {
 	}
 
 	/** @noinspection PhpUnused */
-	function getPreview() {
+	function getPreview() : array {
 		$result = [
 			'success' => false,
 			'message' => 'Unknown error loading preview',
@@ -538,7 +513,7 @@ class OverDrive_AJAX extends JSON_Action {
 				$overDriveDriver = new OverDriveDriver();
 				$overDriveDriver->incrementStat('numPreviews');
 
-				$result['modalBody'] = "<iframe src='{$sampleUrl}' class='previewFrame'></iframe>";
+				$result['modalBody'] = "<iframe src='$sampleUrl' class='previewFrame'></iframe>";
 				$result['modalButtons'] = "<a class='tool btn btn-primary' id='viewPreviewFullSize' href='$sampleUrl' target='_blank' aria-label='".translate([
 						'text' => 'View Full Screen',
 						'isPublicFacing' => true,
@@ -558,7 +533,7 @@ class OverDrive_AJAX extends JSON_Action {
 	}
 
 	/** @noinspection PhpUnused */
-	function getLargeCover() {
+	function getLargeCover() : array {
 		global $interface;
 
 		$id = $_REQUEST['id'];

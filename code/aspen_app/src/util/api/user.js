@@ -342,6 +342,31 @@ export async function getPatronCheckedOutItems(source = 'all', url, refresh = tr
      }
 }
 
+/**
+ * Deletes the Aspen user and related data. Does not delete the user from the ILS.
+ * @param {string} url
+ **/
+export async function deleteAspenUser(url) {
+     const postBody = await postData();
+     const discovery = create({
+          baseURL: url + '/API',
+          timeout: GLOBALS.timeoutFast,
+          headers: getHeaders(true),
+          auth: createAuthTokens(),
+     });
+     const results = await discovery.post('/UserAPI?method=deleteAspenUser', postBody);
+     if (results.ok) {
+          if(results?.data?.result) {
+               return results.data.result;
+          } else {
+               return {
+                    success: false,
+                    message: 'Unknown error trying to complete request.'
+               }
+          }
+     }
+}
+
 /** *******************************************************************
  * Browse Category Management
  ******************************************************************* **/
@@ -439,6 +464,7 @@ export async function getLinkedAccounts(primaryUser, cards, barcodeStyle, url, l
                expired: primaryUser.expired,
                expires: primaryUser.expires,
                barcodeStyle: barcodeStyle,
+               homeLocation: primaryUser.homeLocation,
           };
           cardStack.push(primaryCard);
           if (!_.isUndefined(response.data.result.linkedAccounts)) {
@@ -456,6 +482,7 @@ export async function getLinkedAccounts(primaryUser, cards, barcodeStyle, url, l
                                    expired: account.expired,
                                    expires: account.expires,
                                    barcodeStyle: account.barcodeStyle ?? barcodeStyle,
+                                   homeLocation: account.homeLocation,
                               };
                               cardStack.push(card);
                          } else if (_.includes(cards, account.cat_username) === false) {
@@ -468,6 +495,7 @@ export async function getLinkedAccounts(primaryUser, cards, barcodeStyle, url, l
                                    expired: account.expired,
                                    expires: account.expires,
                                    barcodeStyle: account.barcodeStyle ?? barcodeStyle,
+                                   homeLocation: account.homeLocation,
                               };
                               cardStack.push(card);
                          }

@@ -320,7 +320,7 @@ class CloudLibraryRecordDriver extends MarcRecordDriver {
 		return $this->valid;
 	}
 
-	function getStatusSummary() {
+	function getStatusSummary() : array {
 		$relatedRecord = $this->getRelatedRecord();
 		$statusSummary = [];
 		if ($relatedRecord != null && $relatedRecord->getAvailableCopies() > 0) {

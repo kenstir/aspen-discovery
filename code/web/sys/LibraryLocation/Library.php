@@ -126,14 +126,16 @@ class Library extends DataObject {
 	public $showAvailableAtAnyLocation;
 	public $finePaymentType; //0 = None, 1 = ILS, 2 = PayPal
 	public $showPaymentHistory;
+	/** @noinspection PhpUnused */
 	protected $_paymentHistoryExplanation;
+	/** @noinspection PhpUnused */
 	public $deletePaymentHistoryOlderThan;
 	public $finesToPay;
 	public $finePaymentOrder;
 	public $payFinesLink;
 	public $payFinesLinkText;
 	public $minimumFineAmount;
-	public $showRefreshAccountButton;    // specifically to refresh account after paying fines online
+	public $showRefreshAccountButton;    // used to refresh the account after paying fines online
 	public $eCommerceFee;
 	public $eCommerceTerms;
 	public $msbUrl;
@@ -161,8 +163,8 @@ class Library extends DataObject {
 		$repeatInInnReach;
 	public /** @noinspection PhpUnused */
 		$repeatInWorldCat;
-	public $overDriveScopeId;
-
+	public $repeatInCloudSource;
+	public $cloudSourceBaseUrl;
 	public $hooplaLibraryID;
 	public /** @noinspection PhpUnused */
 		$hooplaScopeId;
@@ -197,11 +199,7 @@ class Library extends DataObject {
 	public $cardRenewalUrl;
 
 	public $promptForBirthDateInSelfReg;
-	public $promptForParentInSelfReg;
-	public $promptForSMSNoticesInSelfReg;
 	public $minSelfRegAge;
-	public $selfRegRequirePhone;
-	public $selfRegRequireEmail;
 	public $thirdPartyRegistrationLocation;
 	public $thirdPartyPTypeAddressValidated;
 	public $thirdPartyPTypeAddressNotValidated;
@@ -347,6 +345,7 @@ class Library extends DataObject {
 	public $optInToReadingHistoryUpdatesILS;
 	public $optOutOfReadingHistoryUpdatesILS;
 	public $enableCostSavings;
+	/** @noinspection PhpUnused */
 	protected $_costSavingsExplanation;
 	public $enableSavedSearches;
 	public /** @noinspection PhpUnused */
@@ -469,6 +468,13 @@ class Library extends DataObject {
 	//cookieConsent
 	public $cookieStorageConsent;
 	public $cookiePolicyHTML;
+
+	//SHAREit
+	public $repeatInShareIt;
+	public $shareItCid;
+	public $shareItLid;
+	public $shareItUsername;
+	public $shareItPassword;
 
 	public $allowUpdatingHolidaysFromILS;
 
@@ -825,19 +831,15 @@ class Library extends DataObject {
 			$ebscohostSettings[$ebscohostSetting->id] = $ebscohostSetting->name;
 		}
 
-		$overDriveScopes = [];
-		$overDriveScopes[-1] = 'none';
-		try {
-			require_once ROOT_DIR . '/sys/OverDrive/OverDriveScope.php';
-			$overDriveScope = new OverDriveScope();
-			$overDriveScope->orderBy('name');
-			$overDriveScope->find();
-			while ($overDriveScope->fetch()) {
-				$overDriveScopes[$overDriveScope->id] = $overDriveScope->name;
-			}
-		} catch (Exception $e) {
-			//OverDrive scopes are likely not defined
-		}
+		require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveScope.php';
+		$libraryOverDriveScopeStructure = LibraryOverDriveScope::getObjectStructure($context);
+		unset($libraryOverDriveScopeStructure['libraryId']);
+		unset($libraryOverDriveScopeStructure['weight']);
+
+		require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveSettings.php';
+		$libraryOverDriveSettingsStructure = LibraryOverDriveSettings::getObjectStructure($context);
+		unset($libraryOverDriveSettingsStructure['libraryId']);
+		unset($libraryOverDriveSettingsStructure['weight']);
 
 		require_once ROOT_DIR . '/sys/AspenLiDA/NotificationSetting.php';
 		$notificationSetting = new NotificationSetting();
@@ -888,9 +890,6 @@ class Library extends DataObject {
 		while ($cloudLibraryScope->fetch()) {
 			$cloudLibraryScopes[$cloudLibraryScope->id] = $cloudLibraryScope->name;
 		}
-
-		$readerName = new OverDriveDriver();
-		$readerName = $readerName->getReaderName();
 
 		$barcodeTypes = [
 			'none' => 'Do not show the barcode',
@@ -1353,16 +1352,6 @@ class Library extends DataObject {
 						'hideInLists' => true,
 						'permissions' => ['Library ILS Options'],
 						'properties' => [
-							'ssoPatronTypeAttr' => [
-								'property' => 'ssoPatronTypeAttr',
-								'serverValidation' => 'validatePatronType',
-								'type' => 'text',
-								'label' => 'Name of the identity provider attribute that contains the user\'s patron type',
-								'description' => 'The user\'s patron type, this should be a value that is recognised by Aspen. If this is not supplied, please provide a fallback value below',
-								'size' => '512',
-								'hideInLists' => false,
-								'permissions' => ['Library ILS Connection'],
-							],
 							'ssoPatronTypeFallback' => [
 								'property' => 'ssoPatronTypeFallback',
 								'type' => 'text',
@@ -1381,17 +1370,7 @@ class Library extends DataObject {
 						'hideInLists' => true,
 						'permissions' => ['Library ILS Options'],
 						'properties' => [
-							'ssoLibraryIdAttr' => [
-								'property' => 'ssoLibraryIdAttr',
-								'serverValidation' => 'validateLibraryId',
-								'type' => 'text',
-								'label' => 'Name of the identity provider attribute that contains the user\'s library ID',
-								'description' => 'The user\'s library ID, this should be an ID that is recognised by your LMS. If this is not supplied, please provide a fallback value below',
-								'size' => '512',
-								'hideInLists' => false,
-								'permissions' => ['Library ILS Connection'],
-							],
-							'ssoLibraryIdFallback' => [
+							/'ssoLibraryIdFallback' => [
 								'property' => 'ssoLibraryIdFallback',
 								'type' => 'text',
 								'label' => 'A fallback value for library ID',
@@ -1409,16 +1388,6 @@ class Library extends DataObject {
 						'hideInLists' => true,
 						'permissions' => ['Library ILS Options'],
 						'properties' => [
-							'ssoCategoryIdAttr' => [
-								'property' => 'ssoCategoryIdAttr',
-								'serverValidation' => 'validateCategoryId',
-								'type' => 'text',
-								'label' => 'Name of the identity provider attribute that contains the user\'s patron category ID',
-								'description' => 'The user\'s patron category ID, this should be an ID that is recognised by your LMS. If this is not supplied, please provide a fallback value below',
-								'size' => '512',
-								'hideInLists' => false,
-								'permissions' => ['Library ILS Connection'],
-							],
 							'ssoCategoryIdFallback' => [
 								'property' => 'ssoCategoryIdFallback',
 								'type' => 'text',
@@ -3558,6 +3527,7 @@ class Library extends DataObject {
 						'type' => 'enum',
 						'values' => [
 							0 => 'INN-Reach',
+							3 => 'SHAREit',
 							1 => 'WorldCat',
 							2 => 'Other',
 						],
@@ -3629,6 +3599,53 @@ class Library extends DataObject {
 								'description' => 'Whether or not INN-Reach Search Results should be shown at the end of search results.',
 								'hideInLists' => true,
 								'default' => 0,
+							],
+						],
+					],
+					'shareItSection' => [
+						'property' => 'shareItSection',
+						'type' => 'section',
+						'label' => 'SHAREit',
+						'hideInLists' => true,
+						'helpLink' => '',
+						'properties' => [
+							'repeatInShareIt' => [
+								'property' => 'repeatInShareIt',
+								'type' => 'checkbox',
+								'label' => 'Repeat In SHAREit',
+								'description' => 'Turn on to allow repeat search in SHAREit functionality.',
+								'hideInLists' => true,
+							],
+							'shareItCid' => [
+								'property' => 'shareItCid',
+								'type' => 'text',
+								'label' => 'SHAREit CID',
+								'description' => 'The Customer ID for SHAREit.',
+								'hideInLists' => true,
+								'size' => '80',
+							],
+							'shareItLid' => [
+								'property' => 'shareItLid',
+								'type' => 'text',
+								'label' => 'SHAREit LID',
+								'description' => 'The Library ID for SHAREit.',
+								'hideInLists' => true,
+								'size' => '80',
+							],
+							'shareItUsername' => [
+								'property' => 'shareItUsername',
+								'type' => 'text',
+								'label' => 'SHAREit Username',
+								'description' => 'The Username for SHAREit authentication.',
+								'hideInLists' => true,
+								'size' => '80',
+							],
+							'shareItPassword' => [
+								'property' => 'shareItPassword',
+								'type' => 'storedPassword',
+								'label' => 'SHAREit Password',
+								'description' => 'The Password for SHAREit authentication.',
+								'hideInLists' => true,
 							],
 						],
 					],
@@ -3750,6 +3767,32 @@ class Library extends DataObject {
 					],
 				],
 			],
+			'cloudSourceSection' => [
+				'property' => 'cloudSourceSection',
+				'type' => 'section',
+				'label' => 'CloudSource',
+				'hideInLists' => true,
+				'renderAsHeading' => true,
+				'helpLink' => '',
+				'properties' => [
+					'repeatInCloudSource' => [
+						'property' => 'repeatInCloudSource',
+						'type' => 'checkbox',
+						'label' => 'Repeat In CloudSource',
+						'description' => 'Turn on to allow repeat search in CloudSource functionality.',
+						'hideInLists' => true,
+					],
+					'cloudSourceBaseUrl' => [
+						'property' => 'cloudSourceBaseUrl',
+						'type' => 'text',
+						'label' => 'CloudSource URL',
+						'description' => 'The base CloudSource URL to use while searching.',
+						'note' => 'Will be similar to https://csclient2.ent.sirsi.net/client/en_US/{customer_name}.',
+						'hideInLists' => true,
+						'size' => '255',
+					],
+				],
+			],
 			'hooplaSection' => [
 				'property' => 'hooplaSection',
 				'type' => 'section',
@@ -3781,19 +3824,43 @@ class Library extends DataObject {
 			'overdriveSection' => [
 				'property' => 'overdriveSection',
 				'type' => 'section',
-				'label' => "$readerName",
+				'label' => "OverDrive",
 				'hideInLists' => true,
 				'renderAsHeading' => true,
 				'permissions' => ['Library Records included in Catalog'],
 				'properties' => [
-					'overDriveScopeId' => [
-						'property' => 'overDriveScopeId',
-						'type' => 'enum',
-						'values' => $overDriveScopes,
-						'label' => "$readerName Scope",
-						'description' => "The $readerName scope to use",
-						'hideInLists' => true,
-						'default' => -1,
+					'overDriveSettings' => [
+						'property' => 'overDriveSettings',
+						'type' => 'oneToMany',
+						'label' => "OverDrive Settings",
+						'description' => "Additional Settings information for each OverDrive Collection",
+						'keyThis' => 'libraryId',
+						'keyOther' => 'libraryId',
+						'subObjectType' => 'LibraryOverDriveSettings',
+						'structure' => $libraryOverDriveSettingsStructure,
+						'sortable' => true,
+						'storeDb' => true,
+						'allowEdit' => true,
+						'canEdit' => true,
+						'canAddNew' => true,
+						'canDelete' => true,
+						'forcesReindex' => true,
+					],
+					'overDriveScopes' => [
+						'property' => 'overDriveScopes',
+						'type' => 'oneToMany',
+						'label' => "OverDrive Scopes (records to include)",
+						'description' => "The OverDrive records included for each setting",
+						'keyThis' => 'libraryId',
+						'keyOther' => 'libraryId',
+						'subObjectType' => 'LibraryOverDriveScope',
+						'structure' => $libraryOverDriveScopeStructure,
+						'sortable' => true,
+						'storeDb' => true,
+						'allowEdit' => true,
+						'canEdit' => true,
+						'canAddNew' => true,
+						'canDelete' => true,
 						'forcesReindex' => true,
 					],
 				],
@@ -4330,8 +4397,8 @@ class Library extends DataObject {
 	 * @param User|null $tmpUser
 	 * @return Library|null
 	 */
-	static function getPatronHomeLibrary($tmpUser = null) {
-		//Finally check to see if the user has logged in and if so, use that library
+	static function getPatronHomeLibrary($tmpUser = null) : ?Library {
+		//Finally, check to see if the user has logged in and if so, use that library
 		if ($tmpUser != null) {
 			return self::getLibraryForLocation($tmpUser->homeLocationId);
 		}
@@ -4343,7 +4410,7 @@ class Library extends DataObject {
 		}
 	}
 
-	static function getLibraryForLocation($locationId) {
+	static function getLibraryForLocation($locationId) : ?Library {
 		if (isset($locationId)) {
 			$libLookup = new Library();
 			$libLookup->whereAdd('libraryId = (SELECT libraryId FROM location WHERE locationId = ' . $libLookup->escape($locationId) . ')');
@@ -4356,37 +4423,6 @@ class Library extends DataObject {
 		return null;
 	}
 
-	public function validateSso($attrField, $fallbackField, $errorMessage) {
-		$validationResults = [
-			'validatedOk' => true,
-			'errors' => [],
-		];
-		// Only validate everything else if we have a populated SSO entity ID
-		// (we infer SSO auth usage from this)
-		if (!$this->ssoEntityId || strlen($this->ssoEntityId) == 0) {
-			return $validationResults;
-		}
-		if ((!$this->$attrField || strlen($this->$attrField) == 0) && (!$this->$fallbackField || strlen($this->$fallbackField) == 0)) {
-			$validationResults['errors'][] = $errorMessage;
-			$validationResults['validatedOk'] = false;
-		}
-		return $validationResults;
-
-	}
-
-	public function validatePatronType() {
-		return $this->validateSso('ssoPatronTypeAttr', 'ssoPatronTypeFallback', 'Single sign-on patron type: You must enter either an identity provider attribute name or fallback value');
-	}
-
-	public function validateLibraryId() {
-		return $this->validateSso('ssoLibraryIdAttr', 'ssoLibraryIdFallback', 'Single sign-on library ID: You must enter either an identity provider attribute name or fallback value');
-	}
-
-	public function validateCategoryId() {
-		return $this->validateSso('ssoCategoryIdAttr', 'ssoCategoryIdFallback', 'Single sign-on category ID: You must enter either an identity provider attribute name or fallback value');
-	}
-
-
 	public function __get($name) {
 		if ($name == "holidays") {
 			return $this->getHolidays();
@@ -4396,6 +4432,10 @@ class Library extends DataObject {
 			return $this->getRecordsToInclude();
 		} elseif ($name == 'sideLoadScopes') {
 			return $this->getSideLoadScopes();
+		} elseif ($name == 'overDriveScopes') {
+			return $this->getLibraryOverDriveScopes();
+		} elseif ($name == 'overDriveSettings') {
+			return $this->getLibraryOverDriveSettings();
 		} elseif ($name == 'materialsRequestFieldsToDisplay') {
 			return $this->getMaterialsRequestFieldsToDisplay();
 		} elseif ($name == 'materialsRequestFormats') {
@@ -4424,6 +4464,10 @@ class Library extends DataObject {
 			$this->_recordsToInclude = $value;
 		} elseif ($name == 'sideLoadScopes') {
 			$this->_sideLoadScopes = $value;
+		} elseif ($name == 'overDriveScopes') {
+			$this->_libraryOverDriveScopes = $value;
+		}elseif ($name == 'overDriveSettings') {
+			$this->_libraryOverDriveSettings = $value;
 		} elseif ($name == 'materialsRequestFieldsToDisplay') {
 			$this->_materialsRequestFieldsToDisplay = $value;
 		} elseif ($name == 'materialsRequestFormats') {
@@ -4480,6 +4524,8 @@ class Library extends DataObject {
 			$this->saveHolidays();
 			$this->saveRecordsToInclude();
 			$this->saveSideLoadScopes();
+			$this->saveOverDriveScopes();
+			$this->saveOverDriveSettings();
 			$this->saveMaterialsRequestFieldsToDisplay();
 			$this->saveMaterialsRequestFormFields();
 			$this->saveLibraryLinks();
@@ -4501,7 +4547,7 @@ class Library extends DataObject {
 			while ($libraryLocations->fetch()) {
 				$user = new User();
 				/** @noinspection SqlResolve */
-				$user->query("update user set displayName = '' where homeLocationId = {$libraryLocations->locationId}");
+				$user->query("update user set displayName = '' where homeLocationId = $libraryLocations->locationId");
 			}
 		}
 		if (!empty($this->_changedFields) && in_array('enableCostSavings', $this->_changedFields)){
@@ -4531,7 +4577,7 @@ class Library extends DataObject {
 	 * @return boolean true if the property changed, or false if it did not
 	 * @noinspection PhpUnused
 	 */
-	public function setProperty($propertyName, $newValue, $propertyStructure): bool {
+	public function setProperty(string $propertyName, $newValue, ?array $propertyStructure): bool {
 		$propertyChanged = parent::setProperty($propertyName, $newValue, $propertyStructure);
 		if ($propertyName == 'patronNameDisplayStyle' && $propertyChanged) {
 			$this->_patronNameDisplayStyleChanged = true;
@@ -4550,6 +4596,8 @@ class Library extends DataObject {
 			$this->saveHolidays();
 			$this->saveRecordsToInclude();
 			$this->saveSideLoadScopes();
+			$this->saveOverDriveScopes();
+			$this->saveOverDriveSettings();
 			$this->saveMaterialsRequestFieldsToDisplay();
 			$this->saveMaterialsRequestFormats();
 			$this->saveMaterialsRequestFormFields();
@@ -4565,14 +4613,17 @@ class Library extends DataObject {
 		return $ret;
 	}
 
-	public function saveLibraryLinks() {
+	public function saveLibraryLinks() : void {
 		if (isset ($this->_libraryLinks) && is_array($this->_libraryLinks)) {
 			$this->saveOneToManyOptions($this->_libraryLinks, 'libraryId');
 			unset($this->_libraryLinks);
 		}
 	}
 
-	public function getRecordsToInclude() {
+	/**
+	 * @return LibraryRecordToInclude[]
+	 */
+	public function getRecordsToInclude() : array {
 		if (!isset($this->_recordsToInclude)) {
 			$this->_recordsToInclude = [];
 			if (!empty($this->libraryId)) {
@@ -4588,14 +4639,17 @@ class Library extends DataObject {
 		return $this->_recordsToInclude;
 	}
 
-	public function saveRecordsToInclude() {
+	public function saveRecordsToInclude() : void {
 		if (isset ($this->_recordsToInclude) && is_array($this->_recordsToInclude)) {
 			$this->saveOneToManyOptions($this->_recordsToInclude, 'libraryId');
 			unset($this->_recordsToInclude);
 		}
 	}
 
-	public function getSideLoadScopes() {
+	/**
+	 * @return LibrarySideLoadScope[]
+	 */
+	public function getSideLoadScopes() : array {
 		if (!isset($this->_sideLoadScopes)) {
 			$this->_sideLoadScopes = [];
 			if (!empty($this->libraryId)) {
@@ -4610,14 +4664,17 @@ class Library extends DataObject {
 		return $this->_sideLoadScopes;
 	}
 
-	public function saveSideLoadScopes() {
+	public function saveSideLoadScopes() : void {
 		if (isset ($this->_sideLoadScopes) && is_array($this->_sideLoadScopes)) {
 			$this->saveOneToManyOptions($this->_sideLoadScopes, 'libraryId');
 			unset($this->_sideLoadScopes);
 		}
 	}
 
-	public function getMaterialsRequestFieldsToDisplay() {
+	/**
+	 * @return MaterialsRequestFieldsToDisplay[]
+	 */
+	public function getMaterialsRequestFieldsToDisplay() : array {
 		if (!isset($this->_materialsRequestFieldsToDisplay)) {
 			$this->_materialsRequestFieldsToDisplay = [];
 			if (!empty($this->libraryId)) {
@@ -4634,21 +4691,21 @@ class Library extends DataObject {
 		return $this->_materialsRequestFieldsToDisplay;
 	}
 
-	public function saveMaterialsRequestFieldsToDisplay() {
+	public function saveMaterialsRequestFieldsToDisplay() : void {
 		if (isset ($this->_materialsRequestFieldsToDisplay) && is_array($this->_materialsRequestFieldsToDisplay)) {
 			$this->saveOneToManyOptions($this->_materialsRequestFieldsToDisplay, 'libraryId');
 			unset($this->_materialsRequestFieldsToDisplay);
 		}
 	}
 
-	public function saveMaterialsRequestFormats() {
+	public function saveMaterialsRequestFormats() : bool|AspenError {
 		if (isset ($this->_materialsRequestFormats) && is_array($this->_materialsRequestFormats)) {
 			/** @var MaterialsRequestFormat $object */
 			foreach ($this->_materialsRequestFormats as $object) {
-				if ($object->_deleteOnSave == true) {
+				if ($object->_deleteOnSave === true) {
 					$deleteCheck = $object->delete();
 					if (!$deleteCheck) {
-						$errorString = "Cannot delete {$object->format} because Materials Request(s) are present for the format.";
+						$errorString = "Cannot delete $object->format because Materials Request(s) are present for the format.";
 						return new AspenError($errorString);
 					}
 				} else {
@@ -4665,7 +4722,7 @@ class Library extends DataObject {
 		return true;
 	}
 
-	public function saveMaterialsRequestFormFields() {
+	public function saveMaterialsRequestFormFields() : void {
 		if (isset ($this->_materialsRequestFormFields) && is_array($this->_materialsRequestFormFields)) {
 			$this->saveOneToManyOptions($this->_materialsRequestFormFields, 'libraryId');
 			unset($this->_materialsRequestFormFields);
@@ -4691,8 +4748,7 @@ class Library extends DataObject {
 		return $this->_libraryLinks;
 	}
 
-	/** @var CloudLibraryScope */
-	public function getCloudLibraryScope() {
+	public function getCloudLibraryScope() : null|string|int {
 		if ($this->_cloudLibraryScope == null && $this->libraryId) {
 			require_once ROOT_DIR . '/sys/CloudLibrary/LibraryCloudLibraryScope.php';
 			$libraryCloudLibraryScope = new LibraryCloudLibraryScope();
@@ -4709,7 +4765,7 @@ class Library extends DataObject {
 		return $this->_cloudLibraryScope;
 	}
 
-	public function saveCloudLibraryScopes() {
+	public function saveCloudLibraryScopes() : void {
 		if (isset ($this->_cloudLibraryScope)) {
 			$libraryCloudLibraryScope = new LibraryCloudLibraryScope();
 			$libraryCloudLibraryScope->libraryId = $this->libraryId;
@@ -4728,7 +4784,7 @@ class Library extends DataObject {
 				}
 			}
 
-			// cleanup other scopes libraries is assigned to
+			// cleanup other scopes the library is assigned to
 			$unassignedLibraryCloudLibraryScope = new LibraryCloudLibraryScope();
 			$unassignedLibraryCloudLibraryScope->libraryId = $this->libraryId;
 			$unassignedLibraryCloudLibraryScope->find();
@@ -4741,15 +4797,19 @@ class Library extends DataObject {
 		}
 	}
 
-	public function getPrimaryTheme() {
+	public function getPrimaryTheme() : ?LibraryTheme {
 		$allThemes = $this->getThemes();
-		return reset($allThemes);
+		if ($allThemes !== false && !empty($allThemes)) {
+			return reset($allThemes);
+		}else{
+			return null;
+		}
 	}
 
 	/**
 	 * @return LibraryTheme[]
 	 */
-	public function getThemes(): ?array {
+	public function getThemes(): array {
 		if (!isset($this->_themes)) {
 			$this->_themes = [];
 			if (!empty($this->libraryId)) {
@@ -4766,10 +4826,10 @@ class Library extends DataObject {
 		return $this->_themes;
 	}
 
-	public function saveThemes() {
+	public function saveThemes() : void {
 		if (isset ($this->_themes) && is_array($this->_themes)) {
 			foreach ($this->_themes as $obj) {
-				/** @var DataObject $obj */
+				/** @var LibraryTheme $obj */
 				if ($obj->_deleteOnSave) {
 					if ($obj->getPrimaryKeyValue() > 0) {
 						$obj->delete();
@@ -4805,18 +4865,18 @@ class Library extends DataObject {
 		}
 	}
 
-	public function clearMaterialsRequestFormFields() {
+	public function clearMaterialsRequestFormFields() : void {
 		$this->clearOneToManyOptions('MaterialsRequestFormFields', 'libraryId');
 		/** @noinspection PhpUndefinedFieldInspection */
 		$this->materialsRequestFormFields = [];
 	}
 
-	public function clearMaterialsRequestFormats() {
+	public function clearMaterialsRequestFormats() : void {
 		$this->clearOneToManyOptions('MaterialsRequestFormat', 'libraryId');
 		$this->_materialsRequestFormats = [];
 	}
 
-	public function saveCombinedResultSections() {
+	public function saveCombinedResultSections() : void {
 		if (isset ($this->_combinedResultSections) && is_array($this->_combinedResultSections)) {
 			$this->saveOneToManyOptions($this->_combinedResultSections, 'libraryId');
 			unset($this->_combinedResultSections);
@@ -4843,7 +4903,10 @@ class Library extends DataObject {
 		return $this->_combinedResultSections;
 	}
 
-	public function getHolidays() {
+	/**
+	 * @return Holiday[]
+	 */
+	public function getHolidays() : array{
 		if (!isset($this->_holidays)) {
 			$this->_holidays = [];
 			if (!empty($this->libraryId)) {
@@ -4859,15 +4922,15 @@ class Library extends DataObject {
 		return $this->_holidays;
 	}
 
-	public function saveHolidays() {
+	public function saveHolidays() : void {
 		if (isset ($this->_holidays) && is_array($this->_holidays)) {
 			$this->saveOneToManyOptions($this->_holidays, 'libraryId');
 			unset($this->_holidays);
 		}
 	}
 
-	public function updateLocalAnalyticsPreferences(){
-		//Find all locations with given library Id
+	public function updateLocalAnalyticsPreferences() : void {
+		//Find all locations with given library id
 		$locations = [];
 		$location = new Location();
 		$location->libraryId = $this->libraryId;
@@ -4881,16 +4944,19 @@ class Library extends DataObject {
 			$user = new User();
 			$user->homeLocationId = $location->locationId;
 			$user->find();
-			//For these user, update userCookiePreferenceLocalAnalytics based on cookieStorageConsent value
+			//For these users, update userCookiePreferenceLocalAnalytics based on cookieStorageConsent value
 			while ($user->fetch()) {
 				$user->userCookiePreferenceLocalAnalytics = $this->cookieStorageConsent ==1 ? 0 : 1;
 				$user->update();
 			}
 		}
 	}
-	
 
-	public function getILLItemTypes() {
+
+	/**
+	 * @return ILLItemType[]
+	 */
+	public function getILLItemTypes() : array {
 		if (!isset($this->_interLibraryLoanItemTypes)) {
 			$this->_interLibraryLoanItemTypes = [];
 			if (!empty($this->libraryId)) {
@@ -4906,7 +4972,7 @@ class Library extends DataObject {
 		return $this->_interLibraryLoanItemTypes;
 	}
 
-	public function saveILLItemTypes() {
+	public function saveILLItemTypes() : void {
 		if (isset ($this->_interLibraryLoanItemTypes) && is_array($this->_interLibraryLoanItemTypes)) {
 			$this->saveOneToManyOptions($this->_interLibraryLoanItemTypes, 'libraryId');
 			unset($this->_interLibraryLoanItemTypes);
@@ -4928,7 +4994,7 @@ class Library extends DataObject {
 
 	protected $_browseCategoryGroup = null;
 
-	public function getBrowseCategoryGroup() {
+	public function getBrowseCategoryGroup() : ?BrowseCategoryGroup{
 		if ($this->_browseCategoryGroup == null) {
 			require_once ROOT_DIR . '/sys/Browse/BrowseCategoryGroup.php';
 			$browseCategoryGroup = new BrowseCategoryGroup();
@@ -4943,7 +5009,7 @@ class Library extends DataObject {
 	protected $_groupedWorkDisplaySettings = null;
 
 	/** @return GroupedWorkDisplaySetting */
-	public function getGroupedWorkDisplaySettings() {
+	public function getGroupedWorkDisplaySettings() : GroupedWorkDisplaySetting {
 		if ($this->_groupedWorkDisplaySettings == null) {
 			try {
 				require_once ROOT_DIR . '/sys/Grouping/GroupedWorkDisplaySetting.php';
@@ -4966,8 +5032,7 @@ class Library extends DataObject {
 
 	protected $_eventFacetSettings = null;
 
-	/** @return LibraryEventsSetting */
-	public function getEventFacetSettings() {
+	public function getEventFacetSettings() : ?LibraryEventsSetting {
 		if ($this->_eventFacetSettings == null) {
 			try {
 				require_once ROOT_DIR . '/sys/Events/LibraryEventsSetting.php';
@@ -4987,8 +5052,7 @@ class Library extends DataObject {
 
 	protected $_openArchivesFacetSettings = null;
 
-	/** @return OpenArchivesFacetGroup */
-	public function getOpenArchivesFacetSettings() {
+	public function getOpenArchivesFacetSettings() : ?OpenArchivesFacetGroup {
 		if ($this->_openArchivesFacetSettings == null) {
 			try {
 				$searchLibrary = new Library();
@@ -5013,7 +5077,7 @@ class Library extends DataObject {
 	protected $_websiteFacetSettings = null;
 
 	/** @return WebsiteFacetGroup */
-	public function getWebsiteFacetSettings() {
+	public function getWebsiteFacetSettings() : ?WebsiteFacetGroup{
 		if ($this->_websiteFacetSettings == null) {
 			try {
 				$searchLibrary = new Library();
@@ -5038,7 +5102,7 @@ class Library extends DataObject {
 	protected $_layoutSettings = null;
 
 	/** @return LayoutSetting */
-	public function getLayoutSettings() {
+	public function getLayoutSettings() : ?LayoutSetting{
 		if ($this->_layoutSettings == null) {
 			try {
 				require_once ROOT_DIR . '/sys/Theming/LayoutSetting.php';
@@ -5097,7 +5161,7 @@ class Library extends DataObject {
 	 * @param boolean $restrictByHomeLibrary whether only the patron's home library should be returned
 	 * @return Library[]
 	 */
-	static function getLibraryListAsObjects($restrictByHomeLibrary): array {
+	static function getLibraryListAsObjects(bool $restrictByHomeLibrary): array {
 		if (Library::$libraryListAsObjects == null) {
 			$library = new Library();
 			$library->orderBy('displayName');
@@ -5130,27 +5194,143 @@ class Library extends DataObject {
 		return Library::$libraryListAsObjects;
 	}
 
-	/** @var OverDriveScope */
-	private $_overdriveScope = null;
+	/** @var OverDriveScope[] */
+	private $_overdriveScopes = null;
 
-	public function getOverdriveScope() {
-		if ($this->_overdriveScope == null && $this->overDriveScopeId > 0) {
-			require_once ROOT_DIR . '/sys/OverDrive/OverDriveScope.php';
-			$this->_overdriveScope = new OverDriveScope();
-			$this->_overdriveScope->id = $this->overDriveScopeId;
-			$this->_overdriveScope->find(true);
+	/**
+	 * @return OverDriveScope[]
+	 */
+	public function getOverdriveScopeObjects() : array {
+		if ($this->_overdriveScopes == null) {
+			$this->_overdriveScopes = [];
+			if ($this->libraryId > 0) {
+				$libraryOverDriveScopes = $this->getLibraryOverdriveScopes();
+
+				require_once ROOT_DIR . '/sys/OverDrive/OverDriveScope.php';
+				$overdriveScope = new OverDriveScope();
+				$overdriveScopeIds = [];
+				foreach ($libraryOverDriveScopes as $libraryOverDriveScope) {
+					$overdriveScopeIds[] = $libraryOverDriveScope->scopeId;
+				}
+				$overdriveScope->whereAddIn('id', $overdriveScopeIds, false);
+				$this->_overdriveScopes = $overdriveScope->fetchAll(null, null, false, true);
+			}
 		}
-		return $this->_overdriveScope;
+		return $this->_overdriveScopes;
 	}
 
-	public function setMaterialsRequestFormFields($value) {
+	public function getOverdriveScopeForSetting(int $settingId) : ?OverDriveScope {
+		$overDriveScopes = $this->getOverdriveScopeObjects();
+		foreach ($overDriveScopes as $overDriveScope) {
+			if ($overDriveScope->settingId == $settingId) {
+				return $overDriveScope;
+			}
+		}
+		return null;
+	}
+
+	public function getLibraryOverdriveScopeForSetting(int $settingId) : ?LibraryOverDriveScope {
+		$libraryOverDriveScopes = $this->getLibraryOverdriveScopes();
+		foreach ($libraryOverDriveScopes as $libraryOverDriveScope) {
+			if ($libraryOverDriveScope->getOverDriveScope()->settingId == $settingId) {
+				return $libraryOverDriveScope;
+			}
+		}
+		return null;
+	}
+
+	/** @var LibraryOverDriveScope[] */
+	private $_libraryOverDriveScopes = null;
+
+	/**
+	 * @return LibraryOverDriveScope[]
+	 */
+	public function getLibraryOverdriveScopes() : array {
+		if ($this->_libraryOverDriveScopes == null) {
+			$this->_libraryOverDriveScopes = [];
+			if ($this->libraryId > 0) {
+				try {
+					require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveScope.php';
+					$libraryOverDriveScope = new LibraryOverDriveScope();
+					$libraryOverDriveScope->libraryId = $this->libraryId;
+					$libraryOverDriveScope->orderBy('weight');
+					$this->_libraryOverDriveScopes = $libraryOverDriveScope->fetchAll(null, null, false, true);
+				}catch (Exception) {
+					//this happens before the table exists
+				}
+			}
+		}
+		return $this->_libraryOverDriveScopes;
+	}
+
+	public function saveOverDriveScopes() : void {
+		if (isset ($this->_libraryOverDriveScopes) && is_array($this->_libraryOverDriveScopes)) {
+			$this->saveOneToManyOptions($this->_libraryOverDriveScopes, 'libraryId');
+			unset($this->_libraryOverDriveScopes);
+		}
+	}
+
+	/** @var LibraryOverDriveSettings[] */
+	private $_libraryOverDriveSettings = null;
+
+	/**
+	 * @return LibraryOverDriveSettings[]
+	 */
+	public function getLibraryOverdriveSettings() : array {
+		if ($this->_libraryOverDriveSettings == null) {
+			$this->_libraryOverDriveSettings = [];
+			if ($this->libraryId > 0) {
+				try {
+					require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveSettings.php';
+					$libraryOverDriveSetting = new LibraryOverDriveSettings();
+					$libraryOverDriveSetting->libraryId = $this->libraryId;
+					$libraryOverDriveSetting->orderBy('weight');
+					$this->_libraryOverDriveSettings = $libraryOverDriveSetting->fetchAll(null, null, false, true);
+				}catch (Exception) {
+					//This happens if the table has not been created yet.
+				}
+			}
+		}
+		return $this->_libraryOverDriveSettings;
+	}
+
+	/**
+	 * @return OverDriveSetting[]
+	 */
+	public function getOverdriveSettings() : array {
+		$libraryOverDriveSettings = $this->getLibraryOverdriveSettings();
+		$overDriveSettings = [];
+		foreach ($libraryOverDriveSettings as $libraryOverDriveSetting) {
+			$overDriveSettings[$libraryOverDriveSetting->settingId] = $libraryOverDriveSetting->getOverDriveSettings();
+		}
+		return $overDriveSettings;
+	}
+
+	public function getLibraryOverdriveSetting(int $settingId) : ?LibraryOverDriveSettings {
+		$overDriveSettings = $this->getLibraryOverdriveSettings();
+		foreach ($overDriveSettings as $overDriveSetting) {
+			if ($overDriveSetting->settingId == $settingId) {
+				return $overDriveSetting;
+			}
+		}
+		return null;
+	}
+
+	public function saveOverDriveSettings() : void {
+		if (isset ($this->_libraryOverDriveSettings) && is_array($this->_libraryOverDriveSettings)) {
+			$this->saveOneToManyOptions($this->_libraryOverDriveSettings, 'libraryId');
+			unset($this->_libraryOverDriveSettings);
+		}
+	}
+
+	public function setMaterialsRequestFormFields($value) : void {
 		$this->_materialsRequestFormFields = $value;
 	}
 
 	/**
-	 * @return array|null
+	 * @return MaterialsRequestFormFields[]|null
 	 */
-	public function getMaterialsRequestFormFields() {
+	public function getMaterialsRequestFormFields() : ?array {
 		if (!isset($this->_materialsRequestFormFields) && $this->libraryId) {
 			$this->_materialsRequestFormFields = [];
 			$materialsRequestFormFields = new MaterialsRequestFormFields();
@@ -5165,7 +5345,7 @@ class Library extends DataObject {
 		return $this->_materialsRequestFormFields;
 	}
 
-	public function setMaterialsRequestFormats($value) {
+	public function setMaterialsRequestFormats($value) : void {
 		$this->_materialsRequestFormats = $value;
 	}
 
@@ -5373,6 +5553,7 @@ class Library extends DataObject {
 		$apiInfo['groupedWorkDisplaySettings']['availabilityToggleValue'] = $availabilityToggleValue;
 		$apiInfo['groupedWorkDisplaySettings']['facetCountsToShow'] = $facetCountsToShow;
 
+		//TODO: This will need to change to handle multiple readers being available
 		$readerName = new OverDriveDriver();
 		$apiInfo['libbyReaderName'] = $readerName->getReaderName();
 
@@ -5458,7 +5639,7 @@ class Library extends DataObject {
 		return $structure;
 	}
 
-	public function loadCopyableSubObjects() {
+	public function loadCopyableSubObjects() : void {
 		$this->isDefault = 0;
 		if (empty($_REQUEST['aspenLida'])) {
 			$this->lidaGeneralSettingId = -1;
@@ -5477,13 +5658,26 @@ class Library extends DataObject {
 			$this->axis360ScopeId = -1;
 			$this->hooplaLibraryID = 0;
 			$this->hooplaScopeId = -1;
-			$this->overDriveScopeId = -1;
 			$this->palaceProjectScopeId = -1;
 		} else {
 			$this->getCloudLibraryScope();
 			$this->getSideLoadScopes();
 			$index = -1;
 			foreach ($this->_sideLoadScopes as $subObject) {
+				$subObject->id = $index;
+				unset($subObject->libraryId);
+				$index--;
+			}
+			$this->getLibraryOverdriveScopes();
+			$index = -1;
+			foreach ($this->_libraryOverDriveScopes as $subObject) {
+				$subObject->id = $index;
+				unset($subObject->libraryId);
+				$index--;
+			}
+			$this->getLibraryOverdriveSettings();
+			$index = -1;
+			foreach ($this->_libraryOverDriveSettings as $subObject) {
 				$subObject->id = $index;
 				unset($subObject->libraryId);
 				$index--;
@@ -5568,7 +5762,7 @@ class Library extends DataObject {
 		}
 	}
 
-	public function getAccountProfile() {
+	public function getAccountProfile() : false|AccountProfile {
 		if ($this->_accountProfile == null) {
 			if (!empty($this->accountProfileId)) {
 				$accountProfile = new AccountProfile();
@@ -5587,7 +5781,7 @@ class Library extends DataObject {
 
 	private $_mainLocation = false;
 
-	public function getMainLocation() {
+	public function getMainLocation() : ?Location {
 		if ($this->_mainLocation === false) {
 			$location = new Location();
 			$location->libraryId = $this->libraryId;

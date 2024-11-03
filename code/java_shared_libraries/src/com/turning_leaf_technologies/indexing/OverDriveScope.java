@@ -3,10 +3,12 @@ package com.turning_leaf_technologies.indexing;
 public class OverDriveScope {
 	private long id;
 	private long settingId;
-	private String name;
+	private String settingName;
+	private String scopeName;
 	private boolean includeAdult;
 	private boolean includeTeen;
 	private boolean includeKids;
+	//Reader Name from the OverDrive Setting
 	private String readerName;
 
 	public long getId() {
@@ -17,12 +19,12 @@ public class OverDriveScope {
 		this.id = id;
 	}
 
-	public String getName() {
-		return name;
+	public String getScopeName() {
+		return scopeName;
 	}
 
-	public void setName(String name) {
-		this.name = name;
+	public void setScopeName(String scopeName) {
+		this.scopeName = scopeName;
 	}
 
 	public boolean isIncludeAdult() {
@@ -63,5 +65,13 @@ public class OverDriveScope {
 
 	void setSettingId(long settingId) {
 		this.settingId = settingId;
+	}
+
+	public String getSettingName() {
+		return settingName;
+	}
+
+	public void setSettingName(String settingName) {
+		this.settingName = settingName;
 	}
 }

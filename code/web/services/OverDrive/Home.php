@@ -5,7 +5,7 @@ require_once ROOT_DIR . '/sys/OverDrive/OverDriveAPIProduct.php';
 require_once ROOT_DIR . '/RecordDrivers/OverDriveRecordDriver.php';
 
 class OverDrive_Home extends GroupedWorkSubRecordHomeAction {
-	function launch() {
+	function launch() : void {
 		global $interface;
 
 		if (!$this->recordDriver->isValid()) {
@@ -24,20 +24,18 @@ class OverDrive_Home extends GroupedWorkSubRecordHomeAction {
 
 			//Load status summary
 			require_once ROOT_DIR . '/Drivers/OverDriveDriver.php';
+			/** @noinspection PhpPossiblePolymorphicInvocationInspection */
 			$holdingsSummary = $this->recordDriver->getStatusSummary();
-			if (($holdingsSummary instanceof AspenError)) {
-				AspenError::raiseError($holdingsSummary);
-			}
 			$interface->assign('holdingsSummary', $holdingsSummary);
 
 			//Get actions
-			$interface->assign('actions', $this->recordDriver->getRecordActions(null, null, $holdingsSummary['available'], true, null));
+			$interface->assign('actions', $this->recordDriver->getRecordActions(null, null, $holdingsSummary['available'], true));
 
 			//Load the citations
 			$this->loadCitations();
 
 			// Retrieve User Search History
-			$interface->assign('lastSearch', isset($_SESSION['lastSearchURL']) ? $_SESSION['lastSearchURL'] : false);
+			$interface->assign('lastSearch', $_SESSION['lastSearchURL'] ?? false);
 
 			//Get Next/Previous Links
 			$searchSource = !empty($_REQUEST['searchSource']) ? $_REQUEST['searchSource'] : 'local';
@@ -69,7 +67,7 @@ class OverDrive_Home extends GroupedWorkSubRecordHomeAction {
 		}
 	}
 
-	function loadRecordDriver($id) {
+	function loadRecordDriver($id) : void {
 		$this->recordDriver = new OverDriveRecordDriver($id);
 	}
 }

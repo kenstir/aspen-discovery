@@ -770,7 +770,7 @@ class UserAPI extends AbstractAPI {
 			if ($linkedUsers && $user->getLinkedUsers() != null) {
 				$linkedAccounts = $user->getLinkedUsers();
 				foreach ($linkedAccounts as $linkedUser) {
-					$linkedUserSummary = $linkedUser->getCatalogDriver()->getAccountSummary($linkedUser);
+					$linkedUserSummary = $linkedUser->getAccountSummary();
 					$userData->finesVal += (int)$linkedUserSummary->totalFines;
 					$userData->numHoldsIls = (int)$linkedUserSummary->getNumHolds();
 					$userData->numCheckedOutIls += (int)$linkedUserSummary->numCheckedOut;
@@ -2536,7 +2536,7 @@ class UserAPI extends AbstractAPI {
 			$patron = $user->getUserReferredTo($user->id);
 			require_once ROOT_DIR . '/Drivers/OverDriveDriver.php';
 			$driver = new OverDriveDriver();
-			$accessLink = $driver->getDownloadLink($overDriveId, $formatId, $patron);
+			$accessLink = $driver->getDownloadLink($overDriveId, $patron);
 			return [
 				'success' => true,
 				'title' => 'Download Url',
@@ -4712,13 +4712,14 @@ class UserAPI extends AbstractAPI {
 			if (count($linkedAccounts) > 0) {
 				foreach ($linkedAccounts as $linkedAccount) {
 					$linkedAccount->loadContactInformation();
+					$accountSummary = $linkedAccount->getCatalogDriver()->getAccountSummary($linkedAccount);
 					$account[$linkedAccount->id]['displayName'] = $linkedAccount->displayName;
 					$account[$linkedAccount->id]['homeLocation'] = $linkedAccount->getHomeLocation()->displayName;
 					$account[$linkedAccount->id]['barcode'] = $linkedAccount->getBarcode();
 					$account[$linkedAccount->id]['barcodeStyle'] = $linkedAccount->getHomeLibrary()->libraryCardBarcodeStyle;
 					$account[$linkedAccount->id]['id'] = $linkedAccount->id;
-					$account[$linkedAccount->id]['expired'] = $linkedAccount->_expired;
-					$account[$linkedAccount->id]['expires'] = $linkedAccount->_expires;
+					$account[$linkedAccount->id]['expired'] = $accountSummary->isExpired();
+					$account[$linkedAccount->id]['expires'] = $accountSummary->expiresOn();
 					$account[$linkedAccount->id]['ils_barcode'] = $linkedAccount->ils_barcode;
 					$account[$linkedAccount->id]['alternateLibraryCard'] = $linkedAccount->getAlternateLibraryCardBarcode();
 					$account[$linkedAccount->id]['alternateLibraryCardPassword'] = $linkedAccount->getAlternateLibraryCardPasswordOrPin();
@@ -4814,6 +4815,7 @@ class UserAPI extends AbstractAPI {
 			if($accountToLinkUser && !($accountToLinkUser instanceof AspenError)) {
 				require_once ROOT_DIR . '/sys/Account/PType.php';
 				if ($accountToLinkUser->id != $initiatingUser->id) {
+					$accountToLinkUser->getDisplayName();
 					$initiatingUserPtype = $initiatingUser->getPType();
 					$accountToLinkUserPType = $accountToLinkUser->getPType();
 					$initiatingUserLinkingSetting = PType::getAccountLinkingSetting($initiatingUserPtype);
@@ -5636,11 +5638,13 @@ class UserAPI extends AbstractAPI {
 
 								$_SESSION['guidingUserId'] = $guidingUser->id;
 								$_SESSION['activeUserId'] = $user->id;
+								$_SESSION['returnTo'] = $_SERVER['HTTP_REFERER'];
 								@session_write_close();
 								//TODO: For calls from LiDA we would need the entire patron profile
 								return [
 									'success' => true,
 									'activeUserId' => $user->id,
+									'returnTo' => $_SERVER['HTTP_REFERER'],
 								];
 							} else {
 								unset($_SESSION['guidingUserId']);
@@ -5737,6 +5741,7 @@ class UserAPI extends AbstractAPI {
 				}
 
 				if (!empty($user) && !($user instanceof AspenError)) {
+					$returnTo = isset($_SESSION['returnTo']) ? $_SESSION['returnTo'] : '/MyAccount/Home';
 					session_destroy();
 					session_name('aspen_session');
 					$newSessionId = session_create_id('');
@@ -5750,7 +5755,10 @@ class UserAPI extends AbstractAPI {
 						$_SESSION['loggedInViaSSO'] = true;
 					}
 
-					return ['success' => true];
+					return [
+						'success' => true,
+						'returnTo' => $returnTo
+					];
 				} else {
 					UserAccount::softLogout();
 				}
@@ -6250,7 +6258,7 @@ class UserAPI extends AbstractAPI {
 
 			$materialsRequest->libraryId = $homeLibrary->libraryId;
 
-			$formatObject = $materialsRequest->getFormatObject();
+			$formatObject = $materialsRequest->getFormatObjectByFormat();
 			if (!empty($formatObject->id)) {
 				$materialsRequest->formatId = $formatObject->id;
 			}

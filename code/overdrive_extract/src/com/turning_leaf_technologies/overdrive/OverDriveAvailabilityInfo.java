@@ -12,6 +12,7 @@ class OverDriveAvailabilityInfo {
 
 	//runtime
 	private boolean newAvailabilityLoaded = false;
+	private long settingId;
 
 	long getId() {
 		return id;
@@ -75,5 +76,13 @@ class OverDriveAvailabilityInfo {
 
 	void setNewAvailabilityLoaded() {
 		this.newAvailabilityLoaded = true;
+	}
+
+	public void setSettingId(long settingId) {
+		this.settingId = settingId;
+	}
+
+	public long getSettingId() {
+		return settingId;
 	}
 }

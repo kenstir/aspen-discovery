@@ -102,11 +102,13 @@ public class GroupedWorkIndexer {
 	private PreparedStatement removeRecordForWorkStmt;
 	private PreparedStatement getExistingVariationsForWorkStmt;
 	private PreparedStatement addVariationForWorkStmt;
+	private PreparedStatement getIdForVariationStmt;
 	private PreparedStatement removeVariationStmt;
 	private PreparedStatement getExistingItemsForRecordStmt;
 	private PreparedStatement removeItemStmt;
 	private PreparedStatement addItemForRecordStmt;
 	private PreparedStatement updateItemForRecordStmt;
+	private PreparedStatement getIdForItemStmt;
 	private PreparedStatement addItemUrlStmt;
 	private PreparedStatement getRecordSourceStmt;
 	private PreparedStatement getRecordSourceWithNoSubSourceStmt;
@@ -261,12 +263,19 @@ public class GroupedWorkIndexer {
 			removeRecordForWorkStmt = dbConn.prepareStatement("DELETE FROM grouped_work_records where id = ?");
 			getIdForRecordStmt = dbConn.prepareStatement("SELECT id from grouped_work_records where sourceId = ? and recordIdentifier = ?", ResultSet.TYPE_FORWARD_ONLY,  ResultSet.CONCUR_READ_ONLY);
 			getExistingVariationsForWorkStmt = dbConn.prepareStatement("SELECT * from grouped_work_variation where groupedWorkId = ?", ResultSet.TYPE_FORWARD_ONLY,  ResultSet.CONCUR_READ_ONLY);
-			addVariationForWorkStmt = dbConn.prepareStatement("INSERT INTO grouped_work_variation (groupedWorkId, primaryLanguageId, eContentSourceId, formatId, formatCategoryId) VALUES (?, ?, ?, ?, ?)", PreparedStatement.RETURN_GENERATED_KEYS);
+			//The entire row is meant to be unique, but we want to get the id back, so we update the language to itself on duplicate
+			addVariationForWorkStmt = dbConn.prepareStatement("INSERT INTO grouped_work_variation (groupedWorkId, primaryLanguageId, eContentSourceId, formatId, formatCategoryId) VALUES (?, ?, ?, ?, ?)" +
+					" ON DUPLICATE KEY " +
+					"UPDATE primaryLanguageId = VALUES(primaryLanguageId)", PreparedStatement.RETURN_GENERATED_KEYS);
+			getIdForVariationStmt = dbConn.prepareStatement("SELECT id from grouped_work_variation where groupedWorkId = ? AND primaryLanguageId = ? AND eContentSourceId = ? AND formatId = ? AND formatCategoryId = ?", ResultSet.TYPE_FORWARD_ONLY,  ResultSet.CONCUR_READ_ONLY);
 			removeVariationStmt = dbConn.prepareStatement("DELETE FROM grouped_work_variation WHERE id = ?");
 			getExistingItemsForRecordStmt = dbConn.prepareStatement("SELECT * from grouped_work_record_items WHERE groupedWorkRecordId = ?", ResultSet.TYPE_FORWARD_ONLY,  ResultSet.CONCUR_READ_ONLY);
-			addItemForRecordStmt = dbConn.prepareStatement("INSERT INTO grouped_work_record_items (groupedWorkRecordId, groupedWorkVariationId, itemId, shelfLocationId, callNumberId, sortableCallNumberId, numCopies, isOrderItem, statusId, dateAdded, locationCodeId, subLocationCodeId, lastCheckInDate, groupedStatusId, available, holdable, inLibraryUseOnly, locationOwnedScopes, libraryOwnedScopes, recordIncludedScopes, isVirtual) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", PreparedStatement.RETURN_GENERATED_KEYS);
+			addItemForRecordStmt = dbConn.prepareStatement("INSERT INTO grouped_work_record_items (groupedWorkRecordId, groupedWorkVariationId, itemId, shelfLocationId, callNumberId, sortableCallNumberId, numCopies, isOrderItem, statusId, dateAdded, locationCodeId, subLocationCodeId, lastCheckInDate, groupedStatusId, available, holdable, inLibraryUseOnly, locationOwnedScopes, libraryOwnedScopes, recordIncludedScopes, isVirtual) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" +
+					" ON DUPLICATE KEY " +
+					"UPDATE shelfLocationId = VALUES(shelfLocationId), callNumberId = VALUES(callNumberId), sortableCallNumberId = VALUES(sortableCallNumberId), numCopies = VALUES(numCopies), isOrderItem = VALUES(isOrderItem), statusId = VALUES(statusId), locationCodeId = VALUES(locationCodeId), subLocationCodeId = VALUES(subLocationCodeId), lastCheckInDate = VALUES(lastCheckInDate), groupedStatusId = VALUES(groupedStatusId), available = VALUES(available), inLibraryUseOnly = VALUES(inLibraryUseOnly), holdable = VALUES(holdable), locationOwnedScopes = VALUES(locationOwnedScopes), libraryOwnedScopes = VALUES(libraryOwnedScopes), recordIncludedScopes = VALUES(recordIncludedScopes), isVirtual = VALUES(isVirtual)", PreparedStatement.RETURN_GENERATED_KEYS);
 			updateItemForRecordStmt = dbConn.prepareStatement("UPDATE grouped_work_record_items set groupedWorkVariationId = ?, shelfLocationId = ?, callNumberId = ?, sortableCallNumberId = ?, numCopies = ?, isOrderItem = ?, statusId = ?, dateAdded = ?, " +
 					"locationCodeId = ?, subLocationCodeId = ?, lastCheckInDate = ?, groupedStatusId = ?, available = ?, holdable = ?, inLibraryUseOnly = ?, locationOwnedScopes = ?, libraryOwnedScopes = ?, recordIncludedScopes = ?, isVirtual = ? WHERE id = ?");
+			getIdForItemStmt = dbConn.prepareStatement("SELECT id from grouped_work_record_items where groupedWorkRecordId = ? and groupedWorkVariationId = ? and itemId = ?", ResultSet.TYPE_FORWARD_ONLY,  ResultSet.CONCUR_READ_ONLY);
 			removeItemStmt = dbConn.prepareStatement("DELETE FROM grouped_work_record_items WHERE id = ?");
 			addItemUrlStmt = dbConn.prepareStatement("INSERT INTO grouped_work_record_item_url (groupedWorkItemId, scopeId, url) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE url = VALUES(url) ");
 			getRecordSourceStmt = dbConn.prepareStatement("SELECT id from indexed_record_source where source = ? and subSource = ?", ResultSet.TYPE_FORWARD_ONLY,  ResultSet.CONCUR_READ_ONLY);
@@ -1580,22 +1589,22 @@ public class GroupedWorkIndexer {
 		return existingRecords;
 	}
 
-	public long saveGroupedWorkRecord(long groupedWorkId, RecordInfo recordInfo, SavedRecordInfo existingRecord) {
+	public synchronized long saveGroupedWorkRecord(long groupedWorkId, RecordInfo recordInfo, SavedRecordInfo existingRecord) {
 		long recordId = -1;
 		try {
 			if (existingRecord == null) {
 				addRecordForWorkStmt.setLong(1, groupedWorkId);
-				long sourceId = getSourceId(recordInfo.getSource(), recordInfo.getSubSource());
+				long sourceId = getSourceId(recordInfo.getSource(), recordInfo.getSubSource(), 1);
 				addRecordForWorkStmt.setLong(2, sourceId);
 				addRecordForWorkStmt.setString(3, recordInfo.getRecordIdentifier());
-				addRecordForWorkStmt.setLong(4, getEditionId(recordInfo.getEdition()));
-				addRecordForWorkStmt.setLong(5, getPublisherId(recordInfo.getPublisher(), recordInfo.getRecordIdentifier()));
-				addRecordForWorkStmt.setLong(6, getPublicationDateId(recordInfo.getPublicationDate()));
-				addRecordForWorkStmt.setLong(7, getPlaceOfPublicationId(recordInfo.getPlaceOfPublication()));
-				addRecordForWorkStmt.setLong(8, getPhysicalDescriptionId(recordInfo.getPhysicalDescription()));
-				addRecordForWorkStmt.setLong(9, getFormatId(recordInfo.getPrimaryFormat()));
-				addRecordForWorkStmt.setLong(10, getFormatCategoryId(recordInfo.getPrimaryFormatCategory()));
-				addRecordForWorkStmt.setLong(11, getLanguageId(recordInfo.getPrimaryLanguage()));
+				addRecordForWorkStmt.setLong(4, getEditionId(recordInfo.getEdition(), 1));
+				addRecordForWorkStmt.setLong(5, getPublisherId(recordInfo.getPublisher(), recordInfo.getRecordIdentifier(), 1));
+				addRecordForWorkStmt.setLong(6, getPublicationDateId(recordInfo.getPublicationDate(), 1));
+				addRecordForWorkStmt.setLong(7, getPlaceOfPublicationId(recordInfo.getPlaceOfPublication(), 1));
+				addRecordForWorkStmt.setLong(8, getPhysicalDescriptionId(recordInfo.getPhysicalDescription(), 1));
+				addRecordForWorkStmt.setLong(9, getFormatId(recordInfo.getPrimaryFormat(), 1));
+				addRecordForWorkStmt.setLong(10, getFormatCategoryId(recordInfo.getPrimaryFormatCategory(), 1));
+				addRecordForWorkStmt.setLong(11, getLanguageId(recordInfo.getPrimaryLanguage(), 1));
 				addRecordForWorkStmt.setBoolean(12, recordInfo.isClosedCaptioned());
 				addRecordForWorkStmt.setBoolean(13, recordInfo.hasParentRecord());
 				addRecordForWorkStmt.setBoolean(14, recordInfo.hasChildRecord());
@@ -1615,14 +1624,14 @@ public class GroupedWorkIndexer {
 				recordId = existingRecord.id;
 				//Check to see if we have any changes
 				boolean hasChanges = false;
-				long editionId = getEditionId(recordInfo.getEdition());
-				long publisherId = getPublisherId(recordInfo.getPublisher(), recordInfo.getRecordIdentifier());
-				long publicationDateId = getPublicationDateId(recordInfo.getPublicationDate());
-				long physicalDescriptionId = getPhysicalDescriptionId(recordInfo.getPhysicalDescription());
-				long placeOfPublicationId = getPlaceOfPublicationId(recordInfo.getPlaceOfPublication());
-				long formatId = getFormatId(recordInfo.getPrimaryFormat());
-				long formatCategoryId = getFormatCategoryId(recordInfo.getPrimaryFormatCategory());
-				long languageId = getLanguageId(recordInfo.getPrimaryLanguage());
+				long editionId = getEditionId(recordInfo.getEdition(), 1);
+				long publisherId = getPublisherId(recordInfo.getPublisher(), recordInfo.getRecordIdentifier(), 1);
+				long publicationDateId = getPublicationDateId(recordInfo.getPublicationDate(), 1);
+				long physicalDescriptionId = getPhysicalDescriptionId(recordInfo.getPhysicalDescription(), 1);
+				long placeOfPublicationId = getPlaceOfPublicationId(recordInfo.getPlaceOfPublication(), 1);
+				long formatId = getFormatId(recordInfo.getPrimaryFormat(), 1);
+				long formatCategoryId = getFormatCategoryId(recordInfo.getPrimaryFormatCategory(), 1);
+				long languageId = getLanguageId(recordInfo.getPrimaryLanguage(), 1);
 				boolean isClosedCaptioned = recordInfo.isClosedCaptioned();
 				boolean hasParentRecord = recordInfo.hasParentRecord();
 				boolean hasChildRecord = recordInfo.hasChildRecord();
@@ -1663,7 +1672,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final HashMap<String, Long> sourceIds = new HashMap<>();
-	long getSourceId(String source, String subSource) {
+	long getSourceId(String source, String subSource, int numTries) {
 		String key = source + ":" + (subSource == null ? "" : subSource);
 		Long sourceId = sourceIds.get(key);
 		if (sourceId == null){
@@ -1692,8 +1701,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting source id", e);
-				sourceId = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getSourceId(source, subSource, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting source id", e);
+					sourceId = -1L;
+				}
 			}
 			sourceIds.put(key, sourceId);
 		}
@@ -1701,7 +1715,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final HashMap<String, Long> formatCategoryIds = new HashMap<>();
-	private long getFormatCategoryId(String formatCategory) {
+	private long getFormatCategoryId(String formatCategory, int numTries) {
 		if (formatCategory == null){
 			return -1;
 		}
@@ -1724,8 +1738,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting format category id", e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getFormatCategoryId(formatCategory, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting format category id", e);
+					id = -1L;
+				}
 			}
 			formatCategoryIds.put(formatCategory, id);
 		}
@@ -1733,7 +1752,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final HashMap<String, Long> formatIds = new HashMap<>();
-	protected long getFormatId(String format) {
+	protected long getFormatId(String format, int numTries) {
 		if (format == null){
 			return -1;
 		}
@@ -1756,8 +1775,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting format id", e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getFormatId(format, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting format id", e);
+					id = -1L;
+				}
 			}
 			formatIds.put(format, id);
 		}
@@ -1765,7 +1789,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final HashMap<String, Long> languageIds = new HashMap<>();
-	private long getLanguageId(String language) {
+	private long getLanguageId(String language, int numTries) {
 		if (language == null){
 			return -1;
 		}
@@ -1788,8 +1812,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting language id", e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getLanguageId(language, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting language id", e);
+					id = -1L;
+				}
 			}
 			languageIds.put(language, id);
 		}
@@ -1797,7 +1826,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final MaxSizeHashMap<String, Long> editionIds = new MaxSizeHashMap<>(1000);
-	private long getEditionId(String edition) {
+	private long getEditionId(String edition, int numTries) {
 		if (edition == null){
 			return -1;
 		}
@@ -1823,8 +1852,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting edition id for edition (" + edition.length() + "): " + edition, e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getEditionId(edition, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting edition id for edition (" + edition.length() + "): " + edition, e);
+					id = -1L;
+				}
 			}
 			editionIds.put(edition, id);
 		}
@@ -1832,7 +1866,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final MaxSizeHashMap<String, Long> publisherIds = new MaxSizeHashMap<>(1000);
-	private long getPublisherId(String publisher, String recordIdentifier) {
+	private long getPublisherId(String publisher, String recordIdentifier, int numTries) {
 		if (publisher == null){
 			return -1;
 		}
@@ -1859,8 +1893,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting publisher id (" + publisher.length() + ") " + publisher, e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getPublisherId(publisher, recordIdentifier, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting publisher id (" + publisher.length() + ") " + publisher, e);
+					id = -1L;
+				}
 			}
 			publisherIds.put(publisher, id);
 		}
@@ -1868,7 +1907,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final MaxSizeHashMap<String, Long> publicationDateIds = new MaxSizeHashMap<>(1000);
-	private long getPublicationDateId(String publicationDate) {
+	private long getPublicationDateId(String publicationDate, int numTries) {
 		if (publicationDate == null){
 			return -1;
 		}
@@ -1894,8 +1933,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting publicationDate id", e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getPublicationDateId(publicationDate, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting publicationDate id", e);
+					id = -1L;
+				}
 			}
 			publicationDateIds.put(publicationDate, id);
 		}
@@ -1904,7 +1948,7 @@ public class GroupedWorkIndexer {
 
 
 	private final MaxSizeHashMap<String, Long>placeOfPublicationIds = new MaxSizeHashMap<>(1000);
-	private long getPlaceOfPublicationId(String placeOfPublication) {
+	private long getPlaceOfPublicationId(String placeOfPublication, int numTries) {
 		if(placeOfPublication == null) {
 			return -1;
 		}
@@ -1930,8 +1974,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting place of publication (" + placeOfPublication.length() + "):" + placeOfPublication, e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getPlaceOfPublicationId(placeOfPublication, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting place of publication (" + placeOfPublication.length() + "):" + placeOfPublication, e);
+					id = -1L;
+				}
 			}
 			placeOfPublicationIds.put(placeOfPublication, id);
 		}
@@ -1940,7 +1989,7 @@ public class GroupedWorkIndexer {
 
 	
 	private final MaxSizeHashMap<String, Long> physicalDescriptionIds = new MaxSizeHashMap<>(1000);
-	private long getPhysicalDescriptionId(String physicalDescription) {
+	private long getPhysicalDescriptionId(String physicalDescription, int numTries) {
 		if (physicalDescription == null){
 			return -1;
 		}
@@ -1966,8 +2015,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting physicalDescription id (" + physicalDescription.length() + "):" + physicalDescription, e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getPhysicalDescriptionId(physicalDescription, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting physicalDescription id (" + physicalDescription.length() + "):" + physicalDescription, e);
+					id = -1L;
+				}
 			}
 			physicalDescriptionIds.put(physicalDescription, id);
 		}
@@ -1975,7 +2029,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final HashMap<String, Long> eContentSourceIds = new HashMap<>();
-	private long getEContentSourceId(String eContentSource) {
+	private long getEContentSourceId(String eContentSource, int numTries) {
 		if (eContentSource == null){
 			return -1;
 		}
@@ -1984,9 +2038,9 @@ public class GroupedWorkIndexer {
 			try {
 				getEContentSourceStmt.setString(1, eContentSource);
 				ResultSet getEContentSourceRS = getEContentSourceStmt.executeQuery();
-				if (getEContentSourceRS.next()){
+				if (getEContentSourceRS.next()) {
 					id = getEContentSourceRS.getLong("id");
-				}else {
+				} else {
 					addEContentSourceStmt.setString(1, eContentSource);
 					addEContentSourceStmt.executeUpdate();
 					ResultSet addEContentSourceRS = addEContentSourceStmt.getGeneratedKeys();
@@ -1996,6 +2050,14 @@ public class GroupedWorkIndexer {
 						logEntry.incErrors("Could not add eContentSource");
 						id = -1L;
 					}
+				}
+			} catch (SQLIntegrityConstraintViolationException cve) {
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getEContentSourceId(eContentSource, numTries + 1);
+				}else{
+					logEntry.incErrors("Error getting eContentSource id", cve);
+					id = -1L;
 				}
 			} catch (SQLException e) {
 				logEntry.incErrors("Error getting eContentSource id", e);
@@ -2007,7 +2069,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final HashMap<String, Long> shelfLocationIds = new HashMap<>();
-	private long getShelfLocationId(String shelfLocation) {
+	private long getShelfLocationId(String shelfLocation, int numTries) {
 		if (shelfLocation == null){
 			return -1;
 		}
@@ -2030,8 +2092,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting shelfLocation id", e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getShelfLocationId(shelfLocation, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting shelfLocation id", e);
+					id = -1L;
+				}
 			}
 			shelfLocationIds.put(shelfLocation, id);
 		}
@@ -2040,7 +2107,7 @@ public class GroupedWorkIndexer {
 
 	private long lastRecordId = -1;
 	private final HashMap<String, Long> callNumberIds = new HashMap<>();
-	private long getCallNumberId(long recordId, String callNumber) {
+	private long getCallNumberId(long recordId, String callNumber, int numTries) {
 		if (callNumber == null){
 			return -1;
 		}
@@ -2070,8 +2137,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting callNumber id", e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getCallNumberId(recordId, callNumber, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting callNumber id", e);
+					id = -1L;
+				}
 			}
 			callNumberIds.put(callNumber, id);
 		}else{
@@ -2081,7 +2153,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final HashMap<String, Long> statusIds = new HashMap<>();
-	private long getStatusId(String status) {
+	private long getStatusId(String status, int numTries) {
 		if (status == null){
 			return -1;
 		}
@@ -2104,8 +2176,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting status id", e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getStatusId(status, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting status id", e);
+					id = -1L;
+				}
 			}
 			statusIds.put(status, id);
 		}
@@ -2113,7 +2190,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final HashMap<String, Long> locationCodeIds = new HashMap<>();
-	private long getLocationCodeId(String locationCode) {
+	private long getLocationCodeId(String locationCode, int numTries) {
 		if (locationCode == null){
 			return -1;
 		}
@@ -2136,8 +2213,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting locationCode id", e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getLocationCodeId(locationCode, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting locationCode id", e);
+					id = -1L;
+				}
 			}
 			locationCodeIds.put(locationCode, id);
 		}
@@ -2145,7 +2227,7 @@ public class GroupedWorkIndexer {
 	}
 
 	private final HashMap<String, Long> subLocationCodeIds = new HashMap<>();
-	private long getSubLocationCodeId(String subLocationCode) {
+	private long getSubLocationCodeId(String subLocationCode, int numTries) {
 		if (subLocationCode == null){
 			return -1;
 		}
@@ -2168,8 +2250,13 @@ public class GroupedWorkIndexer {
 					}
 				}
 			} catch (SQLException e) {
-				logEntry.incErrors("Error getting subLocationCode id", e);
-				id = -1L;
+				//Another thread already created it, call it again
+				if (numTries == 1) {
+					return getSubLocationCodeId(subLocationCode, numTries + 1);
+				}else {
+					logEntry.incErrors("Error getting subLocationCode id", e);
+					id = -1L;
+				}
 			}
 			subLocationCodeIds.put(subLocationCode, id);
 		}
@@ -2207,12 +2294,12 @@ public class GroupedWorkIndexer {
 
 	long saveGroupedWorkVariation(HashMap<VariationInfo, Long> existingVariations, long groupedWorkId, RecordInfo recordInfo, ItemInfo itemInfo) {
 		VariationInfo curVariationInfo = new VariationInfo();
-		curVariationInfo.primaryLanguageId = getLanguageId(recordInfo.getPrimaryLanguage());
-		curVariationInfo.eContentSourceId = this.getEContentSourceId(itemInfo.geteContentSource());
+		curVariationInfo.primaryLanguageId = getLanguageId(recordInfo.getPrimaryLanguage(), 1);
+		curVariationInfo.eContentSourceId = this.getEContentSourceId(itemInfo.geteContentSource(), 1);
 		String format = itemInfo.getFormat() == null ? recordInfo.getPrimaryFormat() : itemInfo.getFormat();
-		curVariationInfo.formatId = this.getFormatId(format);
+		curVariationInfo.formatId = this.getFormatId(format, 1);
 		String formatCategory = itemInfo.getFormatCategory() == null ? recordInfo.getPrimaryFormatCategory() : itemInfo.getFormatCategory();
-		curVariationInfo.formatCategoryId = this.getFormatCategoryId(formatCategory);
+		curVariationInfo.formatCategoryId = this.getFormatCategoryId(formatCategory, 1);
 		Long existingId = existingVariations.get(curVariationInfo);
 		if (existingId != null){
 			return existingId;
@@ -2230,6 +2317,18 @@ public class GroupedWorkIndexer {
 					curVariationInfo.id = addVariationForWorkRS.getLong(1);
 					existingVariations.put(curVariationInfo, curVariationInfo.id);
 					return curVariationInfo.id;
+				}else{
+					getIdForVariationStmt.setLong(1, groupedWorkId);
+					getIdForVariationStmt.setLong(2, curVariationInfo.primaryLanguageId);
+					getIdForVariationStmt.setLong(3, curVariationInfo.eContentSourceId);
+					getIdForVariationStmt.setLong(4, curVariationInfo.formatId);
+					getIdForVariationStmt.setLong(5, curVariationInfo.formatCategoryId);
+					ResultSet getIdForVariationRS = getIdForVariationStmt.executeQuery();
+					if (getIdForVariationRS.next()) {
+						curVariationInfo.id = getIdForVariationRS.getLong("id");
+						existingVariations.put(curVariationInfo, curVariationInfo.id);
+						return curVariationInfo.id;
+					}
 				}
 			} catch (SQLException e) {
 				logEntry.incErrors("Error saving grouped work variation", e);
@@ -2278,18 +2377,18 @@ public class GroupedWorkIndexer {
 			itemId = savedItem.id;
 		}
 		try {
-			long shelfLocationId = this.getShelfLocationId(itemInfo.getDetailedLocation());
-			long callNumberId = this.getCallNumberId(recordId, itemInfo.getCallNumber());
+			long shelfLocationId = this.getShelfLocationId(itemInfo.getDetailedLocation(), 1);
+			long callNumberId = this.getCallNumberId(recordId, itemInfo.getCallNumber(), 1);
 			long sortableCallNumberId;
 			if (AspenStringUtils.compareStrings(itemInfo.getCallNumber(), itemInfo.getSortableCallNumber())){
 				sortableCallNumberId = callNumberId;
 			}else{
-				sortableCallNumberId = this.getCallNumberId(recordId, itemInfo.getSortableCallNumber());
+				sortableCallNumberId = this.getCallNumberId(recordId, itemInfo.getSortableCallNumber(), 1);
 			}
-			long statusId = this.getStatusId(itemInfo.getDetailedStatus());
-			long locationCodeId = this.getLocationCodeId(itemInfo.getLocationCode());
-			long subLocationId = this.getSubLocationCodeId(itemInfo.getSubLocationCode());
-			long groupedStatusId = this.getStatusId(itemInfo.getGroupedStatus());
+			long statusId = this.getStatusId(itemInfo.getDetailedStatus(), 1);
+			long locationCodeId = this.getLocationCodeId(itemInfo.getLocationCode(), 1);
+			long subLocationId = this.getSubLocationCodeId(itemInfo.getSubLocationCode(), 1);
+			long groupedStatusId = this.getStatusId(itemInfo.getGroupedStatus(), 1);
 			boolean errorsSavingItem = false;
 			if (savedItem == null) {
 				try {
@@ -2326,6 +2425,14 @@ public class GroupedWorkIndexer {
 					ResultSet addItemForWorkRS = addItemForRecordStmt.getGeneratedKeys();
 					if (addItemForWorkRS.next()) {
 						itemId = addItemForWorkRS.getLong(1);
+					} else {
+						getIdForItemStmt.setLong(1, recordId);
+						getIdForItemStmt.setLong(2, variationId);
+						getIdForItemStmt.setString(3, itemInfo.getItemIdentifier());
+						ResultSet getIdForItemRS = getIdForItemStmt.executeQuery();
+						if (getIdForItemRS.next()) {
+							recordId = getIdForItemRS.getLong("id");
+						}
 					}
 					SavedItemInfo savedItemInfo = new SavedItemInfo(itemId, recordId, variationId, itemInfo.getItemIdentifier(), shelfLocationId, callNumberId, sortableCallNumberId, itemInfo.getNumCopies(),
 							itemInfo.isOrderItem(), statusId, itemInfo.getDateAdded(), locationCodeId, subLocationId, itemInfo.getLastCheckinDate(), groupedStatusId, itemInfo.isAvailable(),
@@ -2459,30 +2566,6 @@ public class GroupedWorkIndexer {
 		}
 
 		return existingScopes;
-	}
-
-	public int disabledAutoCommitCounter = 0;
-	void disableAutoCommit(){
-
-		disabledAutoCommitCounter++;
-		if (disabledAutoCommitCounter == 1) {
-			try {
-				dbConn.setAutoCommit(false);
-			} catch (SQLException e) {
-				logEntry.incErrors("Error disabling auto commit", e);
-			}
-		}
-	}
-
-	void enableAutoCommit() {
-		disabledAutoCommitCounter--;
-		if (disabledAutoCommitCounter == 0){
-			try{
-				dbConn.setAutoCommit(true);
-			} catch (SQLException e) {
-				logEntry.incErrors("Error enabling auto commit", e);
-			}
-		}
 	}
 
 	public boolean isStoreRecordDetailsInSolr(){

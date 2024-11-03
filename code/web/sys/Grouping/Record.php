@@ -108,18 +108,12 @@ class Grouping_Record {
 		}
 		$this->source = $source;
 		$this->_statusInformation = new Grouping_StatusInformation();
-		$this->_statusInformation->setNumHolds($recordDriver != null ? $recordDriver->getNumHolds() : 0);
-		if ($recordDriver != null && $recordDriver instanceof OverDriveRecordDriver) {
-			$availability = $recordDriver->getAvailability();
-			if ($availability != null) {
-				$this->_statusInformation->addCopies($availability->copiesOwned);
-				$this->_statusInformation->addAvailableCopies($availability->copiesAvailable);
-				$this->_statusInformation->setAvailableOnline($availability->copiesAvailable > 0);
-			} else {
-				$this->_statusInformation->addCopies(0);
-				$this->_statusInformation->addAvailableCopies(0);
-				$this->_statusInformation->setAvailableOnline(false);
-			}
+		$this->_statusInformation->setNumHolds($recordDriver->getNumHolds());
+		if ($recordDriver instanceof OverDriveRecordDriver) {
+			$statusSummary = $recordDriver->getStatusSummary();
+			$this->_statusInformation->addCopies($statusSummary['totalCopies']);
+			$this->_statusInformation->addAvailableCopies($statusSummary['availableCopies']);
+			$this->_statusInformation->setAvailableOnline($statusSummary['available']);
 			$this->_isOverDrive = true;
 		}
 		$this->_volumeHolds = $recordDriver != null ? $recordDriver->getVolumeHolds($volumeData) : null;
@@ -139,16 +133,23 @@ class Grouping_Record {
 		}
 	}
 
-	function addItem(Grouping_Item $item) {
+	function addItem(Grouping_Item $item) : void {
 		$item->setRecord($this);
 		$this->_items[] = $item;
 		//Update the record with information from the item and from scoping.
 		if ($item->isEContent) {
-			$this->setEContentSource($item->eContentSource);
+			if (empty($this->_eContentSource)) {
+				$this->setEContentSource($item->eContentSource);
+			} elseif (!str_contains($this->_eContentSource, $item->eContentSource)){
+				$this->setEContentSource($this->_eContentSource . ', ' . $item->eContentSource);
+			}
+			if ($this->_driver instanceof OverDriveRecordDriver) {
+				$this->_driver->setNumHoldsForItem($item);
+			}
 			$this->setIsEContent(true);
 			$this->_statusInformation->setIsEContent(true);
 		}
-		if ($this->_isOverDrive == false) {
+		if (!$this->_isOverDrive) {
 			if ($item->available) {
 				if ($item->isEContent) {
 					$this->_statusInformation->setAvailableOnline(true);
@@ -407,7 +408,7 @@ class Grouping_Record {
 	/**
 	 * @return array
 	 */
-	public function getItemSummary($variationId = ''): array {
+	public function getItemSummary($variationId = '') : array {
 		if ($variationId == '') {
 			$variationId = 'any';
 		}
@@ -443,6 +444,7 @@ class Grouping_Record {
 			if ($lastStatus != $this->_itemSummary[$variationId][$key]['status']) {
 				$this->_itemSummary[$variationId][$key]['statusFull'] = $itemSummaryInfo['statusFull'];
 			}
+			$this->_itemSummary[$variationId][$key]['numHolds'] += $itemSummaryInfo['numHolds'];
 		} else {
 			if (!isset($this->_itemSummary[$variationId])) {
 				$this->_itemSummary[$variationId] = [];
@@ -639,6 +641,18 @@ class Grouping_Record {
 	 */
 	public function setIsEContent(bool $isEContent): void {
 		$this->_isEContent = $isEContent;
+	}
+
+	public function showCopySummary() : bool {
+		if (!$this->_isEContent) {
+			return true;
+		}else{
+			//For eContent, we will only show if there is more than one item
+			if (count($this->getItems()) > 1) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

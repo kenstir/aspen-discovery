@@ -2,8 +2,8 @@
 
 class Grouping_Item {
 	public $id;
-	/** @var Grouping_Record */
-	private $_record;
+	/** @noinspection PhpPropertyOnlyWrittenInspection */
+	private ?Grouping_Record $_record;
 	public $recordId;
 	public $variationId;
 	public $shelfLocation;
@@ -53,9 +53,6 @@ class Grouping_Item {
 	public $atActiveNearbyLocation1;
 	public $atActiveNearbyLocation2;
 
-	/**
-	 * @var array
-	 */
 	public $numHolds = 0;
 	public $available = false;
 	public $isVirtual = false;
@@ -79,7 +76,7 @@ class Grouping_Item {
 			$this->callNumber = $itemDetails['callNumber'];
 			$this->numCopies = $itemDetails['numCopies'];
 			$this->isOrderItem = (bool)$itemDetails['isOrderItem'];
-			$this->isEContent = $itemDetails['isEcontent'];
+			$this->isEContent = $itemDetails['isEContent'];
 			$this->eContentSource = $itemDetails['eContentSource'];
 			if ($this->isEContent && !empty($itemDetails['localUrl'])) {
 				$this->_relatedUrls[] = [
@@ -267,6 +264,7 @@ class Grouping_Item {
 			$date->setTimestamp($this->lastCheckInDate);
 			$lastCheckInDate = $date->format('M j, Y');
 		}
+		/** @noinspection PhpUnnecessaryLocalVariableInspection */
 		$itemSummaryInfo = [
 			'description' => $description,
 			'shelfLocation' => $this->shelfLocation,
@@ -283,6 +281,7 @@ class Grouping_Item {
 			'statusFull' => $this->status,
 			'available' => $this->available,
 			'holdable' => $this->holdable,
+			'numHolds' => $this->numHolds,
 			'sectionId' => $sectionId,
 			'section' => $section,
 			'relatedUrls' => $this->getRelatedUrls(),
@@ -299,7 +298,7 @@ class Grouping_Item {
 		return $itemSummaryInfo;
 	}
 
-	public function setRecord(Grouping_Record $record) {
+	public function setRecord(Grouping_Record $record) : void {
 		$this->_record = $record;
 	}
 }

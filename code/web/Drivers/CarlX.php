@@ -2271,7 +2271,7 @@ class CarlX extends AbstractIlsDriver {
 	 * @param $BID
 	 * @return string CARL ID
 	 */
-	private function fullCarlIDfromBID($BID) {
+	protected function fullCarlIDfromBID($BID) {
 		return 'CARL' . str_pad($BID, 10, '0', STR_PAD_LEFT);
 	}
 

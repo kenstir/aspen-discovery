@@ -8,7 +8,7 @@
 	{foreach from=$relatedManifestation->getVariations() item=variation}
 		<div class="row {if $variation->isHideByDefault()}hiddenManifestation_{$summId}{else} displayed striped-{cycle values="odd,even"}{/if}" {if $variation->isHideByDefault()}style="display: none"{/if}>
 			<div class="col-tn-4 col-xs-4{if empty($viewingCombinedResults) || !$viewingCombinedResults} col-md-3{/if} manifestation-format">
-				<a class="btn btn-xs btn-primary btn-variation btn-wrap" href="{$variation->getUrl()}" onclick="return AspenDiscovery.ResultsList.showRelatedManifestations('{$workId|escapeCSS}','{$relatedManifestation->format|escapeCSS}','{$variation->databaseId|escapeCSS}');"aria-label="{translate text="View Manifestations for %1% %2 of %3" 1=$relatedManifestation->format 2=$variation->label 3=$summTitle inAttribute=true isPublicFacing=true}">
+				<a class="btn btn-xs btn-primary btn-variation btn-wrap" href="{$variation->getUrl()}" onclick="return AspenDiscovery.ResultsList.showRelatedManifestations('{$workId|escapeCSS}','{$relatedManifestation->format|escapeCSS}','{$variation->databaseId|escapeCSS}');" aria-label="{translate text="View Manifestations for %1% %2 of %3" 1=$relatedManifestation->format 2=$variation->label 3=$summTitle inAttribute=true isPublicFacing=true}">
 					{translate text=$variation->label isPublicFacing=true}
 				</a>
 				<br>
@@ -18,11 +18,11 @@
 			</div>
 			<div class="col-tn-5 col-xs-8{if empty($viewingCombinedResults) || !$viewingCombinedResults} col-md-5 col-lg-6{/if}">
 				{include file='GroupedWork/statusIndicator.tpl' statusInformation=$variation->getStatusInformation() viewingIndividualRecord=0}
-				{if !$variation->isEContent()}
+				{if $variation->showCopySummary()}
 					{if $variation->getNumRelatedRecords() == 1}
-						{include file='GroupedWork/copySummary.tpl' summary=$variation->getItemsDisplayedByDefault() totalCopies=$variation->getCopies() itemSummaryId="`$workId`_`$variation->label`" recordViewUrl=$variation->getUrl() format=$relatedManifestation->format}
+						{include file='GroupedWork/copySummary.tpl' summary=$variation->getItemsDisplayedByDefault() totalCopies=$variation->getCopies() itemSummaryId="`$workId`_`$variation->label`" recordViewUrl=$variation->getUrl() format=$relatedManifestation->format isEContent=$variation->isEContent()}
 					{else}
-						{include file='GroupedWork/copySummary.tpl' summary=$variation->getItemsDisplayedByDefault() totalCopies=$variation->getCopies() itemSummaryId="`$workId`_`$variation->label`" format=$relatedManifestation->format}
+						{include file='GroupedWork/copySummary.tpl' summary=$variation->getItemsDisplayedByDefault() totalCopies=$variation->getCopies() itemSummaryId="`$workId`_`$variation->label`" format=$relatedManifestation->format isEContent=$variation->isEContent()}
 					{/if}
 				{/if}
 			</div>

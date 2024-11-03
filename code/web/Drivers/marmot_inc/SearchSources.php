@@ -64,12 +64,15 @@ class SearchSources {
 		global $library;
 		global $enabledModules;
 
+		/** @var Location $locationSingleton */
 		global $locationSingleton;
 		$location = $locationSingleton->getActiveLocation();
 		if ($location != null && $location->useScope && $location->restrictSearchByLocation) {
 			$repeatSearchSetting = $location->repeatSearchOption;
 			$repeatInWorldCat = $location->repeatInWorldCat == 1;
 			$repeatInInnReach = $location->repeatInInnReach == 1;
+			$repeatInShareIt = $location->repeatInShareIt == 1;
+			$repeatInCloudSource = $location->repeatInCloudSource == 1;
 			if (strlen($location->systemsToRepeatIn) > 0) {
 				$systemsToRepeatIn = explode('|', $location->systemsToRepeatIn);
 			} else {
@@ -79,6 +82,8 @@ class SearchSources {
 			$repeatSearchSetting = $library->repeatSearchOption;
 			$repeatInWorldCat = $library->repeatInWorldCat == 1;
 			$repeatInInnReach = $library->repeatInInnReach == 1;
+			$repeatInShareIt = $library->repeatInShareIt == 1;
+			$repeatInCloudSource = $library->repeatInCloudSource == 1;
 			$systemsToRepeatIn = explode('|', $library->systemsToRepeatIn);
 		}
 
@@ -302,8 +307,28 @@ class SearchSources {
 			];
 		}
 
+		if ($repeatInCloudSource) {
+			$searchOptions['cloudSource'] = [
+				'name' => 'CloudSource',
+				'description' => "Open Articles, eBooks, eTextBooks, and more from CloudSource.",
+				'external' => true,
+				'catalogType' => 'cloudSource',
+				'hasAdvancedSearch' => false,
+			];
+		}
+
 		if ($repeatInInnReach) {
 			$searchOptions['innReach'] = [
+				'name' => $library->interLibraryLoanName,
+				'description' => 'Additional materials from partner libraries available by interlibrary loan.',
+				'external' => true,
+				'catalogType' => 'catalog',
+				'hasAdvancedSearch' => false,
+			];
+		}
+
+		if ($repeatInShareIt) {
+			$searchOptions['shareIt'] = [
 				'name' => $library->interLibraryLoanName,
 				'description' => 'Additional materials from partner libraries available by interlibrary loan.',
 				'external' => true,
@@ -345,8 +370,8 @@ class SearchSources {
 	}
 
 	/**
-	 * @param $location
-	 * @param $library
+	 * @param Location $location
+	 * @param Library $library
 	 * @return array
 	 */
 	static function getCombinedSearchSetupParameters($location, $library) {
@@ -380,23 +405,19 @@ class SearchSources {
 	}
 
 	public function getWorldCatSearchType($type) {
+		/** @noinspection PhpSwitchCanBeReplacedWithMatchExpressionInspection */
 		switch ($type) {
 			case 'Subject':
 				return 'su';
-				break;
 			case 'Author':
 				return 'au';
-				break;
 			case 'Title':
 				return 'ti';
-				break;
 			case 'ISN':
 				return 'bn';
-				break;
 			case 'Keyword':
 			default:
 				return 'kw';
-				break;
 		}
 	}
 
@@ -406,7 +427,7 @@ class SearchSources {
 		global $configArray;
 		if ($searchSource == 'worldcat') {
 			$worldCatSearchType = $this->getWorldCatSearchType($type);
-			$worldCatLink = "http://www.worldcat.org/search?q={$worldCatSearchType}%3A" . urlencode($lookFor);
+			$worldCatLink = "https://www.worldcat.org/search?q={$worldCatSearchType}%3A" . urlencode($lookFor);
 			if (strlen($library->worldCatUrl) > 0) {
 				$worldCatLink = $library->worldCatUrl;
 				if (strpos($worldCatLink, '?') == false) {
@@ -446,6 +467,19 @@ class SearchSources {
 				$baseUrl = substr($baseUrl, 0, strlen($baseUrl) -1);
 			}
 			return "$baseUrl/iii/encore/search/C|S" . $lookFor . "|Orightresult|U1?lang=eng&amp;suite=def";
+		} elseif ($searchSource == 'shareIt') {
+			require_once ROOT_DIR . '/sys/InterLibraryLoan/ShareIt.php';
+			$shareIt = new ShareIt();
+			$searchTerms = [
+				[
+					'index' => $type,
+					'lookfor' => $lookFor,
+				],
+			];
+			$link = $shareIt->getSearchLink($searchTerms);
+			return $link;
+		} elseif ($searchSource == 'cloudSource') {
+			return $library->cloudSourceBaseUrl . '/search/results?qu=' . urlencode($lookFor) . '&te=1803299674&dt=list';
 		} elseif ($searchSource == 'amazon') {
 			return "http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=" . urlencode($lookFor);
 		} elseif ($searchSource == 'course-reserves-course-name') {

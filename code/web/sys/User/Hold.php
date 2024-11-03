@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 require_once ROOT_DIR . '/sys/User/CircEntry.php';
 
 class Hold extends CircEntry {
@@ -26,6 +26,9 @@ class Hold extends CircEntry {
 	public $reactivateDate;
 	public $isIll;
 	public $pendingCancellation;
+
+	//For OverDrive
+	public $collectionName;
 
 	//For Palace Project
 	public $cancellationUrl;

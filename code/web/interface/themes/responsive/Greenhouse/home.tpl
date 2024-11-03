@@ -175,6 +175,14 @@
 					<div class="col-tn-12">
 						<div class="adminAction row">
 							<div class="col-tn-2 col-xs-1 col-sm-2 col-md-1 adminActionLabel">
+								<a href="/Testing/GenerateTestUsers" title="{translate text="Generate Test Users" inAttribute="true" isAdminFacing=true}"><i class="fas fa-chevron-circle-right fa"></i></a>
+							</div>
+							<div class="col-tn-10 col-xs-11 col-sm-10 col-md-11">
+								<div class="adminActionLabel"><a href="/Testing/GenerateTestUsers">{translate text="Generate Test Users" isAdminFacing=true}</a></div>
+							</div>
+						</div>
+						<div class="adminAction row">
+							<div class="col-tn-2 col-xs-1 col-sm-2 col-md-1 adminActionLabel">
 								<a href="/Testing/GenerateReadingHistory" title="{translate text="Generate Test Reading History Data" inAttribute="true" isAdminFacing=true}"><i class="fas fa-chevron-circle-right fa"></i></a>
 							</div>
 							<div class="col-tn-10 col-xs-11 col-sm-10 col-md-11">

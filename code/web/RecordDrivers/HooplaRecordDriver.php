@@ -498,7 +498,7 @@ class HooplaRecordDriver extends GroupedWorkSubDriver {
 		return $this->hooplaRawMetadata->coverImageUrl;
 	}
 
-	function getStatusSummary() {
+	function getStatusSummary() : array {
 		$relatedRecord = $this->getRelatedRecord();
 		$statusSummary = [];
 		if ($relatedRecord == null) {

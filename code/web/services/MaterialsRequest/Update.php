@@ -86,7 +86,7 @@ class MaterialsRequest_Update extends Admin_Admin {
 
 				$materialsRequest->libraryId = $requestUser->getHomeLibrary()->libraryId;
 
-				$formatObject = $materialsRequest->getFormatObject();
+				$formatObject = $materialsRequest->getFormatObjectByFormat();
 				if (!empty($formatObject->id)) {
 					$materialsRequest->formatId = $formatObject->id;
 				}

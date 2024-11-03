@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 require_once ROOT_DIR . '/sys/User/CircEntry.php';
 
 class Checkout extends CircEntry {
@@ -27,6 +27,7 @@ class Checkout extends CircEntry {
 	public $isIll;
 
 	//For OverDrive
+	public $collectionName;
 	public $allowDownload;
 	public $overdriveRead;
 	public $overdriveReadUrl;

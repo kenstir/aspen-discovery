@@ -7,6 +7,10 @@ import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 
+/**
+ * A library or location scope with all the relevant information about which records should be included in the scope
+ * as well as how the records should be handled during indexing.
+ */
 public class Scope implements Comparable<Scope>{
 	private long id;
 
@@ -38,7 +42,7 @@ public class Scope implements Comparable<Scope>{
 	private Pattern courseReserveLibrariesToIncludePattern;
 
 	private GroupedWorkDisplaySettings groupedWorkDisplaySettings;
-	private OverDriveScope overDriveScope;
+	private final HashMap<Long, OverDriveScope> overDriveScopes = new HashMap<>();
 	private HooplaScope hooplaScope;
 	private final HashMap<Long, CloudLibraryScope> cloudLibraryScopes = new HashMap<>();
 	private Axis360Scope axis360Scope;
@@ -121,11 +125,6 @@ public class Scope implements Comparable<Scope>{
 
 	public String getFacetLabel() {
 		return facetLabel;
-	}
-
-
-	public boolean isIncludeOverDriveCollection() {
-		return overDriveScope != null;
 	}
 
 	void setLibraryId(Long libraryId) {
@@ -230,13 +229,21 @@ public class Scope implements Comparable<Scope>{
 		return additionalLocationsToShowAvailabilityForPattern;
 	}
 
-	public OverDriveScope getOverDriveScope() {
-		return overDriveScope;
+	void addOverDriveScope(OverDriveScope overDriveScope) {
+		this.overDriveScopes.put(overDriveScope.getSettingId(), overDriveScope);
 	}
 
-	void setOverDriveScope(OverDriveScope overDriveScope) {
-		this.overDriveScope = overDriveScope;
+	public HashMap<Long, OverDriveScope> getOverDriveScopes() {
+		return overDriveScopes;
 	}
+	public OverDriveScope getOverDriveScope(long settingId) {
+		return overDriveScopes.get(settingId);
+	}
+
+	public boolean isIncludeOverDriveCollection(long settingId) {
+		return overDriveScopes.containsKey(settingId);
+	}
+
 	public HooplaScope getHooplaScope() {
 		return hooplaScope;
 	}

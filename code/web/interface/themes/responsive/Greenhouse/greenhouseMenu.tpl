@@ -108,6 +108,7 @@
 					</a>
 					<div id="testingToolsGroup" class="panel-collapse collapse in">
 						<div class="panel-body">
+							<div class="adminMenuLink "><a href="/Testing/GenerateTestUsers">{translate text="Generate Test Users" isAdminFacing=true}</a></div>
 							<div class="adminMenuLink "><a href="/Testing/GenerateReadingHistory">{translate text="Generate Reading History" isAdminFacing=true}</a></div>
 						</div>
 					</div>

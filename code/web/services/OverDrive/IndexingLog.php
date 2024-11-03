@@ -24,7 +24,7 @@ class OverDrive_IndexingLog extends Admin_IndexingLog {
 		return 'OverDrive';
 	}
 
-	function applyMinProcessedFilter(DataObject $indexingObject, $minProcessed) {
+	function applyMinProcessedFilter(DataObject $indexingObject, $minProcessed) : void {
 		if ($indexingObject instanceof OverDriveExtractLogEntry) {
 			$indexingObject->whereAdd('numAvailabilityChanges >= ' . $minProcessed);
 			$indexingObject->whereAdd('numMetadataChanges >= ' . $minProcessed, 'OR');

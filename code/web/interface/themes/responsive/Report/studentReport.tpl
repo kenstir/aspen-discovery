@@ -34,80 +34,59 @@
 		</div>
 {literal}
 <style>
-	div.overdueSlip {
+	.overdueSlip.container {
 		border-top: 1px dashed #ccc !important;
-		display: table !important;
-		margin: 1em;
-		padding-top: 1em;
-		page-break-inside: avoid;
-		width: 7in;
-		margin-left: 0;
-		margin-right: auto;
+		page-break-inside: avoid !important;
+		width: 8in !important;
+		padding: 10px 0 5px 0 !important;
+		/*outline: 1px solid #0f0;*/
 	}
-	div.overdueSlip div.patronHeader {
-		display: table !important;		
-		width: 7in;
-		margin-left: auto;
-		margin-right: auto;
+	.overdueSlip.container .row {
+		margin: 0 !important;
+		padding: 0 !important;
 	}
-	div.overdueSlip div.patronHeader div {
-		display: table-cell !important;
+	.patronHeader {
 		font-weight: bold;
 	}
-	div.P_TYPE {
-		width: 1in !important;
+	.patronHeader div {
+		white-space: nowrap;
+		overflow: hidden;
 	}
-	div.HOME_ROOM {
-		width: 2in !important;
+	.overdueRecordTableMessage {
+		padding: 0 !important;
 	}
-	div.PATRON_NAME {
-		width: 3in !important;
+	.overdueRecordContent.card {
+		padding: 10px 0 0 0 !important;
 	}
-	div.P_BARCODE {
-		text-align: right;
-		width: 1in !important;
+	.card-body {
+		/*outline: #ff00ff 1px solid;*/
+		display: flex;
+		flex-wrap: nowrap;
 	}
-	div.overdueSlip div.overdueRecordTable {
-		display: table-row !important;		
-		width: 7in;
-		margin-left: auto;
-		margin-right: auto;
+	.BOOK_COVER {
+		max-height: 100px;
+		min-height: 100px;
+		overflow: hidden;
+		padding: 0 !important;
 	}
-	div.overdueSlip div.overdueRecordTable div.overdueRecordTableMessage {
-		width: 7in;
-		margin-left: auto;
-		margin-right: auto;
-		text-align: left;
+	/*.BOOK_COVER img {*/
+	/*	max-width: .7in;*/
+	/*}*/
+	.overdueRecordContentDetails {
+		padding: 0 !important;
+		flex: 1;
 	}
-	div.overdueSlip div.overdueRecordTable div.overdueRecord {
-		width: 7in !important;
-		margin-left: auto !important;
-		margin-right: auto !important;
+	.overdueRecordContentDetails div {
+		hyphens: auto;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
-	div.overdueSlip div.overdueRecordTable div.overdueRecord div {
-		display: table-cell !important;
-	}
-	div.SYSTEM {
-		width: .5in !important;
-	}
-	div.ITEM_ID {
-		width: 1.25in !important;
-	}
-	div.CALL_NUMBER {
-		width: 1.25in !important;;
-	}
-	div.TITLE {
-		width: 2.5in !important;
-	}
-	div.DUE_DATE {
-		width: .75in !important;
-	}
-	div.PRICE {
-		text-align: right;
-		width: .75in !important;
+	.TITLE {
+		flex-wrap: wrap !important;
 	}
 	table#studentReportTable {
-		width: 7in;
+		/*width: 8in;*/
 		margin-left: 0;
 		margin-right: auto;
 		font: inherit;
@@ -124,40 +103,67 @@
 	}
 
 	@media print {
+		@page {
+			margin: .25in !important; /* Set the desired margin size */
+		}
+
+		.col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6,
+		.col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+			float: left;
+		}
+		.col-md-12 { width: 100%; }
+		.col-md-11 { width: 91.66666667%; }
+		.col-md-10 { width: 83.33333333%; }
+		.col-md-9 { width: 75%; }
+		.col-md-8 { width: 66.66666667%; }
+		.col-md-7 { width: 58.33333333%; }
+		.col-md-6 { width: 50%; }
+		.col-md-5 { width: 41.66666667%; }
+		.col-md-4 { width: 33.33333333%; }
+		.col-md-3 { width: 25%; }
+		.col-md-2 { width: 16.66666667%; }
+		.col-md-1 { width: 8.33333333%; }
+
+		body {
+			margin: 0 !important;
+			padding: 0 !important;
+			/*width: 8in !important;*/
+		}
+		#page-container {
+			/*width: 8in !important;*/
+			margin: 0 !important;
+			padding: 0 !important;
+		}
 		div.breadcrumbs {
 			display: none !important;
 		}
 		div.doNotPrint {
 			display: none !important;
 		}
-		div#footer-container {
+		div#page-header {
 			display: none !important;
-		}
-		div#main-content {
-			padding: 0in !important;
-		}
-		div#main-content-with-sidebar {
-			padding: 0in !important;
 		}
 		div#system-message-header {
 			display: none !important;
 		}
-		table#studentReportTable {
-			margin: 0in;
+		div#footer-container {
+			display: none !important;
 		}
 		table#studentReportTable .displayScreen {
-			display: none;
+			display: none !important;
 		}
 		table#studentReportTable thead {
 			display: none !important;
 		}
-		/* Chromium + Safari */
-		/* fix for "Print Pages" */
-		@supports (not (-moz-appearance: none)) {
-			tr.overdueSlipContainer {
-				display: block;
-			}
-		}
+
+
+		/*!* Chromium + Safari *!*/
+		/*!* fix for "Print Pages" *!*/
+		/*@supports (not (-moz-appearance: none)) {*/
+		/*	tr.overdueSlipContainer {*/
+		/*		display: block;*/
+		/*	}*/
+		/*}*/
 	}
 </style>
 {/literal}
@@ -176,48 +182,55 @@
 {assign var=previousPatron value=0}
 {foreach from=$reportData item=dataRow name=overdueData}
 	{if $dataRow.P_BARCODE != $previousPatron}
-		{if $smarty.foreach.overdueData.index > 0}</div></div></td></tr>{/if}
+{if $smarty.foreach.overdueData.index > 0}</div></td></tr>{/if}
 				<tr class="overdueSlipContainer">
 					<td class="hideit">{$dataRow.GRD_LVL|replace:' student':''|replace:'MNPS School Librar':'0.0 MNPS School Librar'|replace:'MNPS Staff':'0.1 MNPS Staff'|replace:'Pre-K':'0.2 Pre-K'|replace:'Kindergar':'0.3 Kindergar'|replace:'First':'1 First'|replace:'Second':'2 Second'|replace:'Third':'3 Third'|replace:'Fourth':'4 Fourth'|replace:'Fifth':'5 Fifth'|replace:'Sixth':'6 Sixth'|replace:'Seventh':'7 Seventh'|replace:'Eighth':'8 Eighth'|replace:'Ninth':'9 Ninth'|replace:'Tenth':'10 Tenth'|replace:'Eleventh':'11 Eleventh'|replace:'Twelfth':'12 Twelfth'|regex_replace:'/^.*no LL delivery/':'13 no LL delivery'|replace:'MNPS 18+':'13 MNPS 18+'}</td>
 					<td class="hideit">{$dataRow.HOME_ROOM|lower|capitalize:true}</td>
 					<td class="hideit">{$dataRow.P_BARCODE}</td>
 					<td class="hideit">{$dataRow.PATRON_NAME}</td>
 					<td>
-						<div class="overdueSlip">
-							<div class="patronHeader">
-								<div class="P_TYPE">{$dataRow.GRD_LVL|replace:' student':''}</div>
-								<div class="HOME_ROOM">{$dataRow.HOME_ROOM|lower|capitalize:true}</div>
-								<div class="PATRON_NAME">{$dataRow.PATRON_NAME|upper}</div>
-								<div class="P_BARCODE">{$dataRow.P_BARCODE}</div>
+						<div class="overdueSlip container">
+							<div class="patronHeader row">
+								<div class="P_TYPE col-md-2">{$dataRow.GRD_LVL|replace:' student':''}</div>
+								<div class="HOME_ROOM col-md-3">{$dataRow.HOME_ROOM|lower|capitalize:true}</div>
+								<div class="PATRON_NAME col-md-5"><a href="javascript:void(0);" onclick="
+										AspenDiscovery.Account.initiateMasqueradeWithCardNumber(
+											{$dataRow.P_BARCODE},
+											{if $showOverdueOnly == "overdue" || $showOverdueOnly == "checkedOut"}
+												'/MyAccount/CheckedOut?source=ils'
+											{elseif $showOverdueOnly == "fees"}
+												'/MyAccount/Fines'
+											{/if},
+											window.location.pathname
+										)">{$dataRow.PATRON_NAME|upper}</a></div>
+								<div class="P_BARCODE col-md-2">{$dataRow.P_BARCODE}</div>
 							</div>
-							<div class="overdueRecordTable">
-								<div class="overdueRecordTableMessage">
+							<div class="overdueRecordTable row">
+								<div class="overdueRecordTableMessage col-md-12">
 									The items below are
 									{if $showOverdueOnly == "overdue"}&nbsp;overdue
 									{elseif $showOverdueOnly == "checkedOut"}&nbsp;checked out
 									{elseif $showOverdueOnly == "fees"}&nbsp;billed{/if}
 									.&nbsp;
-									Please return them to your library. This notice was created {$reportDateTime}<br>
-									Check your account online at https://school.library.nashville.org/
+									Return them to your library. This notice was created {$reportDateTime}<br>
+									Check your account online at https://school.library.nashville.org/<br>
+									Read off your fees in October and February! Learn more at https://limitlesslibraries.org/programs
 								</div>
-								<div class="overdueRecord">
-                                        				<div class="SYSTEM">SYSTEM</div>
-                                        				<div class="ITEM_ID">BARCODE</div>
-                                        				<div class="CALL_NUMBER">CALL NUMBER</div>
-                                        				<div class="TITLE">TITLE</div>
-                                        				<div class="DUE_DATE">DUE DATE</div>
-									<div class="PRICE">{if $showOverdueOnly == "overdue" || $showOverdueOnly == "checkedOut"}PRICE{elseif $showOverdueOnly == "fees"}OWED{/if}</div>
-								</div>
+							</div>
+							<div class="overdueRecord row d-flex flex-wrap">
 		{assign var=previousPatron value=$dataRow.P_BARCODE}
 	{/if}
-								<div class="overdueRecord">
-									<div class="SYSTEM">{$dataRow.SYSTEM|replace:"1":"NPL"|replace:"2":"MNPS"}</div>
-					                                <div class="ITEM_ID">{$dataRow.ITEM}</div>
-									<div class="CALL_NUMBER">{$dataRow.CALL_NUMBER}</div>
-									<div class="TITLE">{$dataRow.TITLE|regex_replace:"/ *\/ *$/":""}</div>
-									<div class="DUE_DATE">{$dataRow.DUE_DATE}</div>
-									<div class="PRICE">{$dataRow.OWED|regex_replace:"/^ *0\.00$/":"10.00"}</div>
-								</div>	
+								<div class="overdueRecordContent card col-md-6 mb-4">
+									<div class="overdueRecordContent card-body">
+											<div class="BOOK_COVER col-md-3"><img class="img-fluid" src="{$dataRow.coverUrl}"></div>
+											<div class="overdueRecordContentDetails col-md-9">
+												<div class="TITLE">{$dataRow.TITLE|regex_replace:"/ *\/ *$/":""}</div>
+												<div class="DUE_DATE_AND_PRICE">DUE: {$dataRow.DUE_DATE} {if $showOverdueOnly == "overdue" || $showOverdueOnly == "checkedOut"}PRICE{elseif $showOverdueOnly == "fees"}OWED{/if}: {$dataRow.OWED|regex_replace:"/^ *0\.00$/":"10.00"}</div>
+												<div class="SYSTEM_AND_ITEM_ID">{$dataRow.SYSTEM|replace:"1":"NPL"|replace:"2":"MNPS"} {$dataRow.ITEM}</div>
+												<div class="CALL_NUMBER">{$dataRow.CALL_NUMBER}</div>
+											</div>
+									</div>
+								</div>
 {/foreach}
 					</td>
 				</tr>

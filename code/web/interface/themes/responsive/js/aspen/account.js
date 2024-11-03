@@ -67,7 +67,7 @@ AspenDiscovery.Account = (function () {
 
 		/**
 		 * Do an ajax process, but only if the user is logged in.
-		 * If the user is not logged in, force them to login and then do the process.
+		 * If the user is not logged in, force them to log in and then do the process.
 		 * Can also be called without the ajax callback to just login and not go anywhere
 		 *
 		 * @param trigger
@@ -1481,7 +1481,7 @@ AspenDiscovery.Account = (function () {
 			// noinspection JSUnresolvedFunction
 			$.getJSON(url, params, function (data) {
 				if (data.success) {
-					location.href = Globals.path + '/MyAccount/Home';
+					location.href = data.returnTo;
 				} else {
 					$('#masqueradeLoading').hide();
 					$('#masqueradeAsError').html(data.error).show();
@@ -1490,12 +1490,39 @@ AspenDiscovery.Account = (function () {
 			return false;
 		},
 
+		initiateMasqueradeWithCardNumber: function (cardNumber, redirectPath = '/MyAccount/Home') {
+			var url = Globals.path + "/MyAccount/AJAX";
+			var params = {
+				method: "initiateMasquerade",
+				cardNumber: cardNumber
+			};
+			$('#masqueradeAsError').hide();
+			$('#masqueradeLoading').show();
+			$.getJSON(url, params, function (data) {
+				if (data.success) {
+					location.href = Globals.path + redirectPath;
+				} else {
+					$('#masqueradeLoading').hide();
+					$('#masqueradeAsError').html(data.error).show();
+				}
+			}).fail(AspenDiscovery.ajaxFail);
+		},
+
 		endMasquerade: function () {
 			var url = Globals.path + "/MyAccount/AJAX";
 			var params = {method: "endMasquerade"};
 			// noinspection JSUnresolvedFunction
-			$.getJSON(url, params).done(function () {
-				location.href = Globals.path + '/MyAccount/Home';
+			$.getJSON(url, params).done(function (data) {
+				if (data.success) {
+					if (data.returnTo !== '/MyAccount/Home') {
+						var returnTo = data.returnTo;
+					} else {
+						var returnTo = Globals.path + '/MyAccount/Home';
+					}
+					location.href = returnTo;
+				} else {
+					// TO DO: Handle error if needed
+				}
 			}).fail(AspenDiscovery.ajaxFail);
 			return false;
 		},

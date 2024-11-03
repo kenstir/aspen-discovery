@@ -3071,7 +3071,7 @@ class Koha extends AbstractIlsDriver {
 		$result = [
 			'success' => false,
 			'message' => translate([
-				'text' => 'Unable to freeze your hold.',
+				'text' => 'Unable to freeze your hold. ',
 				'isPublicFacing' => true,
 			]),
 		];
@@ -3086,16 +3086,10 @@ class Koha extends AbstractIlsDriver {
 			'isPublicFacing' => true,
 		]);
 
-		$postParams = [];
+		$postParams = (object) [];
 		if (strlen($dateToReactivate) > 0) {
-			$postParams = [];
-			[
-				$year,
-				$month,
-				$day,
-			] = explode('-', $dateToReactivate);
-			$postParams['end_date'] = "$year-$month-$day";	
-		}
+			$postParams->end_date = $dateToReactivate;	
+		} 
 
 		$endpoint = "/api/v1/holds/$itemToFreezeId/suspension";
 		$extraHeaders = ['Accept-Encoding: gzip, deflate','x-koha-library: ' .  $patron->getHomeLocationCode()];
@@ -3104,17 +3098,29 @@ class Koha extends AbstractIlsDriver {
 		if ($response) {
 			$holdResponse = $response['content'];
 			if ($response['code'] != 201) {
-				$result['title'] = translate([
-					'text' => 'Hold frozen',
-					'isPublicFacing' => true,
-				]);
-				$result['message'] = translate([
-					'text' => $holdResponse['error'],
-					'isPublicFacing' => true,
-				]);
-				$result['success'] = false;
-				// Result for API or app use
-				$result['api']['message'] = $holdResponse['error'];
+				if (isset($holdResponse['error'])){
+					$result['title'] = translate([
+						'text' => 'Hold frozen',
+						'isPublicFacing' => true,
+					]);
+					$result['message'] = translate([
+						'text' => $holdResponse['error'],
+						'isPublicFacing' => true,
+					]);
+					$result['success'] = false;
+					// Result for API or app use
+					$result['api']['message'] = $holdResponse['error'];
+				} elseif (isset($holdResponse['errors'])) {
+					foreach ($holdResponse['errors'] as $error) {
+						$result['message'] .= translate([
+							'text' => $error['message'],
+							'isPublicFacing' => true,
+						]) . '<br/>';
+					}
+				} else {
+					$result['message'] = $holdResponse;
+				}
+				
 			} else {
 				$result['message'] = translate([
 					'text' => 'Your hold was frozen successfully.',
@@ -4637,6 +4643,13 @@ class Koha extends AbstractIlsDriver {
 		} else {
 			$mandatoryFields = [];
 		}
+
+		if (isset($kohaPreferences['OPACSuggestionUnwantedFields'])) {
+			$unwantedFields = array_flip(explode('|', $kohaPreferences['OPACSuggestionUnwantedFields']));
+		} else {
+			$unwantedFields = [];
+		}
+
 		//Make sure that title is always required
 		$mandatoryFields['title'] = true;
 
@@ -4793,8 +4806,14 @@ class Koha extends AbstractIlsDriver {
 			} else {
 				$field['required'] = false;
 			}
-		}
 
+			if(array_key_exists($field['property'], $unwantedFields) && $field['required'] == false) {
+				unset($fields[array_search($field,$fields)]);
+				# Once you've removed the desired field, you'll need to reindex the array
+				$fields = array_values($fields);
+			}
+		}
+		
 		$interface->assign('submitUrl', '/MaterialsRequest/NewRequestIls');
 		$interface->assign('structure', $fields);
 		$interface->assign('saveButtonText', 'Submit your suggestion');

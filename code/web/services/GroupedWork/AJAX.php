@@ -1026,6 +1026,46 @@ class GroupedWork_AJAX extends JSON_Action {
 	}
 
 	/** @noinspection PhpUnused */
+	function getShareItInfo() : array {
+		require_once ROOT_DIR . '/sys/InterLibraryLoan/ShareIt.php';
+		global $interface;
+		$id = $_REQUEST['id'];
+		$interface->assign('id', $id);
+
+		/** @var SearchObject_AbstractGroupedWorkSearcher $searchObject */
+		$searchObject = SearchObjectFactory::initSearchObject();
+		$searchObject->init();
+
+		// Retrieve Full record from Solr
+		if (!($record = $searchObject->getRecord($id))) {
+			AspenError::raiseError(new AspenError('Record Does Not Exist'));
+		}
+
+		$shareIt = new ShareIt();
+
+		$searchTerms = [
+			[
+				'lookfor' => $record['title_short'],
+				'index' => 'Title',
+			],
+		];
+		if (isset($record['author_display'])) {
+			$searchTerms[] = [
+				'lookfor' => $record['author_display'],
+				'index' => 'Author',
+			];
+		}
+
+		$shareItResults = $shareIt->getTopSearchResults($searchTerms, 10);
+		$interface->assign('shareItResults', $shareItResults['records']);
+
+		return [
+			'numTitles' => count($shareItResults),
+			'formattedData' => $interface->fetch('GroupedWork/ajax-shareit.tpl'),
+		];
+	}
+
+	/** @noinspection PhpUnused */
 	function getSeriesSummary() : array {
 		global $interface;
 		require_once ROOT_DIR . '/RecordDrivers/GroupedWorkDriver.php';
@@ -1339,172 +1379,166 @@ class GroupedWork_AJAX extends JSON_Action {
 		if (isset($_POST['coverFileURL'])) {
 			$url = $_POST['coverFileURL'];
 			$filename = basename($url);
-			$uploadedFile = file_get_contents($url);
+			$uploadedFile = @file_get_contents($url);
 
-			if (isset($uploadedFile["error"]) && $uploadedFile["error"] == 4) {
+			if ($uploadedFile === false) {
 				$result['message'] = translate([
-					'text' => "No Cover file was uploaded",
+					'text' => "Unable to load image from URL provided",
 					'isAdminFacing' => true,
 				]);
-			} elseif (isset($uploadedFile["error"]) && $uploadedFile["error"] > 0) {
-				$result['message'] = translate([
-					'text' => "Error in file upload for cover %1%",
-					1 => $uploadedFile["error"],
-					'isAdminFacing' => true,
-				]);
-			}
+			}else{
+				$id = $_REQUEST['id'];
+				$recordType = $_REQUEST['recordType'] ?? 'grouped_work';
+				$recordId = $_REQUEST['recordId'] ?? $id;
+				$uploadOption = $_REQUEST['uploadOption'];
 
-			$id = $_REQUEST['id'];
-			$recordType = $_REQUEST['recordType'] ?? 'grouped_work';
-			$recordId = $_REQUEST['recordId'] ?? $id;
-			$uploadOption = $_REQUEST['uploadOption'];
-
-			if($recordType !== 'grouped_work') {
-				$id = $recordId;
-			}
-			global $configArray;
-			$destFullPath = $configArray['Site']['coverPath'] . '/original/' . $id . '.png';
-			$ext = pathinfo($filename, PATHINFO_EXTENSION);
-			if ($ext == "jpg" or $ext == "png" or $ext == "gif" or $ext == "jpeg") {
-				$result['message'] = translate([
-					'text' => 'Incorrect image type.  Please upload a PNG, GIF, or JPEG',
-					'isAdminFacing' => true,
-				]);
-
-				$upload = file_put_contents($destFullPath, $uploadedFile);
-				/** @noinspection SpellCheckingInspection */
-				if ($uploadOption == 'andgrouped') { //update image for grouped work and individual bib record
-					if ($upload) {
-						$id = $_REQUEST['id'];
-						$recordType = 'grouped_work';
-						$destFullPath = $configArray['Site']['coverPath'] . '/original/' . $id . '.png';
-						$upload = file_put_contents($destFullPath, $uploadedFile);
-						if ($upload){
-							require_once ROOT_DIR . '/sys/Covers/BookCoverInfo.php';
-							$bookCoverInfo = new BookCoverInfo();
-							$bookCoverInfo->__set('recordType', $recordType);
-							$bookCoverInfo->__set('recordId',  $id);
-							if ($bookCoverInfo->find(true)) {
-								$bookCoverInfo->__set('imageSource',  'upload');
-								$bookCoverInfo->__set('thumbnailLoaded',  0);
-								$bookCoverInfo->__set('mediumLoaded',  0);
-								$bookCoverInfo->__set('largeLoaded',  0);
-								if ($bookCoverInfo->update()) {
-									$result['message'] = translate([
-										'text' => 'Your cover has been uploaded successfully',
-										'isAdminFacing' => true,
-									]);
-								}
-							}
-							$result['success'] = true;
-						}
-					}
-				} /** @noinspection SpellCheckingInspection */
-				elseif ($uploadOption == 'alldefault') {//update image for all records in grouped work with default covers
-					if ($upload) {
-						require_once ROOT_DIR . '/RecordDrivers/GroupedWorkDriver.php';
-						$id = $_REQUEST['id'];
-						$recordDriver = new GroupedWorkDriver($id);
-						$relatedRecords = $recordDriver->getRelatedRecords(true);
-
-						//set result as success for initial upload
-						$result['success'] = true;
-						$result['message'] = translate([
-							'text' => 'Your cover has been uploaded successfully',
-							'isAdminFacing' => true,
-						]);
-
-						foreach ($relatedRecords as $record) {
-							require_once ROOT_DIR . '/sys/Covers/BookCoverInfo.php';
-							$hasDefaultCover = new BookCoverInfo();
-							$hasDefaultCover->__set('id', $record->id);
-							$hasDefaultCover->__set('imageSource', 'default');
-							if ($hasDefaultCover->find(true)){
-								$id = substr(strstr($record->id, ':'), 1);
-								$recordType = $record->source;
-								$destFullPath = $configArray['Site']['coverPath'] . '/original/' . $id . '.png';
-								$upload = file_put_contents($destFullPath, $uploadedFile);
-								if ($upload){
-									require_once ROOT_DIR . '/sys/Covers/BookCoverInfo.php';
-									$bookCoverInfo = new BookCoverInfo();
-									$bookCoverInfo->__set('recordType', $recordType);
-									$bookCoverInfo->__set('recordId', $id);
-									if ($bookCoverInfo->find(true)) {
-										$bookCoverInfo->__set('imageSource', 'upload');
-										$bookCoverInfo->__set('thumbnailLoaded', 0);
-										$bookCoverInfo->__set('mediumLoaded', 0);
-										$bookCoverInfo->__set('largeLoaded', 0);
-										if ($bookCoverInfo->update()) {
-											$result['message'] = translate([
-												'text' => 'Your cover has been uploaded successfully',
-												'isAdminFacing' => true,
-											]);
-										}
+				if($recordType !== 'grouped_work') {
+					$id = $recordId;
+				}
+				global $configArray;
+				$destFullPath = $configArray['Site']['coverPath'] . '/original/' . $id . '.png';
+				$ext = pathinfo($filename, PATHINFO_EXTENSION);
+				if ($ext == "jpg" or $ext == "png" or $ext == "gif" or $ext == "jpeg") {
+					$upload = file_put_contents($destFullPath, $uploadedFile);
+					/** @noinspection SpellCheckingInspection */
+					if ($uploadOption == 'andgrouped') { //update image for grouped work and individual bib record
+						if ($upload) {
+							$id = $_REQUEST['id'];
+							$recordType = 'grouped_work';
+							$destFullPath = $configArray['Site']['coverPath'] . '/original/' . $id . '.png';
+							$upload = file_put_contents($destFullPath, $uploadedFile);
+							if ($upload){
+								require_once ROOT_DIR . '/sys/Covers/BookCoverInfo.php';
+								$bookCoverInfo = new BookCoverInfo();
+								$bookCoverInfo->__set('recordType', $recordType);
+								$bookCoverInfo->__set('recordId',  $id);
+								if ($bookCoverInfo->find(true)) {
+									$bookCoverInfo->__set('imageSource',  'upload');
+									$bookCoverInfo->__set('thumbnailLoaded',  0);
+									$bookCoverInfo->__set('mediumLoaded',  0);
+									$bookCoverInfo->__set('largeLoaded',  0);
+									if ($bookCoverInfo->update()) {
+										$result['message'] = translate([
+											'text' => 'Your cover has been uploaded successfully',
+											'isAdminFacing' => true,
+										]);
 									}
 								}
+								$result['success'] = true;
 							}
 						}
-					}
-				}else{ //only updating grouped work or individual bib cover
+					} /** @noinspection SpellCheckingInspection */
+					elseif ($uploadOption == 'alldefault') {//update image for all records in grouped work with default covers
+						if ($upload) {
+							require_once ROOT_DIR . '/RecordDrivers/GroupedWorkDriver.php';
+							$id = $_REQUEST['id'];
+							$recordDriver = new GroupedWorkDriver($id);
+							$relatedRecords = $recordDriver->getRelatedRecords(true);
 
-					if($recordType == 'grouped_work') {
-						if ($upload){
 							//set result as success for initial upload
 							$result['success'] = true;
 							$result['message'] = translate([
 								'text' => 'Your cover has been uploaded successfully',
 								'isAdminFacing' => true,
 							]);
-							require_once ROOT_DIR . '/RecordDrivers/GroupedWorkDriver.php';
-							$recordDriver = new GroupedWorkDriver($id);
-							$relatedRecords = $recordDriver->getRelatedRecords(true);
-							if (sizeof($relatedRecords) == 1){
-								$id = substr(strstr($relatedRecords[0]->id, ':'), 1);
-								$recordType = $relatedRecords[0]->source;
-								$destFullPath = $configArray['Site']['coverPath'] . '/original/' . $id . '.png';
-								$upload = file_put_contents($destFullPath, $uploadedFile);
-								if ($upload){
-									$result['success'] = true;
 
-									require_once ROOT_DIR . '/sys/Covers/BookCoverInfo.php';
-									$bookCoverInfo = new BookCoverInfo();
-									$bookCoverInfo->__set('recordType', $recordType);
-									$bookCoverInfo->__set('recordId', $id);
-									if ($bookCoverInfo->find(true)) {
-										$bookCoverInfo->__set('imageSource', 'upload');
-										$bookCoverInfo->__set('thumbnailLoaded', 0);
-										$bookCoverInfo->__set('mediumLoaded', 0);
-										$bookCoverInfo->__set('largeLoaded', 0);
-										if ($bookCoverInfo->update()) {
-											$result['message'] = translate([
-												'text' => 'Your cover has been uploaded successfully',
-												'isAdminFacing' => true,
-											]);
+							foreach ($relatedRecords as $record) {
+								require_once ROOT_DIR . '/sys/Covers/BookCoverInfo.php';
+								$hasDefaultCover = new BookCoverInfo();
+								$hasDefaultCover->__set('id', $record->id);
+								$hasDefaultCover->__set('imageSource', 'default');
+								if ($hasDefaultCover->find(true)){
+									$id = substr(strstr($record->id, ':'), 1);
+									$recordType = $record->source;
+									$destFullPath = $configArray['Site']['coverPath'] . '/original/' . $id . '.png';
+									$upload = file_put_contents($destFullPath, $uploadedFile);
+									if ($upload){
+										require_once ROOT_DIR . '/sys/Covers/BookCoverInfo.php';
+										$bookCoverInfo = new BookCoverInfo();
+										$bookCoverInfo->__set('recordType', $recordType);
+										$bookCoverInfo->__set('recordId', $id);
+										if ($bookCoverInfo->find(true)) {
+											$bookCoverInfo->__set('imageSource', 'upload');
+											$bookCoverInfo->__set('thumbnailLoaded', 0);
+											$bookCoverInfo->__set('mediumLoaded', 0);
+											$bookCoverInfo->__set('largeLoaded', 0);
+											if ($bookCoverInfo->update()) {
+												$result['message'] = translate([
+													'text' => 'Your cover has been uploaded successfully',
+													'isAdminFacing' => true,
+												]);
+											}
 										}
 									}
-								}else{
-									$result['message'] = translate([
-										'text' => 'Incorrect image type.  Please upload a PNG, GIF, or JPEG',
-										'isAdminFacing' => true,
-									]);
 								}
 							}
-						}else {
-							$result['message'] = translate([
-								'text' => 'Incorrect image type.  Please upload a PNG, GIF, or JPEG',
-								'isAdminFacing' => true,
-							]);
 						}
-					}else{
-						if ($upload) {
-							$result['success'] = true;
-						} else {
-							$result['message'] = translate([
-								'text' => 'Incorrect image type.  Please upload a PNG, GIF, or JPEG',
-								'isAdminFacing' => true,
-							]);
+					}else{ //only updating grouped work or individual bib cover
+
+						if($recordType == 'grouped_work') {
+							if ($upload){
+								//set result as success for initial upload
+								$result['success'] = true;
+								$result['message'] = translate([
+									'text' => 'Your cover has been uploaded successfully',
+									'isAdminFacing' => true,
+								]);
+								require_once ROOT_DIR . '/RecordDrivers/GroupedWorkDriver.php';
+								$recordDriver = new GroupedWorkDriver($id);
+								$relatedRecords = $recordDriver->getRelatedRecords(true);
+								if (sizeof($relatedRecords) == 1){
+									$id = substr(strstr($relatedRecords[0]->id, ':'), 1);
+									$recordType = $relatedRecords[0]->source;
+									$destFullPath = $configArray['Site']['coverPath'] . '/original/' . $id . '.png';
+									$upload = file_put_contents($destFullPath, $uploadedFile);
+									if ($upload){
+										$result['success'] = true;
+
+										require_once ROOT_DIR . '/sys/Covers/BookCoverInfo.php';
+										$bookCoverInfo = new BookCoverInfo();
+										$bookCoverInfo->__set('recordType', $recordType);
+										$bookCoverInfo->__set('recordId', $id);
+										if ($bookCoverInfo->find(true)) {
+											$bookCoverInfo->__set('imageSource', 'upload');
+											$bookCoverInfo->__set('thumbnailLoaded', 0);
+											$bookCoverInfo->__set('mediumLoaded', 0);
+											$bookCoverInfo->__set('largeLoaded', 0);
+											if ($bookCoverInfo->update()) {
+												$result['message'] = translate([
+													'text' => 'Your cover has been uploaded successfully',
+													'isAdminFacing' => true,
+												]);
+											}
+										}
+									}else{
+										$result['message'] = translate([
+											'text' => 'Incorrect image type.  Please upload a PNG, GIF, or JPEG',
+											'isAdminFacing' => true,
+										]);
+									}
+								}
+							}else {
+								$result['message'] = translate([
+									'text' => 'Incorrect image type.  Please upload a PNG, GIF, or JPEG',
+									'isAdminFacing' => true,
+								]);
+							}
+						}else{
+							if ($upload) {
+								$result['success'] = true;
+							} else {
+								$result['message'] = translate([
+									'text' => 'Incorrect image type.  Please upload a PNG, GIF, or JPEG',
+									'isAdminFacing' => true,
+								]);
+							}
 						}
 					}
+				} else {
+					$result['message'] = translate([
+						'text' => 'Incorrect image type.  Please upload a PNG, GIF, or JPEG',
+						'isAdminFacing' => true,
+					]);
 				}
 			}
 		} else {
@@ -1552,8 +1586,23 @@ class GroupedWork_AJAX extends JSON_Action {
 				break;
 			}
 		}
+
+		if ($relatedManifestation == null) {
+			return [
+				'title' => translate([
+					'text' => "Error",
+					'isPublicFacing' => true,
+				]),
+				'modalBody' => translate(['text' => 'Unable to find copy information.', 'isPublicFacing' => true,]),
+			];
+		}
+
 		$interface->assign('itemSummaryId', $id);
 		$interface->assign('relatedManifestation', $relatedManifestation);
+		$interface->assign('isEContent', $relatedManifestation->isEContent());
+
+		//Check to see if this is an OverDrive record and if so, add number of holds
+		$showEContentHoldCounts = true;
 
 		if ($recordId != $id) {
 			$record = $recordDriver->getRelatedRecord($recordId);
@@ -1581,6 +1630,8 @@ class GroupedWork_AJAX extends JSON_Action {
 		} else {
 			$summary = $relatedManifestation->getItemSummary();
 		}
+		$interface->assign('showEContentHoldCounts', $showEContentHoldCounts);
+
 		$interface->assign('summary', $summary);
 
 		$modalBody = $interface->fetch('GroupedWork/copyDetails.tpl');

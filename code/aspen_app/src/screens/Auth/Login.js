@@ -8,8 +8,9 @@ import { Box, Button, Center, Icon, Image, KeyboardAvoidingView, Text } from 'na
 import React from 'react';
 import { Platform } from 'react-native';
 import { LibrarySystemContext } from '../../context/initialContext';
+import { navigate } from '../../helpers/RootNavigator';
 import { getTermFromDictionary } from '../../translations/TranslationService';
-import { getLibraryInfo } from '../../util/api/library';
+import { getBasicRegistrationForm, getLibraryInfo } from '../../util/api/library';
 
 // custom components and helper files
 import { GLOBALS } from '../../util/globals';
@@ -20,6 +21,7 @@ import { ForgotBarcode } from './ForgotBarcode';
 import { GetLoginForm } from './LoginForm';
 import { ResetPassword } from './ResetPassword';
 import { SelectYourLibrary } from './SelectYourLibrary';
+import { SelfRegistration } from './SelfRegistration';
 import { SplashScreen } from './Splash';
 
 export const LoginScreen = () => {
@@ -43,6 +45,8 @@ export const LoginScreen = () => {
      const [showForgotPasswordModal, setShowForgotPasswordModal] = React.useState(false);
      const [showForgotBarcodeModal, setShowForgotBarcodeModal] = React.useState(false);
      const [ils, setIls] = React.useState('koha');
+     const [enableSelfRegistration, setEnableSelfRegistration] = React.useState(false);
+     const [selfRegistrationFields, setSelfRegistrationFields] = React.useState([]);
      const { updateLibrary } = React.useContext(LibrarySystemContext);
      let isCommunity = true;
      if (!_.includes(GLOBALS.slug, 'aspen-lida') || GLOBALS.slug === 'aspen-lida-bws') {
@@ -131,6 +135,16 @@ export const LoginScreen = () => {
                     if (result.ils) {
                          setIls(result.ils);
                     }
+
+                    if (result.catalogRegistrationCapabilities) {
+                         if (result.catalogRegistrationCapabilities.enableSelfRegistration) {
+                              if(result.catalogRegistrationCapabilities.enableSelfRegistration === '1' && result.catalogRegistrationCapabilities.enableSelfRegistrationInApp === '1') {
+                                   setEnableSelfRegistration(1);
+                              } else {
+                                   setEnableSelfRegistration(0);
+                              }
+                         }
+                    }
                }
           });
           /*await getLibraryLoginLabels(data.libraryId, data.baseUrl).then(async (labels) => {
@@ -150,6 +164,10 @@ export const LoginScreen = () => {
           setShowModal(false);
      };
 
+     const openSelfRegistration = () => {
+          navigate('SelfRegistration', { libraryUrl: 'https://alpha.aspendiscovery.org/' });
+     };
+
      if (isLoading) {
           return <SplashScreen />;
      }
@@ -164,6 +182,11 @@ export const LoginScreen = () => {
                          {enableForgotPasswordLink === '1' || enableForgotPasswordLink === 1 ? <ResetPassword ils={ils} enableForgotPasswordLink={enableForgotPasswordLink} usernameLabel={usernameLabel} passwordLabel={passwordLabel} forgotPasswordType={forgotPasswordType} showForgotPasswordModal={showForgotPasswordModal} setShowForgotPasswordModal={setShowForgotPasswordModal} /> : null}
                          {enableForgotBarcode === '1' || enableForgotBarcode === 1 ? <ForgotBarcode usernameLabel={usernameLabel} showForgotBarcodeModal={showForgotBarcodeModal} setShowForgotBarcodeModal={setShowForgotBarcodeModal} /> : null}
                     </Button.Group>
+                    {enableSelfRegistration ? (
+                         <Button mt={3} variant="ghost" colorScheme="primary" onPress={openSelfRegistration}>
+                              {getTermFromDictionary('en', 'register_for_a_library_card')}
+                         </Button>
+                    ) : null}
                     {isCommunity && Platform.OS !== 'android' ? (
                          <Button mt={5} size="xs" variant="ghost" colorScheme="tertiary" startIcon={<Icon as={Ionicons} name="navigate-circle-outline" size={5} />}>
                               {getTermFromDictionary('en', 'reset_geolocation')}

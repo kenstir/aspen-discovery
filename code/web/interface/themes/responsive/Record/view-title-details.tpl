@@ -159,8 +159,8 @@
 			{if !empty($statusSummary)}
 				{assign var=workId value=$recordDriver->getPermanentId()}
 				{include file='GroupedWork/statusIndicator.tpl' statusInformation=$statusSummary->getStatusInformation() viewingIndividualRecord=1}
-				{if (!$statusSummary->isEContent())}
-					{include file='GroupedWork/copySummary.tpl' summary=$statusSummary->getItemSummary() totalCopies=$statusSummary->getCopies() itemSummaryId=$statusSummary->id format=$recordDriver->getPrimaryFormat()}
+				{if ($statusSummary->showCopySummary())}
+					{include file='GroupedWork/copySummary.tpl' summary=$statusSummary->getItemSummary() totalCopies=$statusSummary->getCopies() itemSummaryId=$statusSummary->id format=$recordDriver->getPrimaryFormat() isEContent=$statusSummary->isEContent()}
 				{/if}
 			{else}
 				{translate text="Unavailable/Withdrawn" isPublicFacing=true}

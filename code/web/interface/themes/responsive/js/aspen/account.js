@@ -1490,7 +1490,8 @@ AspenDiscovery.Account = (function () {
 			return false;
 		},
 
-		initiateMasqueradeWithCardNumber: function (cardNumber, redirectPath = '/MyAccount/Home') {
+		initiateMasqueradeWithCardNumber: function (cardNumber, redirectPath) {
+    		redirectPath = typeof redirectPath !== 'undefined' ? redirectPath : '/MyAccount/Home';
 			var url = Globals.path + "/MyAccount/AJAX";
 			var params = {
 				method: "initiateMasquerade",

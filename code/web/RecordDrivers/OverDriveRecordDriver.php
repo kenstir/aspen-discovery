@@ -938,6 +938,9 @@ class OverDriveRecordDriver extends GroupedWorkSubDriver {
 					if ($settingId == $collectionId) {
 						$itemsForCollection[] = $item;
 					}
+				}else{
+					//This isn't attached to a setting, assume it is good
+					$itemsForCollection[] = $item;
 				}
 			}
 		}

@@ -958,6 +958,10 @@ EOT;
 			$data[] = $row;
         }
         oci_free_statement($stid);
+		// if data does not exist, return empty array
+		if (!isset($data)) {
+			$data = [];
+		}
         return $data;
     }
 

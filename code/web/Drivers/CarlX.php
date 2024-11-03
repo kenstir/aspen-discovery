@@ -1778,7 +1778,6 @@ class CarlX extends AbstractIlsDriver {
 						]);
 					} else {
 						$payment->message .= " CarlX Receipt Number $settleFinesAndFeesResult->ReceiptNumber";
-						$payment->update(); // TO DO: is this what marks db record as complete? It needs to move to when the payment is actually complete...
 					}
 				}
 			} else {

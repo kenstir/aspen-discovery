@@ -200,8 +200,7 @@
 												'/MyAccount/CheckedOut?source=ils'
 											{elseif $showOverdueOnly == "fees"}
 												'/MyAccount/Fines'
-											{/if},
-											window.location.pathname
+											{/if}
 										)">{$dataRow.PATRON_NAME|upper}</a></div>
 								<div class="P_BARCODE col-md-2">{$dataRow.P_BARCODE}</div>
 							</div>

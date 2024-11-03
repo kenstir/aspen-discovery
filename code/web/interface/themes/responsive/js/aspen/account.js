@@ -1491,7 +1491,7 @@ AspenDiscovery.Account = (function () {
 		},
 
 		initiateMasqueradeWithCardNumber: function (cardNumber, redirectPath) {
-    		redirectPath = typeof redirectPath !== 'undefined' ? redirectPath : '/MyAccount/Home';
+			redirectPath = typeof redirectPath !== 'undefined' ? redirectPath : '/MyAccount/Home';
 			var url = Globals.path + "/MyAccount/AJAX";
 			var params = {
 				method: "initiateMasquerade",

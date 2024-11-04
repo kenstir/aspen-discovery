@@ -140,6 +140,8 @@ class Library extends DataObject {
 	public $eCommerceTerms;
 	public $msbUrl;
 	public $symphonyPaymentType;
+	public $paymentBranchSource;
+	public $specifiedPaymentBranchCode;
 	public $compriseSettingId;
 	public $payPalSettingId;
 	public $proPaySettingId;
@@ -2891,6 +2893,30 @@ class Library extends DataObject {
 						'maxLength' => 12,
 					],
 					//'symphonyPaymentPolicy' => array('property'=>'symphonyPaymentPolicy', 'type'=>'text', 'label'=>'Symphony Payment Policy', 'description'=>'Payment policy to use when adding transactions to Symphony.', 'hideInLists' => true, 'default' => '', 'maxLength' => 8),
+					'paymentBranchSource' => [
+						'property' => 'paymentBranchSource',
+						'type' => 'enum',
+						'label' => 'Payment Branch from (Carl.X only)',
+						'values' => [
+							'notApplicable' => 'Not Applicable',
+							'patronHomeLocation' => 'Patron Home Location',
+							'specified' => 'Specified Value',
+						],
+						'default' => 'patronHomeLibrary',
+						'description' => 'Where to get the branch code to use when completing payments.',
+						'note' => 'Applies to Carl.X Only',
+						'hideInLists' => true,
+					],
+					'specifiedPaymentBranchCode' => [
+						'property' => 'specifiedPaymentBranchCode',
+						'type' => 'text',
+						'label' => 'Specified Payment Branch Code (Carl.X only)',
+						'description' => 'Branch code to use when completing payments.',
+						'note' => 'Applies to Carl.X Only',
+						'hideInLists' => true,
+						'default' => '',
+						'maxLength' => 6,
+					],
 				],
 
 			],

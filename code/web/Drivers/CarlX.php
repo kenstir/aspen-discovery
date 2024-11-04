@@ -1689,7 +1689,11 @@ class CarlX extends AbstractIlsDriver {
 			return $result;
 		}
 
-		$homeLocation = $patron->getHomeLocationCode();
+		if ($library->paymentBranchSource == 'specified' && !empty($library->specifiedPaymentBranchCode)) {
+			$homeLocation = $library->specifiedPaymentBranchCode;
+		} elseif ($library->paymentBranchSource == 'notApplicable' || $library->paymentBranchSource == 'patronHomeLibrary') {
+			$homeLocation = $patron->getHomeLocationCode();
+		}
 		if (!$homeLocation) {
 			$logger->log('Failed to find any location to make the payment from', Logger::LOG_ERROR);
 			$result['messages'][] = translate([
@@ -2501,7 +2505,7 @@ class CarlX extends AbstractIlsDriver {
 				newpatronid
 			from patronidchange_$version p
 			where oldpatronid = :searchpatronid
-			order by changetime desc 
+			order by changetime desc
 			-- fetch first 1 rows only
 EOT;
 

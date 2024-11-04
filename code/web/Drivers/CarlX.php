@@ -1688,16 +1688,16 @@ class CarlX extends AbstractIlsDriver {
 			$result['message'] = 'No Default Patron WSDL defined for SOAP calls in CarlX Driver';
 			return $result;
 		}
-
+		$paymentLocationCode = '';
 		if ($library->paymentBranchSource == 'specified' && !empty($library->specifiedPaymentBranchCode)) {
-			$homeLocation = $library->specifiedPaymentBranchCode;
+			$paymentLocationCode = $library->specifiedPaymentBranchCode;
 		} elseif ($library->paymentBranchSource == 'notApplicable' || $library->paymentBranchSource == 'patronHomeLibrary') {
-			$homeLocation = $patron->getHomeLocationCode();
+			$paymentLocationCode = $patron->getHomeLocationCode();
 		}
-		if (!$homeLocation) {
-			$logger->log('Failed to find any location to make the payment from', Logger::LOG_ERROR);
-			$result['messages'][] = translate([
-				'text' => 'Unable to find any location to assign the user for completing the payment',
+		if (empty($paymentLocationCode)) {
+			$logger->log('Failed to determine the payment branch', Logger::LOG_ERROR);
+			$result['message'] = translate([
+				'text' => 'Failed to determine the payment branch',
 				'isPublicFacing' => true,
 			]);
 			return $result;
@@ -1753,7 +1753,7 @@ class CarlX extends AbstractIlsDriver {
 			$paymentRequest->FineOrFee[0]->Amount = $pmtAmount;
 			$paymentRequest->Modifiers = new stdClass();
 			$paymentRequest->Modifiers->StaffID = $staffId; // The alias of the employee submitting the request. Required.
-			$paymentRequest->Modifiers->EnvBranch = strtoupper($homeLocation); // Branch Code indicating the Branch being used. Required. // As of 2024 10 22, other CarlX/Aspen libraries have only uppercase CarlX branch codes; Nashville and La Porte have lowercase Aspen location codes that require conversion to uppercase CarlX branch codes
+			$paymentRequest->Modifiers->EnvBranch = strtoupper($paymentLocationCode); // Branch Code indicating the Branch being used. Required. // As of 2024 10 22, other CarlX/Aspen libraries have only uppercase CarlX branch codes; Nashville and La Porte have lowercase Aspen location codes that require conversion to uppercase CarlX branch codes
 			$requestOptions = $this->genericResponseSOAPCallOptions;
 			$requestOptions['login'] = $this->accountProfile->oAuthClientId;
 			$requestOptions['password'] = $this->accountProfile->oAuthClientSecret;

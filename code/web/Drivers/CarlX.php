@@ -1487,9 +1487,14 @@ class CarlX extends AbstractIlsDriver {
 				$result->FineItems->FineItem = [$result->FineItems->FineItem];
 			}
 			foreach ($result->FineItems->FineItem as $fine) {
-				// hard coded Nashville school branch IDs
-				if ($fine->Branch == 0) {
-					$fine->Branch = $fine->TransactionBranch;
+				if ($fine->Branch === 0) {
+					if ($fine->ItemBranch != 0) {
+						$fine->Branch = $fine->ItemBranch;
+					} else if ($fine->TransactionBranch != 0) {
+						$fine->Branch = $fine->TransactionBranch;
+					} else {
+						$fine->Branch = 0;
+					}
 				}
 
 				if ($fine->FineAmountPaid > 0) {
@@ -1509,7 +1514,7 @@ class CarlX extends AbstractIlsDriver {
 
 				$myFines[] = [
 					'fineId' => $fine->Identifier,
-					'type' => $fineType,
+					'type' => $fine->TransactionCode,
 					'reason' => $fine->FeeNotes,
 					'amount' => $fine->FineAmount,
 					'amountVal' => $fine->FineAmount,
@@ -1518,6 +1523,7 @@ class CarlX extends AbstractIlsDriver {
 					'message' => $fine->Title,
 					'date' => date('M j, Y', strtotime($fine->FineAssessedDate)),
 					'occurrence' => $fine->QueuePosition,
+					'branch' => $fine->Branch,
 				];
 			}
 		}
@@ -1534,12 +1540,15 @@ class CarlX extends AbstractIlsDriver {
 					$result->LostItems->LostItem = [$result->LostItems->LostItem];
 				}
 				foreach ($result->LostItems->LostItem as $fine) {
-					// hard coded Nashville school branch IDs
-					if ($fine->Branch == 0) {
-						$fine->Branch = $fine->TransactionBranch;
+					if ($fine->Branch === 0) {
+						if ($fine->ItemBranch != 0) {
+							$fine->Branch = $fine->ItemBranch;
+						} else if ($fine->TransactionBranch != 0) {
+							$fine->Branch = $fine->TransactionBranch;
+						} else {
+							$fine->Branch = 0;
+						}
 					}
-					$fine->System = $this->getFineSystem($fine->Branch);
-					$fine->CanPayFine = $this->canPayFine($fine->System);
 
 					if (!empty($fine->FeeAmountPaid) && $fine->FeeAmountPaid > 0) {
 						$fine->FeeAmountOutstanding = $fine->FeeAmount - $fine->FeeAmountPaid;
@@ -1556,7 +1565,7 @@ class CarlX extends AbstractIlsDriver {
 
 					$myFines[] = [
 						'fineId' => $fine->Identifier,
-						'type' => $fineType,
+						'type' => $fine->TransactionCode,
 						'reason' => $fine->FeeNotes,
 						'amount' => $fine->FeeAmount,
 						'amountVal' => $fine->FeeAmount,
@@ -1565,6 +1574,7 @@ class CarlX extends AbstractIlsDriver {
 						'message' => $fine->Title,
 						'date' => date('M j, Y', strtotime($fine->TransactionDate)),
 						'occurrence' => $fine->QueuePosition,
+						'branch' => $fine->Branch,
 					];
 				}
 				// The following epicycle is required because CarlX PatronAPI GetPatronTransactions Lost does not report FeeAmountOutstanding. See TLC ticket https://ww2.tlcdelivers.com/helpdesk/Default.asp?TicketID=515720
@@ -1678,13 +1688,16 @@ class CarlX extends AbstractIlsDriver {
 			$result['message'] = 'No Default Patron WSDL defined for SOAP calls in CarlX Driver';
 			return $result;
 		}
-
-		$homeLocation = $patron->getHomeLocationCode();
-		if (!$homeLocation) {
-			global $logger;
-			$logger->log('Failed to find any location to make the payment from', Logger::LOG_ERROR);
-			$result['messages'][] = translate([
-				'text' => 'Unable to find any location to assign the user for completing the payment',
+		$paymentLocationCode = '';
+		if ($library->paymentBranchSource == 'specified' && !empty($library->specifiedPaymentBranchCode)) {
+			$paymentLocationCode = $library->specifiedPaymentBranchCode;
+		} elseif ($library->paymentBranchSource == 'notApplicable' || $library->paymentBranchSource == 'patronHomeLibrary') {
+			$paymentLocationCode = $patron->getHomeLocationCode();
+		}
+		if (empty($paymentLocationCode)) {
+			$logger->log('Failed to determine the payment branch', Logger::LOG_ERROR);
+			$result['message'] = translate([
+				'text' => 'Failed to determine the payment branch',
 				'isPublicFacing' => true,
 			]);
 			return $result;
@@ -1694,10 +1707,31 @@ class CarlX extends AbstractIlsDriver {
 		$allPaymentsSucceed = true;
 
 		$allFines = $this->getFines($patron);
-
+		// If no fines are found for this patron, it could mean that the patron id has changed
+		// between the time 1) the Aspen user_payment entry was created and 2) the payment processor returned the patron to Aspen
+		// In this case, we will attempt to find the patron id by using the patronidchange table
+		if(empty($allFines)) {
+			$newPatronIds = $this->getPatronIDChanges($patron->ils_barcode);
+			if ($newPatronIds) {
+				$oldPatronId = $patron->ils_barcode;
+				$newPatronIdsColumn = array_column($newPatronIds, 'NEWPATRONID');
+				$newPatronIdsString = implode(', ', $newPatronIdsColumn);
+				$logger->log("Cannot find patron $oldPatronId for Payment Reference ID $payment->id : Trying patron id change lookup, found id(s) $newPatronIdsString", Logger::LOG_ERROR);
+				foreach ($newPatronIds as $newPatronId) {
+					$patron->ils_barcode = $newPatronId['NEWPATRONID'];
+					$allFines = $this->getFines($patron);
+					if (!empty($allFines)) {
+						break;
+					}
+				}
+				if (empty($allFines)) {	// none of the new patron ids worked
+					$patron->ils_barcode = $oldPatronId;
+					$logger->log("Cannot find patron $oldPatronId for Payment Reference ID $payment->id : None of the patron id changes worked", Logger::LOG_ERROR);
+				}
+			}
+		}
 		foreach ($accountLinesPaid as $line) {
 			[$feeId, $pmtAmount] = explode('|', $line);
-
 			$occurrence = 0;
 			foreach ($allFines as $fine) {
 				if ($fine['fineId'] == $feeId) {
@@ -1719,13 +1753,12 @@ class CarlX extends AbstractIlsDriver {
 			$paymentRequest->FineOrFee[0]->Amount = $pmtAmount;
 			$paymentRequest->Modifiers = new stdClass();
 			$paymentRequest->Modifiers->StaffID = $staffId; // The alias of the employee submitting the request. Required.
-			$paymentRequest->Modifiers->EnvBranch = $homeLocation; // Branch Code indicating the Branch being used. Required.
-
+			$paymentRequest->Modifiers->EnvBranch = strtoupper($paymentLocationCode); // Branch Code indicating the Branch being used. Required. // As of 2024 10 22, other CarlX/Aspen libraries have only uppercase CarlX branch codes; Nashville and La Porte have lowercase Aspen location codes that require conversion to uppercase CarlX branch codes
 			$requestOptions = $this->genericResponseSOAPCallOptions;
 			$requestOptions['login'] = $this->accountProfile->oAuthClientId;
 			$requestOptions['password'] = $this->accountProfile->oAuthClientSecret;
 			$settleFinesAndFeesResult = $this->doSoapRequest('settleFinesAndFees', $paymentRequest, $this->patronWsdl, $requestOptions, []);
-			if ($result) {
+			if ($settleFinesAndFeesResult) {
 				if (!$settleFinesAndFeesResult->ReceiptNumber) {
 					$allPaymentsSucceed = false;
 					$result['message'] = translate([
@@ -1748,13 +1781,10 @@ class CarlX extends AbstractIlsDriver {
 							'isPublicFacing' => true,
 						]);
 					} else {
-
 						$payment->message .= " CarlX Receipt Number $settleFinesAndFeesResult->ReceiptNumber";
-						$payment->update();
 					}
 				}
 			} else {
-				global $logger;
 				$logger->log('CarlX ILS gave no response when attempting to settle payment.', Logger::LOG_ERROR);
 				return [
 					'success' => false,
@@ -1766,32 +1796,36 @@ class CarlX extends AbstractIlsDriver {
 			}
 
 			if ($allPaymentsSucceed) {
-				$paymentNote = new stdClass();
-				$paymentNote->Note = new stdClass();
-				$paymentNote->Note->PatronID = $patron->ils_barcode;
-				$paymentNote->Note->NoteType = 2;
-				$paymentNote->Note->NoteText = $payment->paymentType . ' Transaction Reference: ' . $payment->id;
-				$paymentNote->Modifiers = '';
-				$addPaymentNoteResult = $this->doSoapRequest('addPatronNote', $paymentNote, $this->patronWsdl, $this->genericResponseSOAPCallOptions, []);
-				if ($addPaymentNoteResult) {
-					$success = stripos($addPaymentNoteResult->ResponseStatuses->ResponseStatus[0]->ShortMessage, 'Success') !== false;
-					if (!$success) {
-						$logger->log("Failed to add patron note for payment in CarlX for Reference ID $payment->id", Logger::LOG_ERROR);
-					}
-				} else {
-					$logger->log("CarlX gave no response when attempting to add patron note for payment Reference ID $payment->id", Logger::LOG_ERROR);
-				}
-
+				$this->createPatronPaymentNote($patron, $payment, $settleFinesAndFeesResult->ReceiptNumber);
 				$result['success'] = true;
 				$result['message'] = translate([
 					'text' => 'Your fines have been paid successfully, thank you.',
 					'isPublicFacing' => true,
 				]);
+			} else {
+				$result['success'] = false;
 			}
-
 		}
-
 		return $result;
+	}
+
+	protected function createPatronPaymentNote($patron, $payment, $receiptNumber): void {
+		global $logger;
+		$paymentNote = new stdClass();
+		$paymentNote->Note = new stdClass();
+		$paymentNote->Note->PatronID = $patron->ils_barcode;
+		$paymentNote->Note->NoteType = 2;
+		$paymentNote->Note->NoteText = $payment->paymentType . ' Transaction Reference: ' . $payment->id . '; CarlX Receipt: ' . $receiptNumber;
+		$paymentNote->Modifiers = '';
+		$addPaymentNoteResult = $this->doSoapRequest('addPatronNote', $paymentNote, $this->patronWsdl, $this->genericResponseSOAPCallOptions, []);
+		if ($addPaymentNoteResult) {
+			$success = stripos($addPaymentNoteResult->ResponseStatuses->ResponseStatus[0]->ShortMessage, 'Success') !== false;
+			if (!$success) {
+				$logger->log("Failed to add patron note for payment in CarlX for Reference ID $payment->id", Logger::LOG_ERROR);
+			}
+		} else {
+			$logger->log("CarlX gave no response when attempting to add patron note for payment Reference ID $payment->id", Logger::LOG_ERROR);
+		}
 	}
 
 	/**
@@ -2437,6 +2471,7 @@ class CarlX extends AbstractIlsDriver {
 		'F2' => 'Processing',
 		'FS' => 'Manual',
 		'L' => 'Lost',
+		'NR' => 'Manual', // NR = Non Resident, a juke to identify Nashville non resident account fees
 	];
 
 	static $fineTypeSIP2Translations = [
@@ -2444,6 +2479,7 @@ class CarlX extends AbstractIlsDriver {
 		'F2' => '05',
 		'FS' => '01',
 		'L' => '07',
+		'NR' => '01', // NR = Non Resident, a juke to identify Nashville non resident account fees
 	];
 
 	function getForgotPasswordType() {
@@ -2455,6 +2491,7 @@ class CarlX extends AbstractIlsDriver {
 	}
 
 	public function getPatronIDChanges($searchPatronID): ?array {
+		// As of 2024 10 15, there is no CarlX API call that will check for previous patron IDs. It is possible TLC will add an API call in CarlX 2025 release 1
 		if ($this->accountProfile->carlXViewVersion == 'v2') {
 			$version = 'v2';
 		} else {
@@ -2468,7 +2505,7 @@ class CarlX extends AbstractIlsDriver {
 				newpatronid
 			from patronidchange_$version p
 			where oldpatronid = :searchpatronid
-			order by changetime desc 
+			order by changetime desc
 			-- fetch first 1 rows only
 EOT;
 

@@ -6,9 +6,8 @@ class MyAccount_SnapPayComplete extends MyAccount {
 		global $interface;
 		$error = '';
 		$message = '';
-		$cancelled = 0;
 		if (empty($_REQUEST['udf1'])) {
-			$error = 'No Transaction ID was provided, could not cancel the payment';
+			$error = 'No Transaction ID was provided';
 		} else {
 			$paymentId = $_REQUEST['udf1'];
 			$hppHMACParamValue = '';
@@ -26,20 +25,14 @@ class MyAccount_SnapPayComplete extends MyAccount {
 				$result = UserPayment::completeSnapPayPayment();
 				if ($result['success']) {
 					$message = $result['message'];
-					$cancelled = 0;
 				} else {
 					$error = $result['message'];
-					$cancelled = 1;
 				}
 			}
 		}
 		$interface->assign('error', $error);
 		$interface->assign('message', $message);
-		if ($cancelled) {
-			$this->display('paymentCancelled.tpl');
-		} else {
-			$this->display('paymentCompleted.tpl');
-		}
+		$this->display('paymentCompleted.tpl');
 	}
 
 	function validateSnapPayHMAC(string $signatureFromSnapPay, $hppHMACParamValue): string {

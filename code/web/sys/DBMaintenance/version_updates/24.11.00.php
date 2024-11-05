@@ -129,7 +129,7 @@ function getUpdates24_11_00(): array {
 					id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 					settingId INT NOT NULL,
 					weight INT DEFAULT 0,
-					libraryId INT NOT NULL, 
+					libraryId INT NOT NULL,
 					clientSecret varchar(256) DEFAULT NULL,
 					clientKey varchar(50) DEFAULT NULL,
 					circulationEnabled tinyint(4) DEFAULT 1,
@@ -214,6 +214,15 @@ function getUpdates24_11_00(): array {
 		//pedro - PTFS-Europe
 
 		//James Staub - Nashville Public Library
+		'payment_branch_settings' => [
+			'title' => 'Payment Branch Settings',
+			'description' => 'Add a new Library setting to associate an eCommerce payment with a branch',
+			'continueOnError' => false,
+			'sql' => [
+				"ALTER TABLE library ADD COLUMN paymentBranchSource enum('notApplicable','patronHomeLocation','specified') DEFAULT 'notApplicable'",
+				"ALTER TABLE library ADD COLUMN specifiedPaymentBranchCode varchar(6) DEFAULT ''",
+			]
+		]
 
 		//Jeremy Eden - Howell Carnegie District Library
 

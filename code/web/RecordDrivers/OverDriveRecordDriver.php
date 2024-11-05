@@ -955,7 +955,7 @@ class OverDriveRecordDriver extends GroupedWorkSubDriver {
 	 *
 	 * @return LibraryOverDriveSettings[]
 	 */
-	public function getValidCollectionsForRecord(?User $patron) : array {
+	public function getValidCollectionsForRecord(null|false|User $patron) : array {
 		$validCollections = [];
 
 		global $library;

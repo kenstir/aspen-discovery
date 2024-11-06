@@ -5,7 +5,7 @@ git config --global --add safe.directory /usr/local/aspen-discovery
 #Expects to be installed on Debian 10 Buster or later
 #Run as sudo ./installer_debian.sh
 apt-get update
-apt-get -y install gpg openjdk-11-jre-headless openjdk-11-jdk-headless apache2 certbot python3-certbot-apache mariadb-server apt-transport-https lsb-release ca-certificates curl zip
+apt-get -y install gpg openjdk-17-jre-headless openjdk-17-jdk-headless apache2 certbot python3-certbot-apache mariadb-server apt-transport-https lsb-release ca-certificates curl zip
 
 # Install Ondrej Sury's php repo for access to additional PHP versions
 keyrings="/etc/apt/keyrings"

@@ -36,10 +36,36 @@ if ($argc > 3) {
 	die();
 }
 
+//Load additional parameters
+if ($argc > 4) {
+	$numberOfYears = (int)$argv[4];
+}else{
+	$backgroundProcess->endProcess('Number of years was not provided');
+	die();
+}
+if ($argc > 5) {
+	$minEntriesPerMonth = (int)$argv[5];
+}else{
+	$backgroundProcess->endProcess('Min entries per month was not provided');
+	die();
+}
+if ($argc > 6) {
+	$maxEntriesPerMonth = (int)$argv[6];
+}else{
+	$backgroundProcess->endProcess('Max entries per month was not provided');
+	die();
+}
+if ($argc > 7) {
+	$clearExistingReadingHistory = (bool)$argv[7];
+}else{
+	$backgroundProcess->endProcess('Whether existing reading histories should be cleared was not provided');
+	die();
+}
+
 $patronBarcode = '';
 if ($generationType == 3) {
-	if ($argc > 4) {
-		$patronBarcode = $argv[4];
+	if ($argc > 8) {
+		$patronBarcode = $argv[8];
 	}else{
 		$backgroundProcess->endProcess('No patron barcode was supplied');
 		die();
@@ -122,10 +148,6 @@ foreach ($userIdsToProcess as $userId) {
 		global $aspen_db;
 		$getGroupedWorkIdStmt = $aspen_db->prepare("SELECT * FROM grouped_work AS t1 JOIN (SELECT id FROM grouped_work ORDER BY RAND() LIMIT 1) as t2 ON t1.id=t2.id", [PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY]);
 
-		$numberOfYears = $_REQUEST['numberOfYears'] ?? 1;
-		$minEntriesPerMonth = $_REQUEST['minEntriesPerMonth'] ?? 0;
-		$maxEntriesPerMonth = $_REQUEST['maxEntriesPerMonth'] ?? 10;
-		$clearExistingReadingHistory = isset($_REQUEST['clearExistingReadingHistory']) && $_REQUEST['clearExistingReadingHistory'] == 'on';
 		if ($minEntriesPerMonth > $maxEntriesPerMonth) {
 			$tmp = $minEntriesPerMonth;
 			$minEntriesPerMonth = $maxEntriesPerMonth;

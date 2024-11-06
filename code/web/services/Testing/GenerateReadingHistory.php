@@ -18,9 +18,15 @@ class Testing_GenerateReadingHistory extends Admin_Admin {
 			require_once ROOT_DIR . '/sys/Utils/SystemUtils.php';
 			$additionalParameters = [];
 			$additionalParameters[] = $_REQUEST['generationType'];
+			$additionalParameters[] = $_REQUEST['numberOfYears'] ?? 1;
+			$additionalParameters[] = $_REQUEST['minEntriesPerMonth'] ?? 0;
+			$additionalParameters[] = $_REQUEST['maxEntriesPerMonth'] ?? 10;
+			$additionalParameters[] = $_REQUEST['clearExistingReadingHistory'] ?? 0;
+
 			if ($_REQUEST['generationType'] == '3') {
 				$additionalParameters[] = $_REQUEST['patronBarcode'] ?? '';
 			}
+
 
 			$result = SystemUtils::startBackgroundProcess("generateReadingHistory", $additionalParameters);
 

@@ -31,7 +31,7 @@ class Admin_eCommerceReport extends ObjectEditor {
 
 			$object->joinAdd(new User(), 'LEFT', 'user', 'userId', 'id');
 			$object->joinAdd(new Library(), 'LEFT', 'library', 'paidFromInstance', 'subdomain');
-			$object->whereAdd('user.homeLocationId IN (' . implode(', ', $adminHomeLibraryListIds) . ') OR library.libraryId in (' . implode(', ', $adminHomeLibraryLocationListIds) . ')');
+			$object->whereAdd('user.homeLocationId IN (' . implode(', ', $adminHomeLibraryLocationListIds) . ') OR library.libraryId in (' . implode(', ', $adminHomeLibraryListIds) . ')');
 		}
 		$object->find();
 		while ($object->fetch()) {

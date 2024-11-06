@@ -506,9 +506,11 @@ class OverDriveRecordDriver extends GroupedWorkSubDriver {
 	public function getFormats() : array {
 		$relatedRecord = $this->getRelatedRecord();
 		$formats = [];
-		$formats[$relatedRecord->getFormat()] = $relatedRecord->getFormat();
-		if ($this->subSource == 'kindle') {
-			$formats[] = 'Kindle';
+		if ($relatedRecord != null) {
+			$formats[$relatedRecord->getFormat()] = $relatedRecord->getFormat();
+			if ($this->subSource == 'kindle') {
+				$formats[] = 'Kindle';
+			}
 		}
 		return $formats;
 	}

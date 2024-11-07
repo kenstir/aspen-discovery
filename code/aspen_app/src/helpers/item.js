@@ -402,3 +402,20 @@ export const getRenewalCount = (count, available = null) => {
           return null;
      }
 };
+
+export const getCollectionName = (source, collectionName = null) => {
+	const { language } = React.useContext(LanguageContext);
+	if (source === 'overdrive' && collectionName) {
+		return (
+			<Text
+				fontSize={{
+					base: 'xs',
+					lg: 'sm',
+				}}>
+				<Text bold>{getTermFromDictionary(language, 'collection')}:</Text> {collectionName}
+			</Text>
+		);
+	} else {
+		return null;
+	}
+}

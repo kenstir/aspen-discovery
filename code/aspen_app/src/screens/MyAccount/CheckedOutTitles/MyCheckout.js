@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 
 // custom components and helper files
 import { LanguageContext, LibrarySystemContext, UserContext } from '../../../context/initialContext';
-import { getAuthor, getCheckedOutTo, getCleanTitle, getDueDate, getFormat, getRenewalCount, getTitle, isOverdue, willAutoRenew } from '../../../helpers/item';
+import { getAuthor, getCheckedOutTo, getCleanTitle, getDueDate, getFormat, getRenewalCount, getTitle, isOverdue, willAutoRenew, getCollectionName } from '../../../helpers/item';
 import { navigate, navigateStack } from '../../../helpers/RootNavigator';
 import { getTermFromDictionary, getTranslationsWithValues } from '../../../translations/TranslationService';
 import { renewCheckout, returnCheckout, viewOnlineItem, viewOverDriveItem } from '../../../util/accountActions';
@@ -130,6 +130,11 @@ export const MyCheckout = (props) => {
           itemId = checkout.renewalId;
      }
 
+	let record = checkout.recordId;
+	if(checkout.source === 'overdrive') {
+		record = checkout.sourceId
+	}
+
      const handleOpenPalaceProjectInstructions = () => {
           navigate('PalaceProjectInstructionsModal');
      };
@@ -154,6 +159,7 @@ export const MyCheckout = (props) => {
                          {isOverdue(checkout.overdue)}
                          {getAuthor(checkout.author)}
                          {getFormat(checkout.format, checkout.source)}
+						{getCollectionName(checkout.source, checkout.collectionName ?? null)}
                          {getCheckedOutTo(checkout.user)}
                          {getDueDate(checkout.dueDate)}
                          {getRenewalCount(checkout.renewCount ?? 0, checkout.maxRenewals ?? null)}
@@ -192,7 +198,7 @@ export const MyCheckout = (props) => {
                                    isLoadingText={getTermFromDictionary(language, 'renewing', true)}
                                    onPress={() => {
                                         setRenew(true);
-                                        renewCheckout(checkout.barcode, checkout.recordId, checkout.source, itemId, library.baseUrl, checkout.userId).then((result) => {
+                                        renewCheckout(checkout.barcode, record, checkout.source, itemId, library.baseUrl, checkout.userId).then((result) => {
                                              setRenew(false);
 
                                              if (result?.confirmRenewalFee && result.confirmRenewalFee) {
@@ -201,7 +207,7 @@ export const MyCheckout = (props) => {
                                                        title: result.api.title,
                                                        confirmRenewalFee: result.confirmRenewalFee ?? false,
                                                        action: result.api.action,
-                                                       recordId: checkout.recordId ?? null,
+                                                       recordId: record ?? null,
                                                        barcode: checkout.barcode ?? null,
                                                        source: checkout.source ?? null,
                                                        itemId: itemId ?? null,
@@ -263,7 +269,7 @@ export const MyCheckout = (props) => {
                                         isLoadingText={getTermFromDictionary(language, 'returning', true)}
                                         onPress={() => {
                                              setReturn(true);
-                                             returnCheckout(checkout.userId, checkout.recordId, checkout.source, checkout.overDriveId, library.baseUrl, version, checkout.transactionId, language).then((result) => {
+                                             returnCheckout(checkout.userId, record, checkout.source, checkout.overDriveId, library.baseUrl, version, checkout.transactionId, language).then((result) => {
                                                   setReturn(false);
                                                   reloadCheckouts();
                                                   toggle();
@@ -281,7 +287,7 @@ export const MyCheckout = (props) => {
                                         isLoadingText={getTermFromDictionary(language, 'returning', true)}
                                         onPress={() => {
                                              setReturn(true);
-                                             returnCheckout(checkout.userId, checkout.recordId, checkout.source, checkout.overDriveId, library.baseUrl, version, checkout.transactionId, language).then((result) => {
+                                             returnCheckout(checkout.userId, record, checkout.source, checkout.overDriveId, library.baseUrl, version, checkout.transactionId, language).then((result) => {
                                                   setReturn(false);
                                                   reloadCheckouts();
                                                   toggle();

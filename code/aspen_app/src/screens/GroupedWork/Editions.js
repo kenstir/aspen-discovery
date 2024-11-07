@@ -311,8 +311,10 @@ const Edition = (payload) => {
      const holdTypeForFormat = records.holdType ?? 'default';
      const variationId = records.variationId ?? null;
 
-     const handleOnPress = () => {
-          navigate('WhereIsIt', { id: id, format: format, prevRoute: prevRoute, type: 'record', recordId: fullRecordId });
+	const status = records.statusIndicator;
+
+	const handleOnPress = () => {
+          navigate('WhereIsIt', { id: id, format: format, prevRoute: prevRoute, type: 'record', recordId: fullRecordId, numHolds: status.numHolds, source });
      };
 
      const statusIndicator = getStatusIndicator(records.statusIndicator, language);
@@ -333,7 +335,7 @@ const Edition = (payload) => {
                                         <BadgeText textTransform="none">{statusIndicator.label}</BadgeText>
                                    </Badge>
                               </Center>
-                              {records.source === 'ils' ? (
+                              {records.source === 'ils' || status.isEContent ? (
                                    <Button variant="link" size="xs" onPress={handleOnPress}>
                                         <ButtonIcon as={MaterialIcons} name="location-pin" size="xs" color={theme['colors']['tertiary']['500']} />
                                         <ButtonText color={theme['colors']['tertiary']['500']}>{getTermFromDictionary(language, 'where_is_it')}</ButtonText>

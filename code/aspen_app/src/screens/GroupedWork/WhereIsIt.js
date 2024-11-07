@@ -10,7 +10,7 @@ import {getTermFromDictionary} from '../../translations/TranslationService';
 
 export const WhereIsIt = () => {
      const route = useRoute();
-     const { id, format, prevRoute, type, recordId } = route.params;
+     const { id, format, prevRoute, type, recordId, source } = route.params;
      const { language } = React.useContext(LanguageContext);
      const { library } = React.useContext(LibrarySystemContext);
     const { theme, textColor } = React.useContext(ThemeContext);
@@ -27,7 +27,7 @@ export const WhereIsIt = () => {
           },
      });
 
-     return (
+	 return (
           <Box p="$5">
                {isLoading || status === 'loading' || isFetching ? (
                     loadingSpinner()
@@ -42,11 +42,17 @@ export const WhereIsIt = () => {
                               <Text bold w="30%" size="xs" color={textColor}>
                                    {getTermFromDictionary(language, 'location')}
                               </Text>
+							 {source === 'overdrive' ? (
+								 <Text bold w="30%" size="xs" color={textColor}>
+									 {getTermFromDictionary(language, 'holds')}
+								 </Text>
+							 ) : (
                               <Text bold w="30%" size="xs" color={textColor}>
                                    {getTermFromDictionary(language, 'call_num')}
                               </Text>
+							 )}
                          </HStack>
-                         <FlatList data={Object.keys(data.manifestation)} renderItem={({ item }) => <Details manifestation={data.manifestation[item]} />} />
+                         <FlatList data={Object.keys(data.manifestation)} renderItem={({ item }) => <Details manifestation={data.manifestation[item]} source={source} />} />
                     </Box>
                )}
           </Box>
@@ -54,9 +60,10 @@ export const WhereIsIt = () => {
 };
 
 const Details = (data) => {
-     console.log(data.manifestation);
+     //console.log(data.manifestation);
     const { theme, textColor } = React.useContext(ThemeContext);
      const manifestation = data.manifestation;
+	 const source = data.source;
      return (
           <HStack space="md" justifyContent="space-between">
                <Text w="30%" size="xs" color={textColor}>
@@ -65,9 +72,15 @@ const Details = (data) => {
                <Text w="30%" size="xs" color={textColor}>
                     {manifestation.shelfLocation}
                </Text>
+			  {source === 'overdrive' ? (
+				  <Text w="30%" size="xs" color={textColor}>
+					  {manifestation.numHolds}
+				  </Text>
+			  ) : (
                <Text w="30%" size="xs" color={textColor}>
                     {manifestation.callNumber}
                </Text>
+			  )}
           </HStack>
      );
 };

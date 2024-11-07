@@ -521,7 +521,7 @@ class OverDriveRecordDriver extends GroupedWorkSubDriver {
 	 * @return  string[]
 	 */
 	public function getFormatCategory() : array {
-		return $this->getGroupedWorkDriver()->getFormatCategory();
+		return [$this->getGroupedWorkDriver()->getFormatCategory()];
 	}
 
 	/**

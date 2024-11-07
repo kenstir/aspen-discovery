@@ -1079,7 +1079,7 @@ class GroupedWorkDriver extends IndexRecordDriver {
 		}
 	}
 
-	public function getFormatCategory() {
+	public function getFormatCategory() : string {
 		global $solrScope;
 		require_once ROOT_DIR . '/sys/SystemVariables.php';
 		$systemVariables = SystemVariables::getSystemVariables();
@@ -3061,8 +3061,8 @@ class GroupedWorkDriver extends IndexRecordDriver {
 
 	private function getVariationRecordAndItemIdsFromDB($scopeId, $groupedWorkId) {
 		global $aspen_db;
-		$getIdsQuery = "select groupedWorkId, groupedWorkVariationId, groupedWorkRecordId, grouped_work_record_items.id as groupedRecordItemId, hasParentRecord FROM 
-									grouped_work_record_items inner join grouped_work_records on groupedWorkRecordId = grouped_work_records.id where 
+		$getIdsQuery = "select groupedWorkId, groupedWorkVariationId, groupedWorkRecordId, grouped_work_record_items.id as groupedRecordItemId, hasParentRecord FROM
+									grouped_work_record_items inner join grouped_work_records on groupedWorkRecordId = grouped_work_records.id where
 									(locationOwnedScopes like '%~$scopeId~%' OR libraryOwnedScopes like '%~$scopeId~%' OR recordIncludedScopes LIKE '%~$scopeId~%') and groupedWorkId = {$groupedWorkId}";
 		$results = $aspen_db->query($getIdsQuery, PDO::FETCH_ASSOC);
 		$allIds = $results->fetchAll();
@@ -3090,7 +3090,7 @@ class GroupedWorkDriver extends IndexRecordDriver {
 			$variations = [];
 		} else {
 			$uniqueVariationsIdsString = implode(',', $uniqueVariationIds);
-			$variationQuery = "SELECT grouped_work_variation.id, indexed_language.language, indexed_econtent_source.eContentSource, indexed_format.format, indexed_format_category.formatCategory FROM grouped_work_variation 
+			$variationQuery = "SELECT grouped_work_variation.id, indexed_language.language, indexed_econtent_source.eContentSource, indexed_format.format, indexed_format_category.formatCategory FROM grouped_work_variation
 									  LEFT JOIN indexed_language on primaryLanguageId = indexed_language.id
 									  LEFT JOIN indexed_econtent_source on eContentSourceId = indexed_econtent_source.id
 									  LEFT JOIN indexed_format on formatId = indexed_format.id
@@ -3111,7 +3111,7 @@ class GroupedWorkDriver extends IndexRecordDriver {
 			$records = [];
 		} else {
 			$uniqueRecordIdsString = implode(',', $uniqueRecordIds);
-			$recordQuery = "SELECT grouped_work_records.id, recordIdentifier, isClosedCaptioned, indexed_record_source.source, indexed_record_source.subSource, indexed_edition.edition, indexed_publisher.publisher, indexed_publication_date.publicationDate, indexed_place_of_publication.placeOfPublication, indexed_physical_description.physicalDescription, indexed_format.format, indexed_format_category.formatCategory, indexed_language.language, hasParentRecord, hasChildRecord FROM grouped_work_records 
+			$recordQuery = "SELECT grouped_work_records.id, recordIdentifier, isClosedCaptioned, indexed_record_source.source, indexed_record_source.subSource, indexed_edition.edition, indexed_publisher.publisher, indexed_publication_date.publicationDate, indexed_place_of_publication.placeOfPublication, indexed_physical_description.physicalDescription, indexed_format.format, indexed_format_category.formatCategory, indexed_language.language, hasParentRecord, hasChildRecord FROM grouped_work_records
 								  LEFT JOIN indexed_record_source ON sourceId = indexed_record_source.id
 								  LEFT JOIN indexed_edition ON editionId = indexed_edition.id
 								  LEFT JOIN indexed_publisher ON publisherId = indexed_publisher.id
@@ -3136,12 +3136,12 @@ class GroupedWorkDriver extends IndexRecordDriver {
 			$scopedItems = [];
 		} else {
 			$uniqueItemIdsString = implode(',', $uniqueItemIds);
-			$scopeQuery = "SELECT grouped_work_record_items.id as groupedWorkItemId, available, holdable, inLibraryUseOnly, locationOwnedScopes, libraryOwnedScopes, groupedStatusTbl.status as groupedStatus, statusTbl.status as status, 
-								  grouped_work_record_items.groupedWorkRecordId, grouped_work_record_items.groupedWorkVariationId, grouped_work_record_items.itemId, indexed_call_number.callNumber, indexed_shelf_location.shelfLocation, numCopies, isOrderItem, dateAdded, 
+			$scopeQuery = "SELECT grouped_work_record_items.id as groupedWorkItemId, available, holdable, inLibraryUseOnly, locationOwnedScopes, libraryOwnedScopes, groupedStatusTbl.status as groupedStatus, statusTbl.status as status,
+								  grouped_work_record_items.groupedWorkRecordId, grouped_work_record_items.groupedWorkVariationId, grouped_work_record_items.itemId, indexed_call_number.callNumber, indexed_shelf_location.shelfLocation, numCopies, isOrderItem, dateAdded,
        							  indexed_location_code.locationCode, indexed_sub_location_code.subLocationCode, lastCheckInDate, isVirtual
 								  FROM grouped_work_record_items
-								  LEFT JOIN indexed_status as groupedStatusTbl on groupedStatusId = groupedStatusTbl.id 
-								  LEFT JOIN indexed_status as statusTbl on statusId = statusTbl.id 
+								  LEFT JOIN indexed_status as groupedStatusTbl on groupedStatusId = groupedStatusTbl.id
+								  LEFT JOIN indexed_status as statusTbl on statusId = statusTbl.id
 								  LEFT JOIN indexed_call_number ON callNumberId = indexed_call_number.id
 								  LEFT JOIN indexed_shelf_location ON shelfLocationId = indexed_shelf_location.id
 								  LEFT JOIN indexed_location_code on locationCodeId = indexed_location_code.id
@@ -3529,7 +3529,7 @@ class GroupedWorkDriver extends IndexRecordDriver {
 	public function formatGroupedWorkCitation() {
 		// require_once ROOT_DIR . '/RecordDrivers/GroupedWorkDriver.php';
 		require_once ROOT_DIR . '/sys/CitationBuilder.php';
-			
+
 		if ($this->isValid()) {
 			// Initialize an array to store the RIS-formatted citation fields
 			$risFields = array();
@@ -3739,7 +3739,7 @@ class GroupedWorkDriver extends IndexRecordDriver {
 				$risFields[] = "ST  - ".$shortTilte;
 			}
 
-			// RIS Tag: SN - ISBN 
+			// RIS Tag: SN - ISBN
 			$ISBN = $this->getPrimaryIsbn();
 			if(!empty($ISBN)){
 				$risFields[] = "SN  - ".$ISBN;

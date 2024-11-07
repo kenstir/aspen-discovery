@@ -136,10 +136,15 @@ abstract class CircEntry extends DataObject {
 		}
 	}
 
-	public function getFormatCategory() {
+	public function getFormatCategory() : ?string {
 		$recordDriver = $this->getRecordDriver();
 		if (!empty($recordDriver)) {
-			return $recordDriver->getFormatCategory();
+			$formatCategory = $recordDriver->getFormatCategory();
+			if (is_array($formatCategory)) {
+				return reset($formatCategory);
+			}else{
+				return $formatCategory;
+			}
 		} else {
 			return null;
 		}

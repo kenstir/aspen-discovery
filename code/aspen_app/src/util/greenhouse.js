@@ -92,7 +92,8 @@ export async function fetchNearbyLibrariesFromGreenhouse() {
      let url = Constants.expoConfig.extra.greenhouseUrl;
      let latitude,
           longitude = 0;
-     if (!_.includes(GLOBALS.slug, 'aspen-lida')) {
+	let slug = GLOBALS.slug;
+     if (!slug.startsWith('aspen-lida')) {
           method = 'getLibrary';
           isBranded = true;
           url = Constants.expoConfig.extra.apiUrl;

@@ -56,7 +56,7 @@ sites/default/solr-7.6.0/server/tmp/*
 install/templates/*
 .vscode
 
-# Compiled source #                                                                                   
+# Compiled source #
 ###################
 *.com
 *.class
@@ -204,6 +204,7 @@ sites/morgan.localhost/conf/config.ini
 sites/morgan.localhost/conf/config.pwd.ini.template
 sites/morgan.localhost/httpd-morgan.localhost.conf
 sites/morgan.localhost/morgan.localhost.bat
+sites/aspen.catsoup.dev/*
 .idea/scopes/_less_files.xml
 sites/kodidev.localhost/conf/config.cron.ini
 sites/kodidev.localhost/conf/config.ini

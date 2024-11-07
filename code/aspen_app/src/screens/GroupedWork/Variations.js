@@ -265,6 +265,7 @@ const Variation = (payload) => {
      const actions = variation.actions;
      const source = variation.source;
      const status = getStatusIndicator(variation.statusIndicator, language);
+	 const statusIndicator = variation.statusIndicator;
      const holdTypeForFormat = variation.holdType ?? 'default';
      const variationId = variation.variationId ?? null;
      const title = variation.title ?? null;
@@ -314,7 +315,7 @@ const Variation = (payload) => {
      });
 
      const handleOnPress = () => {
-          navigate('CopyDetails', { id: id, format: format, prevRoute: prevRoute, type: 'groupedWork', recordId: null });
+          navigate('CopyDetails', { id: id, format: format, prevRoute: prevRoute, type: 'groupedWork', recordId: null, numHolds: statusIndicator.numHolds, source });
      };
 
      const handleOpenEditions = () => {
@@ -339,7 +340,7 @@ const Variation = (payload) => {
                                         {status.label}
                                    </BadgeText>
                               </Badge>
-                              {source === 'ils' ? (
+                              {source === 'ils' || statusIndicator.isEContent ? (
                                    <Button variant="link" size="xs" onPress={handleOnPress}>
                                         <ButtonIcon as={MapPinIcon} size="xs" color={theme['colors']['tertiary']['500']} mr="$1" />
                                         <ButtonText color={theme['colors']['tertiary']['500']}>{getTermFromDictionary(language, 'where_is_it')}</ButtonText>

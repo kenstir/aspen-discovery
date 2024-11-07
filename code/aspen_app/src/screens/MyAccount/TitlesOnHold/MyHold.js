@@ -7,7 +7,7 @@ import { Actionsheet, Box, Button, Center, Checkbox, HStack, Icon, Pressable, Te
 import React from 'react';
 import { popAlert } from '../../../components/loadError';
 import { HoldsContext, LanguageContext, LibrarySystemContext, UserContext } from '../../../context/initialContext';
-import { getAuthor, getBadge, getCleanTitle, getExpirationDate, getFormat, getOnHoldFor, getPickupLocation, getPosition, getStatus, getTitle, getType } from '../../../helpers/item';
+import { getAuthor, getBadge, getCleanTitle, getExpirationDate, getFormat, getOnHoldFor, getPickupLocation, getPosition, getStatus, getTitle, getType, getCollectionName } from '../../../helpers/item';
 import { navigateStack } from '../../../helpers/RootNavigator';
 import { getTermFromDictionary } from '../../../translations/TranslationService';
 import { cancelHold, cancelHolds, cancelVdxRequest, freezeHold, freezeHolds, thawHold, thawHolds } from '../../../util/accountActions';
@@ -169,7 +169,7 @@ export const MyHold = (props) => {
                          isLoadingText={getTermFromDictionary(language, 'checking_out', true)}
                          onPress={async () => {
                               startCheckingOut(true);
-                              await checkoutItem(library.baseUrl, hold.recordId, hold.source, hold.userId, '', '', '', language).then((result) => {
+                              await checkoutItem(library.baseUrl, hold.sourceId, hold.source, hold.userId, '', '', '', language).then((result) => {
                                    popAlert(result.title, result.message, result.success ? 'success' : 'error');
                                    resetGroup();
                                    onClose();
@@ -192,6 +192,11 @@ export const MyHold = (props) => {
                     label = getTermFromDictionary(language, 'ill_cancel_request');
                }
 
+			   let record = hold.recordId;
+			   if(hold.source === 'overdrive') {
+				   record = hold.sourceId
+			   }
+
                if (hold.source !== 'vdx') {
                     return (
                          <Actionsheet.Item
@@ -200,7 +205,7 @@ export const MyHold = (props) => {
                               startIcon={<Icon as={MaterialIcons} name="cancel" color="trueGray.400" mr="1" size="6" />}
                               onPress={() => {
                                    startCancelling(true);
-                                   cancelHold(hold.cancelId, hold.recordId, hold.source, library.baseUrl, hold.userId, language).then((r) => {
+                                   cancelHold(hold.cancelId, record, hold.source, library.baseUrl, hold.userId, language).then((r) => {
                                         resetGroup();
                                         onClose();
                                         startCancelling(false);
@@ -236,6 +241,10 @@ export const MyHold = (props) => {
 
      const createFreezeHoldAction = () => {
           if (hold.allowFreezeHolds === '1' && allowLinkedAccountAction) {
+			  let record = hold.recordId;
+			  if(hold.source === 'overdrive') {
+				  record = hold.sourceId
+			  }
                if (hold.frozen) {
                     return (
                          <Actionsheet.Item
@@ -244,7 +253,7 @@ export const MyHold = (props) => {
                               startIcon={<Icon as={MaterialCommunityIcons} name={icon} color="trueGray.400" mr="1" size="6" />}
                               onPress={() => {
                                    startThawing(true);
-                                   thawHold(hold.cancelId, hold.recordId, hold.source, library.baseUrl, hold.userId, language).then((r) => {
+                                   thawHold(hold.cancelId, record, hold.source, library.baseUrl, hold.userId, language).then((r) => {
                                         resetGroup();
                                         onClose(onClose);
                                         startThawing(false);
@@ -254,7 +263,7 @@ export const MyHold = (props) => {
                          </Actionsheet.Item>
                     );
                } else {
-                    return <SelectThawDate isOpen={isOpen} label={null} freezeLabel={freezeHoldLabel} freezingLabel={freezingHoldLabel} language={language} libraryContext={library} holdsContext={updateHolds} onClose={onClose} freezeId={hold.cancelId} recordId={hold.recordId} source={hold.source} libraryUrl={library.baseUrl} userId={hold.userId} resetGroup={resetGroup} />;
+                    return <SelectThawDate isOpen={isOpen} label={null} freezeLabel={freezeHoldLabel} freezingLabel={freezingHoldLabel} language={language} libraryContext={library} holdsContext={updateHolds} onClose={onClose} freezeId={hold.cancelId} recordId={record} source={hold.source} libraryUrl={library.baseUrl} userId={hold.userId} resetGroup={resetGroup} />;
                }
           } else {
                return null;
@@ -279,6 +288,7 @@ export const MyHold = (props) => {
                               {getBadge(hold.status, hold.frozen, hold.available, hold.source, hold.statusMessage ?? '')}
                               {getAuthor(hold.author)}
                               {getFormat(hold.format)}
+							 {getCollectionName(hold.source, hold.collectionName ?? null)}
                               {getType(hold.type)}
                               {getOnHoldFor(hold.user)}
                               {getPickupLocation(hold.currentPickupName, hold.source)}
@@ -455,17 +465,21 @@ export const ManageAllHolds = (props) => {
      if (_.isArray(holdsNotReady)) {
           _.map(holdsNotReady, function (item, index, collection) {
                if (item.source !== 'vdx') {
+				   let record = item.recordId;
+				   if(item.source === 'overdrive') {
+					   record = item.sourceId
+				   }
                     if (item.canFreeze) {
                          if (item.frozen) {
                               titlesToThaw.push({
-                                   recordId: item.recordId,
+                                   recordId: record,
                                    cancelId: item.cancelId,
                                    source: item.source,
                                    patronId: item.userId,
                               });
                          } else {
                               titlesToFreeze.push({
-                                   recordId: item.recordId,
+                                   recordId: record,
                                    cancelId: item.cancelId,
                                    source: item.source,
                                    patronId: item.userId,
@@ -475,7 +489,7 @@ export const ManageAllHolds = (props) => {
 
                     if (item.cancelable) {
                          titlesToCancel.push({
-                              recordId: item.recordId,
+                              recordId: record,
                               cancelId: item.cancelId,
                               source: item.source,
                               patronId: item.userId,

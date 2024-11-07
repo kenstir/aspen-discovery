@@ -355,7 +355,6 @@ class SystemVariables extends DataObject {
 			$objectStructure['indexingSection']['properties']['storeRecordDetailsInDatabase']['type'] = 'hidden';
 			$objectStructure['indexingSection']['properties']['indexVersion']['type'] = 'hidden';
 			$objectStructure['indexingSection']['properties']['searchVersion']['type'] = 'hidden';
-			$objectStructure['webBuilderSection']['properties']['enableGrapesEditor']['type'] = 'hidden';
 			$objectStructure['enableBrandedApp']['type'] = 'hidden';
 		}
 

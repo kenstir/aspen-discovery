@@ -197,6 +197,14 @@ function getUpdates24_11_00(): array {
 		//kirstien - ByWater
 
 		//kodi - ByWater
+		'alternate_card_varchar_limit' => [
+			'title' => 'Alternate Card Label Character Limits',
+			'description' => 'Increase the character limit for the alternate library car label and alternate library card password label fields',
+			'sql' => [
+				"ALTER TABLE library MODIFY COLUMN alternateLibraryCardLabel VARCHAR(100) DEFAULT ''",
+				"ALTER TABLE library MODIFY COLUMN alternateLibraryCardPasswordLabel VARCHAR(100) DEFAULT ''",
+			],
+		], //alternate_card_varchar_limit
 
 		//alexander - PTFS-Europe
 

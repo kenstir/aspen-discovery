@@ -5907,8 +5907,14 @@ class MyAccount_AJAX extends JSON_Action {
 					'allowedPaymentMethod' => 3,
 				];
 
-				$result = $newRedirectRequest->curlPostBodyData($url, $postParams, true);
-				$result = json_decode($result);
+				$paymentRequestUrl = "https://magic.collectorsolutions.com/magic-ui/PaymentRedirect/" . $NCRPaymentsSetting->webKey . "/" . $transactionIdentifier;
+
+				$payment->orderId = $transactionIdentifier;
+				$payment->update();
+
+				$resultJSON = $newRedirectRequest->curlPostBodyData($url, $postParams, true);
+				$result = json_decode($resultJSON);
+				ExternalRequestLogEntry::logRequest('ncr.createNCROrder', 'POST', $url, $newRedirectRequest->getHeaders(), json_encode($postParams), $newRedirectRequest->getResponseCode(), $resultJSON, []);
 
 				if ($result->status != "ok"){
 					return [
@@ -5916,11 +5922,6 @@ class MyAccount_AJAX extends JSON_Action {
 						'message' => $result->errors[0]->message,
 					];
 				}
-				$paymentRequestUrl = "https://magic.collectorsolutions.com/magic-ui/PaymentRedirect/" . $NCRPaymentsSetting->webKey . "/" . $transactionIdentifier;
-
-				$payment->orderId = $transactionIdentifier;
-				$payment->update();
-
 				return [
 					'success' => true,
 					'message' => 'Redirecting to payment processor',

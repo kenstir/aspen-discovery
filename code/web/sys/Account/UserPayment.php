@@ -248,6 +248,7 @@ class UserPayment extends DataObject {
 							if ($hostedTransactionResultsResponse && $curlWrapper->getResponseCode() == 200) {
 								$jsonResponse = json_decode($hostedTransactionResultsResponse);
 							}
+							ExternalRequestLogEntry::logRequest('ncr.completeNCROrder', 'GET', $url, $curlWrapper->getHeaders(), false, $curlWrapper->getResponseCode(), $hostedTransactionResultsResponse, []);
 
 							if ($jsonResponse->status == "ok") {
 								if($userPayment->transactionType == 'donation') {

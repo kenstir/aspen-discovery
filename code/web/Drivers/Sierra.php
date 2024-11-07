@@ -2276,7 +2276,11 @@ class Sierra extends Millennium {
 	 * @return bool
 	 */
 	public function showResetUsernameLink(): bool {
-		return true;
+		global $library;
+		if ($library->allowUsernameUpdates){
+			return true;
+		}
+		return false;
 	}
 
 	public function getUsernameValidationRules(): array {

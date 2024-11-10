@@ -6,7 +6,7 @@ require_once ROOT_DIR . '/sys/Greenhouse/AspenSiteCache.php';
 require_once ROOT_DIR . '/sys/CurlWrapper.php';
 
 class Greenhouse_AspenLiDASiteListingCache extends Admin_Admin {
-	function launch() {
+	function launch() : void {
 		global $interface;
 
 		$lastUpdated = '';
@@ -30,7 +30,11 @@ class Greenhouse_AspenLiDASiteListingCache extends Admin_Admin {
 				$url .= '&reload=true';
 			}
 
-			$cache = json_decode($curlWrapper->curlGetPage($url), true);
+			$response = $curlWrapper->curlGetPage($url);
+			$cache = json_decode($response, true);
+			if (empty($cache)) {
+				$cache = 'Error refreshing Aspen LiDA libraries from ' . $url;
+			}
 			$curlWrapper->close_curl();
 		}
 		$contents = $this->easy_printr("cache", $cache);
@@ -40,8 +44,8 @@ class Greenhouse_AspenLiDASiteListingCache extends Admin_Admin {
 		$this->display('aspenLiDASiteListingCache.tpl', 'Aspen LiDA Site Listing Cache');
 	}
 
-	function easy_printr($section, &$var) {
-		$contents = "<pre id='{$section}'>";
+	function easy_printr($section, $var) : string {
+		$contents = "<pre id='$section'>";
 		$formattedContents = print_r($var, true);
 		if ($formattedContents !== false) {
 			$contents .= $formattedContents;
@@ -50,10 +54,11 @@ class Greenhouse_AspenLiDASiteListingCache extends Admin_Admin {
 		return $contents;
 	}
 
-	public function display($mainContentTemplate, $pageTitle, $sidebarTemplate = 'Greenhouse/greenhouse-sidebar.tpl', $translateTitle = true) {
+	public function display($mainContentTemplate, $pageTitle, $sidebarTemplate = 'Greenhouse/greenhouse-sidebar.tpl', $translateTitle = true) : void {
 		parent::display($mainContentTemplate, $pageTitle, $sidebarTemplate, $translateTitle);
 	}
 
+	/** @noinspection PhpUnusedParameterInspection */
 	function getAdditionalObjectActions($existingObject): array {
 		return [];
 	}

@@ -313,18 +313,10 @@ class GreenhouseAPI extends AbstractAPI {
 		];
 
 		// prep user location
-		if (isset($_GET['latitude'])) {
-			$userLatitude = $_GET['latitude'];
-		} else {
-			$userLatitude = 0;
-		}
-		if (isset($_GET['longitude'])) {
-			$userLongitude = $_GET['longitude'];
-		} else {
-			$userLongitude = 0;
-		}
+		$userLatitude = $_GET['latitude'] ?? 0;
+		$userLongitude = $_GET['longitude'] ?? 0;
 
-		// get release channel
+		// get the release channel
 		$releaseChannel = "any";
 		if (isset($_GET['release_channel'])) {
 			$releaseChannel = $_GET['release_channel'];
@@ -398,7 +390,7 @@ class GreenhouseAPI extends AbstractAPI {
 		}
 		if (!empty($return['libraries'])) {
 			return $return;
-		} elseif (empty($return['libraries'])) {
+		} elseif ($reload) {
 			return $this->getLibraries(true, false);
 		} else {
 			$return['success'] = false;
@@ -439,16 +431,8 @@ class GreenhouseAPI extends AbstractAPI {
 		require_once ROOT_DIR . '/sys/AspenLiDA/LocationSetting.php';
 
 		// prep user location
-		if (isset($_GET['latitude'])) {
-			$userLatitude = $_GET['latitude'];
-		} else {
-			$userLatitude = 0;
-		}
-		if (isset($_GET['longitude'])) {
-			$userLongitude = $_GET['longitude'];
-		} else {
-			$userLongitude = 0;
-		}
+		$userLatitude = $_GET['latitude'] ?? 0;
+		$userLongitude = $_GET['longitude'] ?? 0;
 
 		$num = 0;
 		$enabledAccess = 0;
@@ -481,6 +465,9 @@ class GreenhouseAPI extends AbstractAPI {
 					$baseUrl = $library->baseUrl;
 					if (empty($baseUrl)) {
 						$baseUrl = $configArray['Site']['url'];
+					}
+					if (!str_ends_with($baseUrl, '/')){
+						$baseUrl .= '/';
 					}
 
 					$solrScope = false;

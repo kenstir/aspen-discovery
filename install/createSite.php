@@ -423,7 +423,6 @@ if (!$siteOnWindows){
 
 //Setup solr
 if (!$siteOnWindows){
-	exec('chown -R solr:solr ' . $installDir . '/sites/default/solr-7.6.0');
 	exec('chown -R solr:solr ' . $installDir . '/sites/default/solr-8.11.2');
 	exec('chown -R solr:solr ' . $dataDir . '/solr7');
 }

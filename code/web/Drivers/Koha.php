@@ -4102,6 +4102,7 @@ class Koha extends AbstractIlsDriver {
 			if (!empty($extendedAttributes)) {
 				$borrowerAttributes = [];
 				foreach ($extendedAttributes as $attribute) {
+					$authorizedValues = [];
 					foreach ($attribute['authorized_values'] as $key => $value) {
 						$authorizedValues[$key] = $value;
 					}

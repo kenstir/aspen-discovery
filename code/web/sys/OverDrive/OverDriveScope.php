@@ -174,7 +174,7 @@ class OverDriveScope extends DataObject {
 
 	public function saveLocations() : void {
 		if (isset ($this->_locations) && is_array($this->_locations)) {
-			$this->saveOneToManyOptions($this->_libraries, 'scopeId');
+			$this->saveOneToManyOptions($this->_locations, 'scopeId');
 			unset($this->_locations);
 		}
 	}

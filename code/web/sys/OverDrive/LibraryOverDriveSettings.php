@@ -134,7 +134,7 @@ class LibraryOverDriveSettings extends DataObject {
 		if ($context == 'libraries') {
 			return '/Admin/Libraries?objectAction=edit&id=' . $this->libraryId . '#propertyRowoverDriveScopes';
 		} else {
-			return '/OverDrive/Scopes?objectAction=edit&id=' . $this->scopeId;
+			return '/OverDrive/Settings?objectAction=edit&id=' . $this->settingId;
 		}
 	}
 

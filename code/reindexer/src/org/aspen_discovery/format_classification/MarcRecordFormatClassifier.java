@@ -265,7 +265,7 @@ public class MarcRecordFormatClassifier {
 						}
 					} else if (subfield.getCode() == 'a' && (pagesPattern2.matcher(physicalDescriptionData).matches())){
 						Subfield subfieldE = field.getSubfield('e');
-						if (subfieldE != null && subfieldE.getData().toLowerCase().contains("dvd")){
+						if (subfieldE != null && (subfieldE.getData().toLowerCase().contains("dvd") || subfieldE.getData().toLowerCase().contains("videodisc"))){
 							if (groupedWork != null && groupedWork.isDebugEnabled()) {groupedWork.addDebugMessage("Adding bib level format Book+DVD based on 300 Physical Description", 2);}
 							result.add("Book+DVD");
 						}else if (subfieldE != null && subfieldE.getData().toLowerCase().contains("cd-rom")){

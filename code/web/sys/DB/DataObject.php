@@ -1340,28 +1340,30 @@ abstract class DataObject implements JsonSerializable {
 		/** @var Language $language */
 		$privateFieldName = '_' . $fieldName;
 		$fieldValues = $this->$privateFieldName;
-		foreach ($validLanguages as $language) {
-			if ($language->code != 'ubb' && $language->code != 'pig') {
-				$translationForLanguage = $fieldValues[$language->code];
-				//Check to see if we have an existing translation
-				if (array_key_exists($language->id, $existingTranslations)) {
-					if (empty($translationForLanguage)) {
-						//If we get a blank value, we should delete the existing translation
-						$existingTranslations[$language->id]->delete();
+		if ($fieldValues !== null) {
+			foreach ($validLanguages as $language) {
+				if ($language->code != 'ubb' && $language->code != 'pig') {
+					$translationForLanguage = $fieldValues[$language->code];
+					//Check to see if we have an existing translation
+					if (array_key_exists($language->id, $existingTranslations)) {
+						if (empty($translationForLanguage)) {
+							//If we get a blank value, we should delete the existing translation
+							$existingTranslations[$language->id]->delete();
+						}else{
+							//Update the existing value
+							$existingTranslations[$language->id]->translation = $translationForLanguage;
+							$existingTranslations[$language->id]->update();
+						}
 					}else{
-						//Update the existing value
-						$existingTranslations[$language->id]->translation = $translationForLanguage;
-						$existingTranslations[$language->id]->update();
-					}
-				}else{
-					//New translation, only save if it isn't blank
-					if (!empty($translationForLanguage)) {
-						$textBlockTranslation = new TextBlockTranslation();
-						$textBlockTranslation->objectType = get_class($this);
-						$textBlockTranslation->objectId = $this->getPrimaryKeyValue();
-						$textBlockTranslation->languageId = $language->id;
-						$textBlockTranslation->translation = $translationForLanguage;
-						$textBlockTranslation->insert();
+						//New translation, only save if it isn't blank
+						if (!empty($translationForLanguage)) {
+							$textBlockTranslation = new TextBlockTranslation();
+							$textBlockTranslation->objectType = get_class($this);
+							$textBlockTranslation->objectId = $this->getPrimaryKeyValue();
+							$textBlockTranslation->languageId = $language->id;
+							$textBlockTranslation->translation = $translationForLanguage;
+							$textBlockTranslation->insert();
+						}
 					}
 				}
 			}

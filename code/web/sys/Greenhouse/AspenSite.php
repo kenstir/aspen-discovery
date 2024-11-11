@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 class AspenSite extends DataObject {
 	public $__table = 'aspen_sites';

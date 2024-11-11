@@ -231,3 +231,4 @@ tests/phpunit/.phpunit.result.cache
 install/unit_tests_local.ini
 intellij_project
 phpstorm_project
+code/aspen_app/updaterInternal.sh

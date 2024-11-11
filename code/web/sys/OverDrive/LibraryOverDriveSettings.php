@@ -93,7 +93,7 @@ class LibraryOverDriveSettings extends DataObject {
 				'label' => 'Is a Pin Required to log into Overdrive website?',
 				'description' => 'Turn on to allow repeat search in Overdrive functionality.',
 				'hideInLists' => false,
-				'default' => 0,
+				'default' => 1,
 			],
 			'overdriveAdvantageName' => [
 				'property' => 'overdriveAdvantageName',

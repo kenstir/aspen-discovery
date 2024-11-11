@@ -628,6 +628,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 							$expirationDate = new DateTime($curTitle->expires);
 							$checkout->dueDate = $expirationDate->getTimestamp();
 							//If the title expires in less than 3 days, we should be able to renew it
+
 							if ($expirationDate->getTimestamp() < time() + 3 * 24 * 60 * 60) {
 								$checkout->canRenew = true;
 							} else {
@@ -1603,7 +1604,12 @@ class OverDriveDriver extends AbstractEContentDriver {
 	 * set using a call to setSettings before calling this method.
 	 */
 	function renewCheckout($patron, $recordId, $itemId = null, $itemIndex = null) : array {
-		$settings = $this->getActiveSettings();
+		if (str_contains($recordId, '_')){
+			list ($recordId, $settingId) = explode('_', $recordId);
+			$settings = $this->getAvailableSettings()[$settingId];
+		}else{
+			$settings = $this->getActiveSettings();
+		}
 
 		//To renew, we actually just place another hold on the title.
 		$url = $settings->patronApiUrl . '/v1/patrons/me/holds/' . $recordId;

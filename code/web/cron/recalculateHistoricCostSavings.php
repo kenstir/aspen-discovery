@@ -105,12 +105,10 @@ if (!is_null($backgroundProcess)) {
 		1 => $numUpdated,
 		'isAdminFacing' => true
 	]));
-	$backgroundProcess->addNote(translate([
+	$endNote = translate([
 		'text' => 'Updated total cost savings for %1% users.',
 		1 => $numUsersUpdated,
 		'isAdminFacing' => true
-	]));
-	$backgroundProcess->isRunning = false;
-	$backgroundProcess->endTime = time();
-	$backgroundProcess->update();
+	]);
+	$backgroundProcess->endProcess($endNote);
 }

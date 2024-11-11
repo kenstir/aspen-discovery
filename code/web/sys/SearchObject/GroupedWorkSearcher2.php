@@ -726,12 +726,17 @@ class SearchObject_GroupedWorkSearcher2 extends SearchObject_AbstractGroupedWork
 			}
 			$relatedLocationFacets = $locationSingleton->getLocationsFacetsForLibrary($currentLibrary->libraryId);
 			if (strlen($currentLibrary->additionalLocationsToShowAvailabilityFor) > 0) {
-				$locationsToLookfor = explode('|', $currentLibrary->additionalLocationsToShowAvailabilityFor);
-				$location = new Location();
-				$location->whereAddIn('code', $locationsToLookfor, true);
-				$location->find();
 				$additionalAvailableAtLocations = [];
+				$location = new Location();
+				if ($currentLibrary->additionalLocationsToShowAvailabilityFor != ".*"){
+					$locationsToLookfor = explode('|', $currentLibrary->additionalLocationsToShowAvailabilityFor);
+					$location->whereAddIn('code', $locationsToLookfor, true);
+				}
+				$location->find();
 				while ($location->fetch()) {
+					if ($location->facetLabel == null){
+						$location->facetLabel = $location->displayName;
+					}
 					$additionalAvailableAtLocations[] = $location->facetLabel;
 				}
 			}
@@ -864,7 +869,7 @@ class SearchObject_GroupedWorkSearcher2 extends SearchObject_AbstractGroupedWork
 							$valueKey = '2' . $valueKey;
 							$numValidRelatedLocations++;
 						} elseif (!is_null($additionalAvailableAtLocations) && in_array($facetValue, $additionalAvailableAtLocations)) {
-							$valueKey = '2' . $valueKey;
+							$valueKey = '3' . $valueKey;
 							$numValidRelatedLocations++;
 						} else {
 							$valueKey = '4' . $valueKey;

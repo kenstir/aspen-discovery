@@ -78,12 +78,10 @@ while ($readingHistoryEntry->fetch()) {
 }
 
 if (!is_null($backgroundProcess)) {
-	$backgroundProcess->addNote(translate([
+	$endNote = translate([
 		'text' => 'Updated %1% historic cost savings that were previously 0.',
 		1 => $numUpdated,
 		'isAdminFacing' => true
-	]));
-	$backgroundProcess->isRunning = false;
-	$backgroundProcess->endTime = time();
-	$backgroundProcess->update();
+	]);
+	$backgroundProcess->endProcess($endNote);
 }

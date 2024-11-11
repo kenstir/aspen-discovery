@@ -10,6 +10,10 @@ class BackgroundProcess extends DataObject {
 	public $endTime;
 	public $isRunning;
 
+	public function getNumericColumnNames() : array {
+		return ['owningUserId', 'startTime', 'endTime', 'isRunning'];
+	}
+
 	/** @noinspection PhpUnusedParameterInspection */
 	static function getObjectStructure($context = ''): array {
 		return [

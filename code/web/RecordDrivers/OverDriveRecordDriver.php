@@ -1194,7 +1194,12 @@ class OverDriveRecordDriver extends GroupedWorkSubDriver {
 
 	function getRelatedRecord() : ?Grouping_Record {
 		$id = strtolower('overdrive:' . $this->id);
-		return $this->getGroupedWorkDriver()->getRelatedRecord($id);
+		$groupedWorkDriver = $this->getGroupedWorkDriver();
+		if ($groupedWorkDriver == null) {
+			return null;
+		}else{
+			return $groupedWorkDriver->getRelatedRecord($id);
+		}
 	}
 
 	/**

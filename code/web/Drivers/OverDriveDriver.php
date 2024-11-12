@@ -97,7 +97,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 				foreach ($settings as $setting) {
 					$this->_readerNames[$setting->readerName] = $setting->readerName;
 				}
-				if (empty($readerNames)) {
+				if (empty($this->_readerNames)) {
 					$this->_readerNames['Libby'] = 'Libby';
 				}
 			}catch (Exception) {

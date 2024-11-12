@@ -56,7 +56,8 @@
 		padding: 0 !important;
 	}
 	.overdueRecordContent.card {
-		padding: 10px 0 0 0 !important;
+		border: #ccc 1px solid;
+		padding: 5px !important;
 	}
 	.card-body {
 		/*outline: #ff00ff 1px solid;*/
@@ -67,7 +68,9 @@
 		max-height: 100px;
 		min-height: 100px;
 		overflow: hidden;
+		margin-right: 15px;
 		padding: 0 !important;
+		text-align: right;
 	}
 	/*.BOOK_COVER img {*/
 	/*	max-width: .7in;*/
@@ -76,6 +79,7 @@
 		padding: 0 !important;
 		flex: 1;
 	}
+
 	.overdueRecordContentDetails div {
 		hyphens: auto;
 		white-space: nowrap;

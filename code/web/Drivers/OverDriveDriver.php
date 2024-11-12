@@ -1190,8 +1190,19 @@ class OverDriveDriver extends AbstractEContentDriver {
 	 * @return array results (success, message, noCopies)
 	 */
 	public function checkOutTitle($patron, $titleId) : array {
+		//Figure out which collection the title is on hold in.
+		$settingIdForItem = null;
+		if (str_contains($titleId, '_')){
+			list ($overDriveId, $settingIdForItem) = explode('_', $titleId);
+			$settings = $this->getAvailableSettings()[$settingIdForItem];
+			$patronHomeLibrary = $patron->getHomeLibrary();
+			$librarySettings = $patronHomeLibrary->getLibraryOverdriveSetting($settingIdForItem);
+		}else{
+			$overDriveId = $titleId;
+		}
+
 		require_once ROOT_DIR . '/RecordDrivers/OverDriveRecordDriver.php';
-		$recordDriver = new OverDriveRecordDriver($titleId);
+		$recordDriver = new OverDriveRecordDriver($overDriveId);
 		if (!$recordDriver->isValid()) {
 			return [
 				'success' => false,
@@ -1199,25 +1210,27 @@ class OverDriveDriver extends AbstractEContentDriver {
 			];
 		}
 
-		$bestItem = $recordDriver->getBestCirculationOption($patron);
-		if ($bestItem == null) {
-			global $interface;
-			$readerName = $interface->getVariable('readerName');
-			return [
-				'success' => false,
-				'message' => translate(['text'=>'Unable to find a record to checkout. Your account may not be valid for use with %1% or this title may have been withdrawn.', 1=>$readerName, 'isPublicFacing'=>true]),
-			];
-		}
+		if ($settingIdForItem == null) {
+			$bestItem = $recordDriver->getBestCirculationOption($patron);
+			if ($bestItem == null) {
+				global $interface;
+				$readerName = $interface->getVariable('readerName');
+				return [
+					'success' => false,
+					'message' => translate(['text'=>'Unable to find a record to checkout. Your account may not be valid for use with %1% or this title may have been withdrawn.', 1=>$readerName, 'isPublicFacing'=>true]),
+				];
+			}
 
-		$patronHomeLibrary = $patron->getHomeLibrary();
-		if (substr_count($bestItem->itemId, ':') >= 2) {
-			list(, $settingIdForItem,) = explode(':', $bestItem->itemId);
-			$librarySettings = $patronHomeLibrary->getLibraryOverdriveSetting($settingIdForItem);
+			$patronHomeLibrary = $patron->getHomeLibrary();
+			if (substr_count($bestItem->itemId, ':') >= 2) {
+				list(, $settingIdForItem,) = explode(':', $bestItem->itemId);
+				$librarySettings = $patronHomeLibrary->getLibraryOverdriveSetting($settingIdForItem);
 
-		}else{
-			$allLibrarySettings = $patronHomeLibrary->getLibraryOverdriveSettings();
-			if (!empty($allLibrarySettings)) {
-				$librarySettings = reset($allLibrarySettings);
+			}else{
+				$allLibrarySettings = $patronHomeLibrary->getLibraryOverdriveSettings();
+				if (!empty($allLibrarySettings)) {
+					$librarySettings = reset($allLibrarySettings);
+				}
 			}
 		}
 
@@ -1231,7 +1244,7 @@ class OverDriveDriver extends AbstractEContentDriver {
 
 		$url = $settings->patronApiUrl . '/v1/patrons/me/checkouts';
 		$params = [
-			'reserveId' => $titleId,
+			'reserveId' => $overDriveId,
 		];
 		$response = $this->_callPatronUrl($settings, $patron, $url, "checkOutTitle", $params);
 

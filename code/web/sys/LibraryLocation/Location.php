@@ -2036,7 +2036,7 @@ class Location extends DataObject {
 		}
 	}
 
-	public function getCloudLibraryScope() : ?CloudLibraryScope {
+	public function getCloudLibraryScope() : null|string|int {
 		if ($this->_cloudLibraryScope == null && $this->locationId) {
 			require_once ROOT_DIR . '/sys/CloudLibrary/LocationCloudLibraryScope.php';
 			$locationCloudLibraryScope = new LocationCloudLibraryScope();

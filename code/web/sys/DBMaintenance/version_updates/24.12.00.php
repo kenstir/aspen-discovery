@@ -80,7 +80,13 @@ function getUpdates24_12_00(): array {
 		//alexander - PTFS-Europe
 
 		//chloe - PTFS-Europe
-
+		'create_libkey_module' => [
+			'title' => 'Create LibKey Module',
+			'description' => 'Add LibKey to the list of modules',
+			'sql' => [
+				"INSERT INTO modules (name) VALUES ('LibKey')",
+			],
+		], // create_libkey_module
 
 		//James Staub - Nashville Public Library
 

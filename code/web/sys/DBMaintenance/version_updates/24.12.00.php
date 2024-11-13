@@ -95,6 +95,19 @@ function getUpdates24_12_00(): array {
 				"INSERT INTO role_permissions(roleId, permissionId) VALUES ((SELECT roleId from roles where name='opacAdmin'), (SELECT id from permissions where name='Administer LibKey Settings'))",
 			],
 		],// create_libkey_permissions
+		'create_libkey_settings_table' => [
+			'title' => 'Create LibKey Settings Table',
+			'description' => 'Add an LibKey settings table',
+			'sql' => [
+				"CREATE TABLE libkey_settings (
+					id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					name VARCHAR(255) NOT NULL,
+					libraryId VARCHAR(20) NOT NULL,
+					apiKey VARCHAR(255) NOT NULL
+				)",
+				"ALTER TABLE library ADD libKeySettingId INT NOT NULL DEFAULT -1"
+			],
+		],// create_libkey_permissions
 
 
 		//James Staub - Nashville Public Library

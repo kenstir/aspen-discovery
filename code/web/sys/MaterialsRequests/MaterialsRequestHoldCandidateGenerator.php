@@ -40,7 +40,7 @@ function generateMaterialsRequestsHoldCandidates() : int {
 		$requestStatusToCheckForHolds->whereAdd('libraryId <> -1');
 		$requestStatusToCheckForHolds->find();
 		while ($requestStatusToCheckForHolds->fetch()) {
-			$logEntry->addNote('Processing ' . $requestStatusToCheckForHolds->description . ' status for library ' . $requestStatusToCheckForHolds->libraryId);
+			$logEntry->addNote('Processing ' . $requestStatusToCheckForHolds->description . " status ($requestStatusToCheckForHolds->id) for library " . $requestStatusToCheckForHolds->libraryId);
 			//check all requests in that status
 			$requestToCheck = new MaterialsRequest();
 			$requestToCheck->status = $requestStatusToCheckForHolds->id;

@@ -16,11 +16,11 @@ function getUpdates24_11_00(): array {
 		'library_shareit_settings' => [
 			'title' => 'Library SHAREit Settings',
 			'description' => 'Add a new library SHAREit settings',
-			'continueOnError' => false,
+			'continueOnError' => true,
 			'sql' => [
 				"ALTER TABLE library ADD COLUMN repeatInShareIt TINYINT(1) DEFAULT 0",
-				"ALTER TABLE library ADD COLUMN shareItCid VARCHAR(80) DEFAULT ''",
-				"ALTER TABLE library ADD COLUMN shareItLid VARCHAR(80) DEFAULT ''",
+				"ALTER TABLE library ADD COLUMN shareItCid TINYTEXT",
+				"ALTER TABLE library ADD COLUMN shareItLid TINYTEXT",
 			]
 		], //library_shareit_settings
 		'location_shareit_settings' => [
@@ -36,8 +36,8 @@ function getUpdates24_11_00(): array {
 			'description' => 'Add library SHAREit login credentials',
 			'continueOnError' => false,
 			'sql' => [
-				"ALTER TABLE library ADD COLUMN shareItUsername VARCHAR(80) DEFAULT ''",
-				"ALTER TABLE library ADD COLUMN shareItPassword VARCHAR(255) DEFAULT ''",
+				"ALTER TABLE library ADD COLUMN shareItUsername TINYTEXT",
+				"ALTER TABLE library ADD COLUMN shareItPassword TINYTEXT",
 			]
 		], //library_shareit_credentials
 		'multiple_overdrive_scopes' => [
@@ -178,6 +178,26 @@ function getUpdates24_11_00(): array {
 			'description' => 'Add a related object id to user messages to allow for automatic dismissal and other behavior',
 			'sql' => [
 				'ALTER TABLE user_messages ADD COLUMN relatedObjectId INT',
+			]
+		],
+		'make_cloudsource_baseurl_text' => [
+			'title' => 'Update Library cloudSourceBaseUrl From Varchar To Text',
+			'description' => 'Update Library cloudSourceBaseUrl From Varchar To Text',
+			'continueOnError' => true,
+			'sql' => [
+				//Some systems had issues with this update in 24.10.10 so, add it again as TINYTEXT
+				"ALTER TABLE library ADD COLUMN cloudSourceBaseUrl TINYTEXT",
+				"ALTER TABLE library CHANGE COLUMN cloudSourceBaseUrl cloudSourceBaseUrl TINYTEXT",
+			]
+		],
+		'change_share_it_column_types' => [
+			'title' => 'Change ShareIt Column Types',
+			'description' => 'Change ShareIt Column Types',
+			'sql' => [
+				"ALTER TABLE library CHANGE COLUMN shareItCid shareItCid TINYTEXT",
+				"ALTER TABLE library CHANGE COLUMN shareItLid shareItLid TINYTEXT",
+				"ALTER TABLE library CHANGE COLUMN shareItUsername shareItUsername TINYTEXT",
+				"ALTER TABLE library CHANGE COLUMN shareItPassword shareItPassword TINYTEXT",
 			]
 		],
 		/*

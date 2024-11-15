@@ -117,6 +117,24 @@
             }
         });
         editor.on('load', () => {
+            //Add tooltips for buttons that do not include them by default
+            const buttonsWithTooltips = [
+                { id: 'undo', title: 'Undo Last Action' },
+                { id: 'redo', title: 'Redo Last Action' },
+                { id: 'gjs-open-import-webpage', title: 'Add Custom Code' },
+                { id: 'canvas-clear', title: 'Clear Canvas' }
+            ];
+
+            buttonsWithTooltips.forEach(button => {
+                const buttonElement = editor.Panels.getButton('options', button.id);
+                if (buttonElement) {
+                    buttonElement.set('attributes', {
+                        title: button.title,
+                        'data-tooltips-pos': 'bottom'
+                    });
+                }
+            });
+                       
             editor.getWrapper().set('stylable', true);
             //Add headers in Headers block
             editor.BlockManager.add('h1', {

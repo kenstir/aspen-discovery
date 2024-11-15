@@ -115,6 +115,23 @@
             }
       });
       editor.on('load', () => {
+        const buttonsWithTooltips = [
+            { id: 'undo', title: 'Undo Last Action' },
+            { id: 'redo', title: 'Redo Last Action' },
+            { id: 'gjs-open-import-webpage', title: 'Add Custom Code' },
+            { id: 'canvas-clear', title: 'Clear Canvas' }
+        ];
+
+        buttonsWithTooltips.forEach(button => {
+          const buttonElement = editor.Panels.getButton('options', button.id);
+                if (buttonElement) {
+                    buttonElement.set('attributes', {
+                        title: button.title,
+                        'data-tooltips-pos': 'bottom'
+                    });
+                }
+        });
+
         editor.getWrapper().set('stylable', true);
          //Add headers in Headers block
          editor.BlockManager.add('h1', {
@@ -135,7 +152,7 @@
                 category: 'Headers',
                 attributes: { class: 'fa fa-header' },
             });
-            
+
         const urlParams = new URLSearchParams(window.location.search);
         const templateId = urlParams.get('templateId'); 
         const grapesPageId = urlParams.get('id');

@@ -225,6 +225,9 @@ class Checkout extends CircEntry {
 						if ($itemRecordNumber != null && $replacementCost != null) {
 							if ($itemRecordNumber->getData() == $this->itemId) {
 								$replacementCost = $replacementCost->getData();
+								//Remove dollar signs if they are in the field.
+								require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
+								$replacementCost = str_replace(StringUtils::getCurrencySymbol(), '', $replacementCost);
 								if ($replacementCost > 0 && is_numeric($replacementCost)) {
 									$replacementCostForCheckout = $replacementCost;
 									$useDefaultReplacementCost = false;

@@ -730,7 +730,7 @@ class User extends DataObject {
 						}
 					}
 				} catch (PDOException $e) {
-					//Disabling of linking has not been enabled yet. 
+					//Disabling of linking has not been enabled yet.
 				}
 			}
 		}
@@ -4628,6 +4628,10 @@ class User extends DataObject {
 		}
 	}
 
+	/**
+	 * @param Checkout[] $checkouts
+	 * @return float
+	 */
 	public function calculateCostSavingsForCurrentCheckouts(array $checkouts) : float {
 		$costSavings = 0;
 		foreach ($checkouts as $checkout) {

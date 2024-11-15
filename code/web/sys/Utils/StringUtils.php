@@ -31,6 +31,20 @@ class StringUtils {
 		return $currencyFormatter->formatCurrency($number, $currencyCode);
 	}
 
+	static function getCurrencySymbol() : string {
+		global $activeLanguage;
+
+		$currencyCode = 'USD';
+		$variables = new SystemVariables();
+		if ($variables->find(true)) {
+			$currencyCode = $variables->currencyCode;
+		}
+
+		$currencyFormatter = new NumberFormatter($activeLanguage->locale . '@currency=' . $currencyCode, NumberFormatter::CURRENCY);
+
+		return $currencyFormatter->getSymbol(NumberFormatter::CURRENCY_SYMBOL);
+	}
+
 	static function truncate($string, $length = 80, $etc = '...', $break_words = false, $middle = false) {
 		if ($length == 0) {
 			return '';

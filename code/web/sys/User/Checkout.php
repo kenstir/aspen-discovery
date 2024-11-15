@@ -220,20 +220,27 @@ class Checkout extends CircEntry {
 					$itemFields = $marcRecord->getFields($indexingProfile->itemTag);
 					/** @var File_MARC_Data_Field $itemField */
 					foreach ($itemFields as $itemField) {
-						$itemRecordNumber = $itemField->getSubfield($indexingProfile->itemRecordNumber);
+						$recordNumberMatches = false;
+						if (!empty($indexingProfile->itemRecordNumber)) {
+							$itemRecordNumber = $itemField->getSubfield($indexingProfile->itemRecordNumber);
+							$recordNumberMatches = (!empty($itemRecordNumber) && ($itemRecordNumber->getData() == $this->itemId));
+						}
+						$barcodeMatches = false;
+						if (!empty($indexingProfile->barcode)) {
+							$itemBarcode = $itemField->getSubfield($indexingProfile->barcode);
+							$barcodeMatches = (!empty($itemBarcode) && ($itemBarcode->getData() == $this->barcode));
+						}
 						$replacementCost = $itemField->getSubfield($indexingProfile->replacementCostSubfield);
-						if ($itemRecordNumber != null && $replacementCost != null) {
-							if ($itemRecordNumber->getData() == $this->itemId) {
-								$replacementCost = $replacementCost->getData();
-								//Remove dollar signs if they are in the field.
-								require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
-								$replacementCost = str_replace(StringUtils::getCurrencySymbol(), '', $replacementCost);
-								if ($replacementCost > 0 && is_numeric($replacementCost)) {
-									$replacementCostForCheckout = $replacementCost;
-									$useDefaultReplacementCost = false;
-								}
-								break;
+						if (!empty($replacementCost) && ($recordNumberMatches || $barcodeMatches)) {
+							$replacementCost = $replacementCost->getData();
+							//Remove dollar signs if they are in the field.
+							require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
+							$replacementCost = str_replace(StringUtils::getCurrencySymbol(), '', $replacementCost);
+							if ($replacementCost > 0 && is_numeric($replacementCost)) {
+								$replacementCostForCheckout = $replacementCost;
+								$useDefaultReplacementCost = false;
 							}
+							break;
 						}
 					}
 				}

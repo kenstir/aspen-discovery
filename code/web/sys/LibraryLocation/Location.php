@@ -1160,7 +1160,6 @@ class Location extends DataObject {
 			require_once ROOT_DIR . '/sys/OverDrive/LocationOverDriveScope.php';
 			$locationOverDriveScopeStructure = LocationOverDriveScope::getObjectStructure($context);
 			unset($locationOverDriveScopeStructure['locationId']);
-			unset($locationOverDriveScopeStructure['weight']);
 
 			$structure['overdriveSection'] = [
 				'property' => 'overdriveSection',
@@ -1179,7 +1178,7 @@ class Location extends DataObject {
 						'keyOther' => 'locationId',
 						'subObjectType' => 'LocationOverDriveScope',
 						'structure' => $locationOverDriveScopeStructure,
-						'sortable' => true,
+						'sortable' => false,
 						'storeDb' => true,
 						'allowEdit' => true,
 						'canEdit' => true,

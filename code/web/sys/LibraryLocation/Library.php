@@ -836,7 +836,6 @@ class Library extends DataObject {
 		require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveScope.php';
 		$libraryOverDriveScopeStructure = LibraryOverDriveScope::getObjectStructure($context);
 		unset($libraryOverDriveScopeStructure['libraryId']);
-		unset($libraryOverDriveScopeStructure['weight']);
 
 		require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveSettings.php';
 		$libraryOverDriveSettingsStructure = LibraryOverDriveSettings::getObjectStructure($context);
@@ -3881,7 +3880,7 @@ class Library extends DataObject {
 						'keyOther' => 'libraryId',
 						'subObjectType' => 'LibraryOverDriveScope',
 						'structure' => $libraryOverDriveScopeStructure,
-						'sortable' => true,
+						'sortable' => false,
 						'storeDb' => true,
 						'allowEdit' => true,
 						'canEdit' => true,

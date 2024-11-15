@@ -180,6 +180,16 @@ function getUpdates24_11_00(): array {
 				'ALTER TABLE user_messages ADD COLUMN relatedObjectId INT',
 			]
 		],
+		'make_cloudsource_baseurl_text' => [
+			'title' => 'Update Library cloudSourceBaseUrl From Varchar To Text',
+			'description' => 'Update Library cloudSourceBaseUrl From Varchar To Text',
+			'continueOnError' => true,
+			'sql' => [
+				//Some systems had issues with this update in 24.10.10 so, add it again as TINYTEXT
+				"ALTER TABLE library ADD COLUMN cloudSourceBaseUrl TINYTEXT",
+				"ALTER TABLE library CHANGE COLUMN cloudSourceBaseUrl cloudSourceBaseUrl TINYTEXT",
+			]
+		],
 		/*
 		//TODO: Remove this when 24.10 is closer to done
 		'remove_library_and_location_overdrive_scopes' => [

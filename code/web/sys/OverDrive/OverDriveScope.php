@@ -24,7 +24,7 @@ class OverDriveScope extends DataObject {
 			$overdriveSettings[$overdriveSetting->id] = (string)$overdriveSetting;
 		}
 
-		//$libraryList = Library::getLibraryList(!UserAccount::userHasPermission('Administer All Libraries'));
+		$libraryList = Library::getLibraryList(!UserAccount::userHasPermission('Administer All Libraries'));
 		$locationList = Location::getLocationList(!UserAccount::userHasPermission('Administer All Libraries') || UserAccount::userHasPermission('Administer Home Library Locations'));
 
 		require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveScope.php';
@@ -84,38 +84,22 @@ class OverDriveScope extends DataObject {
 
 			'libraries' => [
 				'property' => 'libraries',
-				'type' => 'oneToMany',
+				'type' => 'multiSelect',
+				'listStyle' => 'checkboxSimple',
 				'label' => "Libraries",
 				'description' => "The libraries that use this scope",
-				'keyThis' => 'id',
-				'keyOther' => 'scopeId',
-				'subObjectType' => 'LibraryOverDriveScope',
-				'structure' => $libraryOverDriveScopeStructure,
-				'sortable' => false,
-				'storeDb' => true,
-				'allowEdit' => true,
-				'canEdit' => true,
-				'canAddNew' => true,
-				'canDelete' => true,
-				'forcesReindex' => true,
+				'values' => $libraryList,
+				'hideInLists' => false,
 			],
 
 			'locations' => [
 				'property' => 'locations',
-				'type' => 'oneToMany',
+				'type' => 'multiSelect',
+				'listStyle' => 'checkboxSimple',
 				'label' => "Locations",
 				'description' => "The locations that use this scope",
-				'keyThis' => 'id',
-				'keyOther' => 'scopeId',
-				'subObjectType' => 'LocationOverDriveScope',
-				'structure' => $locationOverDriveScopeStructure,
-				'sortable' => false,
-				'storeDb' => true,
-				'allowEdit' => true,
-				'canEdit' => true,
-				'canAddNew' => true,
-				'canDelete' => true,
-				'forcesReindex' => true,
+				'values' => $locationList,
+				'hideInLists' => false,
 			],
 		];
 	}
@@ -167,14 +151,74 @@ class OverDriveScope extends DataObject {
 
 	public function saveLibraries() : void {
 		if (isset ($this->_libraries) && is_array($this->_libraries)) {
-			$this->saveOneToManyOptions($this->_libraries, 'scopeId');
+			$libraryList = Library::getLibraryList(!UserAccount::userHasPermission('Administer All Libraries'));
+			foreach ($libraryList as $libraryId => $displayName) {
+				$library = new Library();
+				$library->libraryId = $libraryId;
+				if ($library->find(true)) {
+					$libraryOverDriveScopes = $library->getLibraryOverdriveScopes();
+					if (in_array($libraryId, $this->_libraries)) {
+						$foundScope = false;
+						foreach ($libraryOverDriveScopes as $libraryOverDriveScope) {
+							if ($libraryOverDriveScope->scopeId == $this->id) {
+								$foundScope = true;
+								break;
+							}
+						}
+						//We want to apply the scope to this library
+						if (!$foundScope) {
+							$libraryOverDriveScope = new LibraryOverDriveScope();
+							$libraryOverDriveScope->scopeId = $this->id;
+							$libraryOverDriveScope->libraryId = $libraryId;
+							$libraryOverDriveScope->insert();
+						}
+					} else {
+						//It should not be applied to this scope. Only change if it was applied previously
+						foreach ($libraryOverDriveScopes as $libraryOverDriveScope) {
+							if ($libraryOverDriveScope->scopeId == $this->id) {
+								$libraryOverDriveScope->delete();
+							}
+						}
+					}
+				}
+			}
 			unset($this->_libraries);
 		}
 	}
 
 	public function saveLocations() : void {
 		if (isset ($this->_locations) && is_array($this->_locations)) {
-			$this->saveOneToManyOptions($this->_locations, 'scopeId');
+			$locationList = Location::getLocationList(!UserAccount::userHasPermission('Administer All Libraries') || UserAccount::userHasPermission('Administer Home Library Locations'));
+			foreach ($locationList as $locationId => $displayName) {
+				$location = new Location();
+				$location->locationId = $locationId;
+				if ($location->find(true)) {
+					$locationOverDriveScopes = $location->getLocationOverdriveScopes();
+					if (in_array($locationId, $this->_locations)) {
+						$foundScope = false;
+						foreach ($locationOverDriveScopes as $locationOverDriveScope) {
+							if ($locationOverDriveScope->scopeId == $this->id) {
+								$foundScope = true;
+								break;
+							}
+						}
+						//We want to apply the scope to this location
+						if (!$foundScope) {
+							$locationOverDriveScope = new LocationOverDriveScope();
+							$locationOverDriveScope->scopeId = $this->id;
+							$locationOverDriveScope->locationId = $locationId;
+							$locationOverDriveScope->insert();
+						}
+					} else {
+						//It should not be applied to this scope. Only change if it was applied previously
+						foreach ($locationOverDriveScopes as $locationOverDriveScope) {
+							if ($locationOverDriveScope->scopeId == $this->id) {
+								$locationOverDriveScope->delete();
+							}
+						}
+					}
+				}
+			}
 			unset($this->_locations);
 		}
 	}
@@ -187,13 +231,13 @@ class OverDriveScope extends DataObject {
 				require_once ROOT_DIR . '/sys/OverDrive/LibraryOverDriveScope.php';
 				$libraryOverDriveScope = new LibraryOverDriveScope();
 				$libraryOverDriveScope->scopeId = $this->id;
-				$this->_libraries = $libraryOverDriveScope->fetchAll(null, null, false, true);
+				$this->_libraries = $libraryOverDriveScope->fetchAll('libraryId');
 			}
 		}
 		return $this->_libraries;
 	}
 
-	/** @return Location[]
+	/** @return LocationOverDriveScope[]
 	 * @noinspection PhpUnused
 	 */
 	public function getLocations() : array {
@@ -203,7 +247,7 @@ class OverDriveScope extends DataObject {
 				require_once ROOT_DIR . '/sys/OverDrive/LocationOverDriveScope.php';
 				$locationOverDriveScope = new LocationOverDriveScope();
 				$locationOverDriveScope->scopeId = $this->id;
-				$this->_locations = $locationOverDriveScope->fetchAll(null, null, false, true);
+				$this->_locations = $locationOverDriveScope->fetchAll('locationId');
 			}
 		}
 		return $this->_locations;

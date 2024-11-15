@@ -730,7 +730,7 @@ class User extends DataObject {
 						}
 					}
 				} catch (PDOException $e) {
-					//Disabling of linking has not been enabled yet. 
+					//Disabling of linking has not been enabled yet.
 				}
 			}
 		}
@@ -3741,7 +3741,7 @@ class User extends DataObject {
 			if ($library->enableMaterialsRequest == 1) {
 				$sections['materials_request'] = new AdminSection('Materials Requests');
 				$sections['materials_request']->addAction(new AdminAction('Manage Requests', 'Manage Materials Requests from users.', '/MaterialsRequest/ManageRequests'), 'Manage Library Materials Requests');
-				$sections['materials_request']->addAction(new AdminAction('Requests Needing Holds', 'Review and generate holds for requests that have hold candidates.', '/MaterialsRequest/RequestsNeedingHolds'), 'Manage Library Materials Requests');
+				$sections['materials_request']->addAction(new AdminAction('Requests Needing Holds', 'Review and generate holds for requests that have hold candidates.', '/MaterialsRequest/RequestsNeedingHolds'), 'Place Holds For Materials Requests');
 				$sections['materials_request']->addAction(new AdminAction('Usage Dashboard', 'View the usage dashboard for Materials Requests.', '/MaterialsRequest/Dashboard'), 'View Materials Requests Reports');
 				$sections['materials_request']->addAction(new AdminAction('Summary Report', 'A Summary Report of all requests that have been submitted.', '/MaterialsRequest/SummaryReport'), 'View Materials Requests Reports');
 				$sections['materials_request']->addAction(new AdminAction('Report By User', 'A Report of all requests that have been submitted by users who submitted them.', '/MaterialsRequest/UserReport'), 'View Materials Requests Reports');
@@ -4628,6 +4628,10 @@ class User extends DataObject {
 		}
 	}
 
+	/**
+	 * @param Checkout[] $checkouts
+	 * @return float
+	 */
 	public function calculateCostSavingsForCurrentCheckouts(array $checkouts) : float {
 		$costSavings = 0;
 		foreach ($checkouts as $checkout) {

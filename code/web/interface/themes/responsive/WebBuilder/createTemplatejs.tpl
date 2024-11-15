@@ -116,6 +116,7 @@
             }
         });
         editor.on('load', () => {
+            editor.getWrapper().set('stylable', true);
             const urlParams = new URLSearchParams(window.location.search);
             const templateId = urlParams.get('id');
             const url = Globals.path + '/WebBuilder/AJAX?method=loadGrapesTemplate&id=' + templateId;

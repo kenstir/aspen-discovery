@@ -114,6 +114,7 @@
             }
       });
       editor.on('load', () => {
+        editor.getWrapper().set('stylable', true);
         const urlParams = new URLSearchParams(window.location.search);
         const templateId = urlParams.get('templateId'); 
         const grapesPageId = urlParams.get('id');

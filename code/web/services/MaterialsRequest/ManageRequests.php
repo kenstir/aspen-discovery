@@ -7,7 +7,7 @@ require_once(ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestStatus.php');
 
 class MaterialsRequest_ManageRequests extends Admin_Admin {
 
-	function launch() {
+	function launch() : void {
 		global $interface;
 
 		//Load status information
@@ -24,12 +24,10 @@ class MaterialsRequest_ManageRequests extends Admin_Admin {
 		$materialsRequestStatus->libraryId = $homeLibrary->libraryId;
 		$materialsRequestStatus->find();
 
-		$allStatuses = [];
 		$availableStatuses = [];
 		$defaultStatusesToShow = [];
 		while ($materialsRequestStatus->fetch()) {
 			$availableStatuses[$materialsRequestStatus->id] = $materialsRequestStatus->description;
-			$allStatuses[$materialsRequestStatus->id] = clone $materialsRequestStatus;
 			if ($materialsRequestStatus->isOpen == 1 || $materialsRequestStatus->isDefault == 1) {
 				$defaultStatusesToShow[] = $materialsRequestStatus->id;
 			}
@@ -118,7 +116,7 @@ class MaterialsRequest_ManageRequests extends Admin_Admin {
 		}
 		$interface->assign('formatFilter', $formatsToShow);
 
-		//Get a list of all materials requests for the user
+		//Get a list of all material requests for the user
 		$allRequests = [];
 		if ($user) {
 
@@ -220,7 +218,9 @@ class MaterialsRequest_ManageRequests extends Admin_Admin {
 			$materialsRequestsPerPage = isset($_REQUEST['pageSize']) && (is_numeric($_REQUEST['pageSize'])) ? $_REQUEST['pageSize'] : 30;
 			$interface->assign('materialsRequestsPerPage', $materialsRequestsPerPage);
 			$page = $_REQUEST['page'] ?? 1;
-			$materialsRequests->limit(($page - 1) * $materialsRequestsPerPage, $materialsRequestsPerPage);
+			if (!isset($_REQUEST['exportAll'])) {
+				$materialsRequests->limit(($page - 1) * $materialsRequestsPerPage, $materialsRequestsPerPage);
+			}
 			$materialsRequestCount = $materialsRequests->count();
 
 			if ($materialsRequests->find()) {
@@ -249,7 +249,7 @@ class MaterialsRequest_ManageRequests extends Admin_Admin {
 					// Get Available Assignees
 					$materialsRequestManagers = new User();
 
-					if ($materialsRequestManagers->query("SELECT * from user WHERE id IN (SELECT userId FROM user_roles WHERE roleId = {$rolePermissions->roleId}) AND homeLocationId IN (" . implode(', ', $locationsForLibrary) . ")")) {
+					if ($materialsRequestManagers->query("SELECT * from user WHERE id IN (SELECT userId FROM user_roles WHERE roleId = $rolePermissions->roleId) AND homeLocationId IN (" . implode(', ', $locationsForLibrary) . ")")) {
 
 						while ($materialsRequestManagers->fetch()) {
 							if (empty($materialsRequestManagers->displayName)) {
@@ -289,14 +289,15 @@ class MaterialsRequest_ManageRequests extends Admin_Admin {
 		}
 		$interface->assign('dateColumns', $dateColumns); //data gets added within template
 
-		if (isset($_REQUEST['exportSelected'])) {
-			$this->exportToExcel($_REQUEST['select'], $allRequests);
+		if (isset($_REQUEST['exportSelected']) || isset($_REQUEST['exportAll'])) {
+			$selectedRequests = $_REQUEST['select'] ?? [];
+			$this->exportToExcel($selectedRequests, $allRequests, isset($_REQUEST['exportAll']));
 		} else {
 			$this->display('manageRequests.tpl', 'Manage Materials Requests');
 		}
 	}
 
-	function defaultColumnsToShow() {
+	function defaultColumnsToShow() : array {
 		return [
 			'id' => 'Id',
 			'title' => 'Title',
@@ -312,10 +313,7 @@ class MaterialsRequest_ManageRequests extends Admin_Admin {
 		];
 	}
 
-	/**
-	 * @throws Exception
-	 */
-	function exportToExcel($selectedRequestIds, $allRequests) {
+	function exportToExcel(array $selectedRequestIds, array $allRequests, bool $exportAllRequests) : void {
 		try {
 			//May need more time to export all records
 			set_time_limit(600);
@@ -337,7 +335,7 @@ class MaterialsRequest_ManageRequests extends Admin_Admin {
 			//Loop Through The Report Data
 			/** @var MaterialsRequest $request */
 			foreach ($allRequests as $request) {
-				if (array_key_exists($request->id, $selectedRequestIds)) {
+				if ($exportAllRequests || array_key_exists($request->id, $selectedRequestIds)) {
 
 					$id = $request->id;
 					$title = $request->title;
@@ -456,6 +454,7 @@ class MaterialsRequest_ManageRequests extends Admin_Admin {
 		} catch (Exception $e) {
 			global $logger;
 			$logger->log("Unable to create csv file " . $e, Logger::LOG_ERROR);
+			return;
 		}
 	}
 

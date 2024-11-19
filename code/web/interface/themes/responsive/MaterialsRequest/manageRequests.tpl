@@ -113,7 +113,7 @@
 				<table id="requestedMaterials" class="table tablesorter table-striped table-hover table-sticky">
 					<thead>
 						<tr>
-							<th><input type="checkbox" name="selectAll" id="selectAll" onchange="AspenDiscovery.toggleCheckboxes('.select', '#selectAll');"></th>
+							<th><input type="checkbox" name="selectAll" id="selectAll" aria-label="{translate text="Select All" isAdminFacing=true inAttribute=true}" onchange="AspenDiscovery.toggleCheckboxes('.select', '#selectAll');"></th>
 							{foreach from=$columnsToDisplay item=label}
 								<th>{translate text=$label isAdminFacing=true}</th>
 							{/foreach}
@@ -123,7 +123,7 @@
 					<tbody>
 						{foreach from=$allRequests item=request}
 							<tr>
-								<td><input type="checkbox" name="select[{$request->id}]" class="select"></td>
+								<td><input type="checkbox" name="select[{$request->id}]" class="select" aria-label="{translate text="Select Row" isAdminFacing=true inAttribute=true}"></td>
 								{foreach name="columnLoop" from=$columnsToDisplay item=label key=column}
 									{if $column == 'format'}
 										<td>
@@ -231,6 +231,7 @@
 									<input type="hidden" name="page" value="{$page}">
 								{/if}
 								<input class="btn btn-default" type="submit" name="exportSelected" value="{translate text="Export Selected To CSV" inAttribute=true isAdminFacing=true}" onclick="return AspenDiscovery.MaterialsRequest.exportSelectedRequests();">
+								<input class="btn btn-default" type="submit" name="exportAll" value="{translate text="Export All To CSV" inAttribute=true isAdminFacing=true}">
 							</div>
 						</div>
 					</div>

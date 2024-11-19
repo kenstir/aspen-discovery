@@ -503,7 +503,7 @@ class GroupedWork_AJAX extends JSON_Action {
 			$url = $recordDriver->getLinkUrl();
 		}
 
-		$escapedId = htmlentities($recordDriver->getPermanentId()); // escape for html
+		$escapedId = htmlentities($recordDriver->getPermanentId()); // escape for HTML
 		$buttonLabel = translate([
 			'text' => 'Add to List',
 			'isPublicFacing' => true,
@@ -573,13 +573,13 @@ class GroupedWork_AJAX extends JSON_Action {
 				$workReview->rating = $rating;
 				$success = $workReview->update();
 			} else {
-				// pretend success since rating is already set to same value.
+				// pretend success since rating is already set to the same value.
 				$success = true;
 			}
 		} else {
 			$workReview->rating = $rating;
-			$workReview->review = '';  // default value required for insert statements //TODO alter table structure, null should be default value.
-			$workReview->dateRated = time(); // moved to be consistent with add review behaviour
+			$workReview->review = '';  // default value required for insert statements
+			$workReview->dateRated = time(); // moved to be consistent with the add review behavior
 			$success = $workReview->insert();
 		}
 
@@ -605,7 +605,7 @@ class GroupedWork_AJAX extends JSON_Action {
 		}
 	}
 
-	private function clearMySuggestionsBrowseCategoryCache() {
+	private function clearMySuggestionsBrowseCategoryCache() : void {
 		// Reset any cached suggestion browse category for the user
 		global $memCache;
 		global $solrScope;
@@ -681,7 +681,7 @@ class GroupedWork_AJAX extends JSON_Action {
 					];
 				}
 			} else {
-				// Option already set to don't prompt, so lets don't prompt already.
+				// Option already set to not prompt, don't prompt.
 				$results = [
 					'prompt' => false,
 				];
@@ -751,7 +751,7 @@ class GroupedWork_AJAX extends JSON_Action {
 	function saveReview() : array {
 		$result = [];
 
-		if (UserAccount::isLoggedIn() == false) {
+		if (!UserAccount::isLoggedIn()) {
 			$result['success'] = false;
 			$result['message'] = translate([
 				'text' => 'Please login before adding a review.',
@@ -795,7 +795,7 @@ class GroupedWork_AJAX extends JSON_Action {
 					$success = true;
 				} // pretend success since values are already set to same values.
 			}
-			if (!$success) { // if sql save didn't work, let user know.
+			if (!$success) { // if SQL save didn't work, let user know.
 				$result['success'] = false;
 				$result['message'] = translate([
 					'text' => 'Failed to save rating or review.',
@@ -1435,7 +1435,7 @@ class GroupedWork_AJAX extends JSON_Action {
 							$recordDriver = new GroupedWorkDriver($id);
 							$relatedRecords = $recordDriver->getRelatedRecords(true);
 
-							//set result as success for initial upload
+							//set the result as success for initial upload
 							$result['success'] = true;
 							$result['message'] = translate([
 								'text' => 'Your cover has been uploaded successfully',
@@ -1477,7 +1477,7 @@ class GroupedWork_AJAX extends JSON_Action {
 
 						if($recordType == 'grouped_work') {
 							if ($upload){
-								//set result as success for initial upload
+								//set the result as success for initial upload
 								$result['success'] = true;
 								$result['message'] = translate([
 									'text' => 'Your cover has been uploaded successfully',
@@ -1601,9 +1601,6 @@ class GroupedWork_AJAX extends JSON_Action {
 		$interface->assign('relatedManifestation', $relatedManifestation);
 		$interface->assign('isEContent', $relatedManifestation->isEContent());
 
-		//Check to see if this is an OverDrive record and if so, add number of holds
-		$showEContentHoldCounts = true;
-
 		if ($recordId != $id) {
 			$record = $recordDriver->getRelatedRecord($recordId);
 			$summary = null;
@@ -1630,7 +1627,7 @@ class GroupedWork_AJAX extends JSON_Action {
 		} else {
 			$summary = $relatedManifestation->getItemSummary();
 		}
-		$interface->assign('showEContentHoldCounts', $showEContentHoldCounts);
+		$interface->assign('showEContentHoldCounts', true);
 
 		$interface->assign('summary', $summary);
 

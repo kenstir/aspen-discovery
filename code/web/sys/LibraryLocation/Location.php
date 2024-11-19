@@ -96,6 +96,7 @@ class Location extends DataObject {
 	public $repeatInCloudSource;
 	public $vdxFormId;
 	public $vdxLocation;
+	public $localIllFormId;
 	public $systemsToRepeatIn;
 	public $homeLink;
 	public $ptypesToAllowRenewals;
@@ -261,6 +262,17 @@ class Location extends DataObject {
 			while ($vdxForm->fetch()) {
 				$vdxForms[$vdxForm->id] = $vdxForm->name;
 			}
+		}
+
+		require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
+		$localIllForms = [];
+		require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
+		$localIllForm = new LocalIllForm();
+		$localIllForm->find();
+		$localIllForm->orderBy('name');
+		$localIllForms[-1] = 'Select a form';
+		while ($localIllForm->fetch()) {
+			$localIllForms[$localIllForm->id] = $localIllForm->name;
 		}
 
 		$hasScoping = false;
@@ -1037,14 +1049,22 @@ class Location extends DataObject {
 				'type' => 'section',
 				'label' => 'Interlibrary loans',
 				'hideInLists' => true,
-				'permissions' => ['Library ILL Options'],
 				'properties' => [
+					'localIllFormId' => [
+						'property' => 'localIllFormId',
+						'type' => 'enum',
+						'values' => $localIllForms,
+						'label' => 'Local ILL Form',
+						'description' => 'The form to use when submitting Local ILL requests',
+						'permissions' => ['Library ILL Options', 'Administer All Local ILL Forms'],
+					],
 					'vdxLocation' => [
 						'property' => 'vdxLocation',
 						'type' => 'text',
 						'label' => 'VDX Location',
 						'description' => 'The location code to send in the VDX email',
 						'maxLength' => 50,
+						'permissions' => ['Library ILL Options'],
 					],
 					'vdxFormId' => [
 						'property' => 'vdxFormId',
@@ -1052,6 +1072,7 @@ class Location extends DataObject {
 						'values' => $vdxForms,
 						'label' => 'VDX Form',
 						'description' => 'The form to use when submitting VDX requests',
+						'permissions' => ['Library ILL Options'],
 					],
 				],
 			],
@@ -1408,7 +1429,8 @@ class Location extends DataObject {
 		}
 
 		if (!$vdxActive) {
-			unset($structure['interLibraryLoanSection']);
+			unset($structure['interLibraryLoanSection']['properties']['vdxFormId']);
+			unset($structure['interLibraryLoanSection']['properties']['vdxLocation']);
 		}
 		return $structure;
 	}
@@ -2841,6 +2863,7 @@ class Location extends DataObject {
 			'description' => $this->description,
 			'vdxFormId' => (int)$this->vdxFormId,
 			'vdxLocation' => $this->vdxLocation,
+			'localIllFormId' => (int)$this->localIllFormId,
 			'showInLocationsAndHoursList' => (string)$this->showInLocationsAndHoursList,
 			'hoursMessage' => Location::getLibraryHoursMessage($this->locationId),
 			'hours' => [],
@@ -3011,5 +3034,32 @@ class Location extends DataObject {
 				$index--;
 			}
 		}
+	}
+
+	function getInterlibraryLoanType(): string {
+		try {
+			//Check to see if local ILL is available
+			$parentLibrary = $this->getParentLibrary();
+			if ($parentLibrary != null) {
+				if ($parentLibrary->localIllRequestType != 0) {
+					if ($this->localIllFormId > 0) {
+						return 'localIll';
+					}
+				}
+			}
+			//Local ILL is not available, check to see if VDX is available.
+			require_once ROOT_DIR . '/sys/VDX/VdxSetting.php';
+			require_once ROOT_DIR . '/sys/VDX/VdxForm.php';
+			$vdxSettings = new VdxSetting();
+			if ($vdxSettings->find(true)) {
+				//Get configuration for the form.
+				if ($this->vdxFormId != -1) {
+					return 'vdx';
+				}
+			}
+		} catch (Exception $e) {
+			//This happens if the tables aren't setup, ignore
+		}
+		return 'none';
 	}
 }

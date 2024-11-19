@@ -442,7 +442,7 @@
 		{elseif $property.type == 'label'}
 			<div id='{$propName}'>
 				{if empty($propValue)}
-					{translate text="Not Set" isAdminFacing=true}
+					{if empty($property.suppressNotSetForEmpty)}{translate text="Not Set" isAdminFacing=true}{/if}
 				{elseif is_array($propValue)}
 					{implode subject=$propValue glue=", " escape=true}
 				{else}

@@ -26,7 +26,7 @@
 					<li role="presentation"{if $tab=='all'} class="active"{/if}><a href="#all" aria-controls="all" role="tab" data-toggle="tab">{translate text="All" isPublicFacing=true} <span class="badge"><span class="holds-placeholder">&nbsp;</span></span></a></li>
 					<li role="presentation"{if $tab=='ils'} class="active"{/if}><a href="#ils" aria-controls="ils" role="tab" data-toggle="tab">{translate text="Physical Materials" isPublicFacing=true} <span class="badge"><span class="ils-holds-placeholder">&nbsp;</span></span></a></li>
 				{/if}
-				{if $user->hasInterlibraryLoan()}
+				{if $user->getInterlibraryLoanType() == 'vdx'}
 					<li role="presentation"{if $tab=='interlibrary_loan'} class="active"{/if}><a href="#interlibrary_loan" aria-controls="interlibrary_loan" role="tab" data-toggle="tab">{translate text="Interlibrary Loan Requests" isPublicFacing=true} <span class="badge"><span class="interlibrary-loan-requests-placeholder">&nbsp;</span></span></a></li>
 				{/if}
 				{if $user->isValidForEContentSource('overdrive')}

@@ -1,18 +1,16 @@
 <?php /** @noinspection PhpMissingFieldTypeInspection */
 
-class VdxForm extends DataObject {
-	public $__table = 'vdx_form';
+
+class LocalIllForm extends DataObject {
+	public $__table = 'local_ill_form';
 	public $id;
 	public $name;
 	public $introText;
 	//We always show title
-	public $showAuthor;
-	public $showPublisher;
-	public $showIsbn;
 	public $showAcceptFee;
+	public $requireAcceptFee;
 	public $showMaximumFee;
 	public $feeInformationText;
-	public $showCatalogKey;
 	//We always show the Note field.
 	//We always show Pickup Library
 
@@ -20,7 +18,7 @@ class VdxForm extends DataObject {
 
 	/** @noinspection PhpUnusedParameterInspection */
 	public static function getObjectStructure($context = ''): array {
-		$locationList = Location::getLocationList(!UserAccount::userHasPermission('Administer All VDX Forms'));
+		$locationList = Location::getLocationList(!UserAccount::userHasPermission('Administer All Local ILL Forms'));
 
 		return [
 			'id' => [
@@ -43,29 +41,17 @@ class VdxForm extends DataObject {
 				'description' => 'Introductory Text to be displayed at the top of the form',
 				'maxLength' => 5000,
 			],
-			'showAuthor' => [
-				'property' => 'showAuthor',
-				'type' => 'checkbox',
-				'label' => 'Show Author?',
-				'description' => 'Whether or not the user should be prompted to enter the author name',
-			],
-			'showPublisher' => [
-				'property' => 'showPublisher',
-				'type' => 'checkbox',
-				'label' => 'Show Publisher?',
-				'description' => 'Whether or not the user should be prompted to enter the publisher name',
-			],
-			'showIsbn' => [
-				'property' => 'showIsbn',
-				'type' => 'checkbox',
-				'label' => 'Show ISBN?',
-				'description' => 'Whether or not the user should be prompted to enter the ISBN',
-			],
 			'showAcceptFee' => [
 				'property' => 'showAcceptFee',
 				'type' => 'checkbox',
 				'label' => 'Show Accept Fee?',
 				'description' => 'Whether or not the user should be prompted to accept the fee (if any)',
+			],
+			'requireAcceptFee' => [
+				'property' => 'requireAcceptFee',
+				'type' => 'checkbox',
+				'label' => 'Require Accept Fee?',
+				'description' => 'Whether or not the user should be required to accept the fee (if any)',
 			],
 			'showMaximumFee' => [
 				'property' => 'showMaximumFee',
@@ -80,19 +66,13 @@ class VdxForm extends DataObject {
 				'description' => 'Text to be displayed to give additional information about the fees charged.',
 				'maxLength' => 5000,
 			],
-			'showCatalogKey' => [
-				'property' => 'showCatalogKey',
-				'type' => 'checkbox',
-				'label' => 'Show Catalog Key?',
-				'description' => 'Whether or not the user should be prompted for the catalog key',
-			],
 
 			'locations' => [
 				'property' => 'locations',
 				'type' => 'multiSelect',
 				'listStyle' => 'checkboxSimple',
 				'label' => 'Locations',
-				'description' => 'Define locations that use this VDX Form',
+				'description' => 'Define the locations that use this form',
 				'values' => $locationList,
 				'hideInLists' => false,
 			],
@@ -127,14 +107,14 @@ class VdxForm extends DataObject {
 		return $ret;
 	}
 
-	public function delete($useWhere = false) : int {
+	public function delete($useWhere = false): int {
 		$ret = parent::delete($useWhere);
 		if ($ret && !empty($this->id)) {
 			$location = new Location();
-			$location->vdxFormId = $this->id;
+			$location->localIllFormId = $this->id;
 			$location->find();
 			while ($location->fetch()) {
-				$location->vdxFormId = -1;
+				$location->localIllFormId = -1;
 				$location->update();
 			}
 		}
@@ -151,19 +131,19 @@ class VdxForm extends DataObject {
 
 	public function saveLocations() {
 		if (isset ($this->_locations) && is_array($this->_locations)) {
-			$locationList = Location::getLocationList(!UserAccount::userHasPermission('Administer All VDX Forms'));
+			$locationList = Location::getLocationList(!UserAccount::userHasPermission('Administer All Local ILL Forms'));
 			foreach ($locationList as $locationId => $displayName) {
 				$location = new Location();
 				$location->locationId = $locationId;
 				$location->find(true);
 				if (in_array($locationId, $this->_locations)) {
-					if ($location->vdxFormId != $this->id) {
-						$location->vdxFormId = $this->id;
+					if ($location->localIllFormId != $this->id) {
+						$location->localIllFormId = $this->id;
 						$location->update();
 					}
 				} else {
-					if ($location->vdxFormId == $this->id) {
-						$location->vdxFormId = -1;
+					if ($location->localIllFormId == $this->id) {
+						$location->localIllFormId = -1;
 						$location->update();
 					}
 				}
@@ -196,72 +176,22 @@ class VdxForm extends DataObject {
 			'property' => 'title',
 			'type' => 'text',
 			'label' => 'Title',
-			'description' => 'The title of the title to be request',
+			'description' => 'The title of the title to be requested',
 			'maxLength' => 255,
 			'required' => true,
 			'default' => ($marcRecordDriver != null ? StringUtils::removeTrailingPunctuation($marcRecordDriver->getTitle()) : ''),
 		];
-		$fields['author'] = [
-			'property' => 'author',
-			'type' => ($this->showAuthor ? 'text' : 'hidden'),
-			'label' => 'Author',
-			'description' => 'The author of the title to request',
-			'maxLength' => 255,
-			'required' => false,
-			'default' => ($marcRecordDriver != null ? $marcRecordDriver->getAuthor() : ''),
-		];
-		$publisher = '';
-		if ($marcRecordDriver != null) {
-			$publishers = $marcRecordDriver->getPublishers();
-			if (count($publishers) > 0) {
-				$publisher = reset($publishers);
-			}
-		}
-		$fields['publisher'] = [
-			'property' => 'publisher',
-			'type' => ($this->showPublisher ? 'text' : 'hidden'),
-			'label' => 'Publisher',
-			'description' => 'The publisher of the title to request',
-			'maxLength' => 255,
-			'required' => false,
-			'default' => $publisher,
-		];
-		$fields['isbn'] = [
-			'property' => 'isbn',
-			'type' => ($this->showIsbn ? 'text' : 'hidden'),
-			'label' => 'ISBN',
-			'description' => 'The ISBN of the title to request',
-			'maxLength' => 20,
-			'required' => false,
-			'default' => ($marcRecordDriver != null ? $marcRecordDriver->getCleanISBN() : ''),
-		];
-		if ($marcRecordDriver != null) {
-			/** @var File_MARC_Control_Field $oclcNumber */
-			$oclcNumber = $marcRecordDriver->getMarcRecord()->getField('001');
-			if ($oclcNumber != null) {
-				$oclcNumberString = StringUtils::truncate($oclcNumber->getData(), 50);
-			} else {
-				$oclcNumberString = '';
-			}
-		} else {
-			$oclcNumberString = '';
-		}
-		$fields['oclcNumber'] = [
-			'property' => 'oclcNumber',
-			'type' => 'hidden',
-			'label' => 'OCLC Number',
-			'description' => 'The OCLC Number',
-			'maxLength' => 50,
-			'required' => false,
-			'default' => $oclcNumberString,
-		];
 		if ($this->showAcceptFee) {
-			$fields['feeInformationText'] = [
-				'property' => 'feeInformationText',
-				'type' => 'label',
-				'label' => $this->feeInformationText,
-				'description' => '',
-			];
+			if (!empty($this->feeInformationText)) {
+				$fields['feeInformationText'] = [
+					'property' => 'feeInformationText',
+					'type' => 'label',
+					'label' => $this->feeInformationText,
+					'value' => '',
+					'description' => '',
+					'suppressNotSetForEmpty' => true,
+				];
+			}
 			if ($this->showMaximumFee) {
 				$fields['maximumFeeAmount'] = [
 					'property' => 'maximumFeeAmount',
@@ -276,6 +206,7 @@ class VdxForm extends DataObject {
 					'type' => 'checkbox',
 					'label' => 'I will pay any fees associated with this request up to the maximum amount defined above',
 					'description' => '',
+					'required' => $this->requireAcceptFee,
 				];
 			} else {
 				$fields['acceptFee'] = [
@@ -283,6 +214,7 @@ class VdxForm extends DataObject {
 					'type' => 'checkbox',
 					'label' => 'I will pay any fees associated with this request',
 					'description' => '',
+					'required' => $this->requireAcceptFee,
 				];
 			}
 		}
@@ -317,7 +249,7 @@ class VdxForm extends DataObject {
 		];
 		$fields['catalogKey'] = [
 			'property' => 'catalogKey',
-			'type' => (($this->showCatalogKey && $marcRecordDriver != null) ? 'text' : 'hidden'),
+			'type' => 'hidden',
 			'label' => 'Record Number',
 			'description' => 'The record number to be requested',
 			'maxLength' => 20,
@@ -327,11 +259,11 @@ class VdxForm extends DataObject {
 		return $fields;
 	}
 
-	private function getLocations() : ?array {
+	private function getLocations() : array {
 		if (!isset($this->_locations) && $this->id) {
 			$this->_locations = [];
 			$obj = new Location();
-			$obj->vdxFormId = $this->id;
+			$obj->localIllFormId = $this->id;
 			$obj->find();
 			while ($obj->fetch()) {
 				$this->_locations[$obj->locationId] = $obj->locationId;
@@ -365,70 +297,6 @@ class VdxForm extends DataObject {
 			]),
 			'required' => true,
 			'maxLength' => 255,
-		];
-
-		$fields['author'] = [
-			'type' => 'input',
-			'property' => 'author',
-			'display' => $this->showAuthor ? 'show' : 'hide',
-			'label' => translate([
-				'text' => 'Author',
-				'isPublicFacing' => true,
-			]),
-			'description' => translate([
-				'text' => 'The author of the title to request',
-				'isPublicFacing' => true,
-			]),
-			'required' => false,
-			'maxLength' => 255,
-		];
-
-		$fields['publisher'] = [
-			'type' => 'input',
-			'property' => 'publisher',
-			'display' => $this->showPublisher ? 'show' : 'hide',
-			'label' => translate([
-				'text' => 'Publisher',
-				'isPublicFacing' => true,
-			]),
-			'description' => translate([
-				'text' => 'The publisher of the title to request',
-				'isPublicFacing' => true,
-			]),
-			'required' => false,
-			'maxLength' => 255,
-		];
-
-		$fields['isbn'] = [
-			'type' => 'input',
-			'property' => 'isbn',
-			'display' => $this->showIsbn ? 'show' : 'hide',
-			'label' => translate([
-				'text' => 'ISBN',
-				'isPublicFacing' => true,
-			]),
-			'description' => translate([
-				'text' => 'The ISBN of the title to request',
-				'isPublicFacing' => true,
-			]),
-			'required' => false,
-			'maxLength' => 20,
-		];
-
-		$fields['oclcNumber'] = [
-			'type' => 'input',
-			'property' => 'oclcNumber',
-			'display' => 'hide',
-			'label' => translate([
-				'text' => 'OCLC Number',
-				'isPublicFacing' => true,
-			]),
-			'description' => translate([
-				'text' => 'The OCLC Number',
-				'isPublicFacing' => true,
-			]),
-			'required' => false,
-			'maxLength' => 50,
 		];
 
 		$fields['feeInformationText'] = [
@@ -466,8 +334,7 @@ class VdxForm extends DataObject {
 				'isPublicFacing' => true,
 			]),
 			'description' => '',
-			'required' => false,
-			'maxLength' => 255,
+			'required' => $this->requireAcceptFee,
 		];
 
 		$fields['note'] = [
@@ -484,22 +351,6 @@ class VdxForm extends DataObject {
 			]),
 			'required' => false,
 			'maxLength' => 255,
-		];
-
-		$fields['catalogKey'] = [
-			'type' => 'text',
-			'property' => 'catalogKey',
-			'display' => $this->showCatalogKey ? 'show' : 'hide',
-			'label' => translate([
-				'text' => 'Record Number',
-				'isPublicFacing' => true,
-			]),
-			'description' => translate([
-				'text' => 'The record number to be requested',
-				'isPublicFacing' => true,
-			]),
-			'required' => false,
-			'maxLength' => 20,
 		];
 
 		require_once ROOT_DIR . '/services/API/UserAPI.php';

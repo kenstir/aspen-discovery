@@ -1,15 +1,16 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
-require_once ROOT_DIR . '/sys/VDX/VdxHoldGroupLocation.php';
+require_once ROOT_DIR . '/sys/InterLibraryLoan/HoldGroupLocation.php';
 
-class VdxHoldGroup extends DataObject {
-	public $__table = 'vdx_hold_groups';
+class HoldGroup extends DataObject {
+	public $__table = 'hold_groups';
 	public $id;
 	public $name;
 
 	protected $_locations;
 	protected $_locationCodes;
 
+	/** @noinspection PhpUnusedParameterInspection */
 	public static function getObjectStructure($context = ''): array {
 		$locationList = Location::getLocationList(false);
 
@@ -68,11 +69,11 @@ class VdxHoldGroup extends DataObject {
 		return $ret;
 	}
 
-	public function delete($useWhere = false) : int {
+	public function delete($useWhere = false): int {
 		$ret = parent::delete($useWhere);
 		if ($ret && !empty($this->id)) {
-			$holdGroupLocation = new VdxHoldGroupLocation();
-			$holdGroupLocation->vdxHoldGroupId = $this->id;
+			$holdGroupLocation = new HoldGroupLocation();
+			$holdGroupLocation->holdGroupId = $this->id;
 			$holdGroupLocation->delete(true);
 		}
 		return $ret;
@@ -87,13 +88,13 @@ class VdxHoldGroup extends DataObject {
 	}
 
 	/**
-	 * @return int[]
+	 * @return null|int[]
 	 */
 	public function getLocations(): ?array {
 		if (!isset($this->_locations) && $this->id) {
 			$this->_locations = [];
-			$obj = new VdxHoldGroupLocation();
-			$obj->vdxHoldGroupId = $this->id;
+			$obj = new HoldGroupLocation();
+			$obj->holdGroupId = $this->id;
 			$obj->find();
 			while ($obj->fetch()) {
 				$this->_locations[$obj->locationId] = $obj->locationId;
@@ -102,7 +103,10 @@ class VdxHoldGroup extends DataObject {
 		return $this->_locations;
 	}
 
-	public function getLocationCodes() {
+	/**
+	 * @return null|string[]
+	 */
+	public function getLocationCodes() : ?array {
 		if (!isset($this->_locationCodes) && $this->id) {
 			$this->_locationCodes = [];
 			$locationIds = $this->getLocations();
@@ -119,19 +123,22 @@ class VdxHoldGroup extends DataObject {
 
 	public function __set($name, $value) {
 		if ($name == "locations") {
-			$this->_locations = $value;
+			$this->setLocations($value);
 		} else {
 			parent::__set($name, $value);
 		}
 	}
 
+	public function setLocations(?array $locations) : void {
+		$this->_locations = $locations;
+	}
 
-	public function saveLocations() {
+	public function saveLocations() : void {
 		if (isset ($this->_locations) && is_array($this->_locations)) {
-			$locationList = Location::getLocationList(!UserAccount::userHasPermission('Administer VDX Hold Groups'));
+			$locationList = Location::getLocationList(!UserAccount::userHasPermission('Administer Hold Groups'));
 			foreach ($locationList as $locationId => $displayName) {
-				$obj = new VdxHoldGroupLocation();
-				$obj->vdxHoldGroupId = $this->id;
+				$obj = new HoldGroupLocation();
+				$obj->holdGroupId = $this->id;
 				$obj->locationId = $locationId;
 				if (in_array($locationId, $this->_locations)) {
 					if (!$obj->find(true)) {
@@ -144,9 +151,5 @@ class VdxHoldGroup extends DataObject {
 				}
 			}
 		}
-	}
-
-	public function okToExport(array $selectedFilters): bool {
-		return parent::okToExport($selectedFilters);
 	}
 }

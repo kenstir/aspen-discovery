@@ -198,12 +198,14 @@ class SirsiDynixROA extends HorizonAPI {
 								$Zip = $fields->data;
 								break;
 							// If the library does not use the PHONE field, set $user->phone to DAYPHONE or HOMEPHONE
+							/** @noinspection SpellCheckingInspection */
 							case 'DAYPHONE' :
-								$dayphone = $fields->data;
-								$user->phone = $dayphone;
+								$dayPhone = $fields->data;
+								$user->phone = $dayPhone;
+							/** @noinspection SpellCheckingInspection */
 							case 'HOMEPHONE' :
-								$homephone = $fields->data;
-								$user->phone = $homephone;
+								$homePhone = $fields->data;
+								$user->phone = $homePhone;
 							case 'PHONE' :
 								$phone = $fields->data;
 								$user->phone = $phone;
@@ -1119,7 +1121,7 @@ class SirsiDynixROA extends HorizonAPI {
 
 		//Get a list of holds for the user
 		// (Call now includes Item information for when the hold is an item level hold.)
-		$includeFields = urlencode("holdRecordList{*,bib{title,author},selectedItem{call{*},itemType{*},barcode}}");
+		$includeFields = urlencode("holdRecordList{*,bib{title,author},selectedItem{call{*},itemType{*},barcode,currentLocation}}");
 		$patronHolds = $this->getWebServiceResponse('getHolds', $webServiceURL . '/user/patron/key/' . $patron->unique_ils_id . '?includeFields=' . $includeFields, null, $sessionToken);
 		if ($patronHolds && isset($patronHolds->fields)) {
 			require_once ROOT_DIR . '/RecordDrivers/MarcRecordDriver.php';
@@ -1138,6 +1140,7 @@ class SirsiDynixROA extends HorizonAPI {
 				$curHold->itemId = empty($hold->fields->item->key) ? '' : $hold->fields->item->key;
 				$curHold->cancelId = $hold->key;
 				$curHold->position = $hold->fields->queuePosition;
+
 				$curHold->recordId = 'a' . $bibId;
 				require_once ROOT_DIR . '/RecordDrivers/MarcRecordDriver.php';
 				$recordDriver = RecordDriverFactory::initRecordDriverById($this->getIndexingProfile()->name . ':' . $curHold->recordId);
@@ -1160,6 +1163,22 @@ class SirsiDynixROA extends HorizonAPI {
 				}
 
 				$curHold->status = ucfirst(strtolower($hold->fields->status));
+				$isLocalIllHold = false;
+				if (!empty($hold->fields->mailFlag)){
+					$isLocalIllHold = true;
+				}elseif (!empty($hold->fields->selectedItem->fields->currentLocation->key)) {
+					$currentLocation = $hold->fields->selectedItem->fields->currentLocation->key;
+					if ($currentLocation == 'ILL') {
+						$isLocalIllHold = true;
+					}
+				}
+				if ($isLocalIllHold){
+					if (strcasecmp($curHold->status, 'INSHIPPING') === 0 || strcasecmp($curHold->status, 'INTRANSIT') === 0){
+						$curHold->outOfHoldGroupMessage = translate(['text' => 'Shipping from Another Library', 'isPublicFacing' => true]);
+					}else{
+						$curHold->outOfHoldGroupMessage = translate(['text' => 'Hold Pending from Another Library', 'isPublicFacing' => true]);
+					}
+				}
 				$curHold->createDate = strtotime($createDate);
 				$curHold->expirationDate = strtotime($expireDate);
 				$curHold->automaticCancellationDate = strtotime($fillByDate);
@@ -1209,14 +1228,14 @@ class SirsiDynixROA extends HorizonAPI {
 	/**
 	 * Place Hold
 	 *
-	 * This is responsible for both placing holds as well as placing recalls.
+	 * This is responsible for both placing holds and placing recalls.
 	 *
 	 * @param User $patron The User to place a hold for
 	 * @param string $recordId The id of the bib record
-	 * @param string $pickupBranch The branch where the user wants to pickup the item when available
+	 * @param string $pickupBranch The branch where the user wants to pick up the item when available
 	 * @param null|string $cancelDate The date the hold should be automatically cancelled
 	 * @return  mixed                 True if successful, false if unsuccessful
-	 *                                If an error occurs, return a AspenError
+	 *                                If an error occurs, return an AspenError
 	 * @access  public
 	 */
 	public function placeHold($patron, $recordId, $pickupBranch = null, $cancelDate = null) {
@@ -1235,7 +1254,7 @@ class SirsiDynixROA extends HorizonAPI {
 	 * @param string $type Whether to place a hold or recall
 	 * @param null|string $cancelIfNotFilledByDate When to cancel the hold automatically if it is not filled
 	 * @return  mixed               True if successful, false if unsuccessful
-	 *                              If an error occurs, return a AspenError
+	 *                              If an error occurs, return an AspenError
 	 * @access  public
 	 */
 	function placeItemHold($patron, $recordId, $itemId, $pickupBranch = null, $type = 'request', $cancelIfNotFilledByDate = null) {
@@ -1249,16 +1268,15 @@ class SirsiDynixROA extends HorizonAPI {
 	 *
 	 * @param User $patron The User to place a hold for
 	 * @param string $recordId The id of the bib record
-	 * @param string $itemId The id of the item to hold
-	 * @param string $volume The volume identifier of the item to hold
-	 * @param string $pickupBranch The Pickup Location
+	 * @param ?string $itemId The id of the item to hold
+	 * @param ?string $volume The volume identifier of the item to hold
+	 * @param ?string $pickupBranch The Pickup Location
 	 * @param string $type Whether to place a hold or recall
 	 * @param null|string $cancelIfNotFilledByDate When to cancel the hold automatically if it is not filled
-	 * @return  mixed               True if successful, false if unsuccessful
-	 *                              If an error occurs, return a AspenError
+	 * @return  array  The results of the error
 	 * @access  public
 	 */
-	function placeSirsiHold($patron, $recordId, $itemId, $volume = null, $pickupBranch = null, $type = 'request', $cancelIfNotFilledByDate = null, $forceVolumeHold = false) {
+	function placeSirsiHold(User $patron, string $recordId, ?string $itemId, ?string $volume = null, ?string $pickupBranch = null, string $type = 'request', ?string $cancelIfNotFilledByDate = null, bool $forceVolumeHold = false, bool $useBooksByMail = false) : array {
 		//Get the session token for the user
 		$staffSessionToken = $this->getStaffSessionToken();
 		$sessionToken = $this->getSessionToken($patron);
@@ -1280,7 +1298,7 @@ class SirsiDynixROA extends HorizonAPI {
 			return $result;
 		}
 
-		if (strpos($recordId, ':') !== false) {
+		if (str_contains($recordId, ':')) {
 			[
 				,
 				$shortId,
@@ -1373,6 +1391,16 @@ class SirsiDynixROA extends HorizonAPI {
 					$holdData['comment'] = $library->systemHoldNote;
 				}
 			}
+
+			if ($useBooksByMail) {
+				$holdData['mailFlag'] = true;
+				$holdData['mailService'] = [
+					'resource' => '/policy/mailService',
+					'key' => 'USPS',
+				];
+				$holdData['holdRange'] = 'SYSTEM';
+			}
+
 			//$holdRecord         = $this->getWebServiceResponse('holdRecordDescribe', $webServiceURL . "/circulation/holdRecord/describe", null, $sessionToken);
 			//$placeHold          = $this->getWebServiceResponse('placeHoldDescribe', $webServiceURL . "/circulation/holdRecord/placeHold/describe", null, $sessionToken);
 			global $locationSingleton;
@@ -1408,26 +1436,24 @@ class SirsiDynixROA extends HorizonAPI {
 					'isPublicFacing' => true,
 				]);
 
-				if (isset($createHoldResponse->messageList)) {
-					$hold_result['message'] .= ' ' . translate([
-							'text' => (string)$createHoldResponse->messageList[0]->message,
-							'isPublicFacing' => true,
-						]);
-					$hold_result['error_code'] = $createHoldResponse->messageList[0]->code;
-					$hold_result['api']['message'] .= ' ' . translate([
-							'text' => (string)$createHoldResponse->messageList[0]->message,
-							'isPublicFacing' => true,
-						]) . ' (' . $createHoldResponse->messageList[0]->code . ') ';
-					global $logger;
-					$errorMessage = 'Sirsi ROA Place Hold Error: ';
-					foreach ($createHoldResponse->messageList as $error) {
-						$errorMessage .= $error->message . '; ';
-					}
-					if (IPAddress::showDebuggingInformation()) {
-						$hold_result['message'] .= "<br>\r\n" . print_r($holdData, true);
-					}
-					$logger->log($errorMessage, Logger::LOG_ERROR);
+				$hold_result['message'] .= ' ' . translate([
+						'text' => (string)$createHoldResponse->messageList[0]->message,
+						'isPublicFacing' => true,
+					]);
+				$hold_result['error_code'] = $createHoldResponse->messageList[0]->code;
+				$hold_result['api']['message'] .= ' ' . translate([
+						'text' => (string)$createHoldResponse->messageList[0]->message,
+						'isPublicFacing' => true,
+					]) . ' (' . $createHoldResponse->messageList[0]->code . ') ';
+				global $logger;
+				$errorMessage = 'Sirsi ROA Place Hold Error: ';
+				foreach ($createHoldResponse->messageList as $error) {
+					$errorMessage .= $error->message . '; ';
 				}
+				if (IPAddress::showDebuggingInformation()) {
+					$hold_result['message'] .= "<br>\r\n" . print_r($holdData, true);
+				}
+				$logger->log($errorMessage, Logger::LOG_ERROR);
 			} else {
 				$hold_result['success'] = true;
 				$hold_result['message'] = translate([
@@ -1629,7 +1655,7 @@ class SirsiDynixROA extends HorizonAPI {
 
 	}
 
-	function changeHoldPickupLocation(User $patron, $recordId, $holdId, $newPickupLocation): array {
+	function changeHoldPickupLocation(User $patron, $recordId, $itemToUpdateId, $newPickupLocation): array {
 		$staffSessionToken = $this->getStaffSessionToken();
 		if (!$staffSessionToken) {
 			$result = [
@@ -1659,7 +1685,7 @@ class SirsiDynixROA extends HorizonAPI {
 		$params = [
 			'holdRecord' => [
 				'resource' => '/circulation/holdRecord',
-				'key' => $holdId,
+				'key' => $itemToUpdateId,
 			],
 			'pickupLibrary' => [
 				'resource' => '/policy/library',
@@ -1716,7 +1742,7 @@ class SirsiDynixROA extends HorizonAPI {
 		}
 	}
 
-	function freezeHold(User $patron, $recordId, $holdToFreezeId, $dateToReactivate): array {
+	function freezeHold(User $patron, $recordId, $itemToFreezeId, $dateToReactivate): array {
 		$sessionToken = $this->getStaffSessionToken();
 		if (!$sessionToken) {
 			$result = [
@@ -1748,7 +1774,7 @@ class SirsiDynixROA extends HorizonAPI {
 
 		$params = [
 			'holdRecord' => [
-				'key' => $holdToFreezeId,
+				'key' => $itemToFreezeId,
 				'resource' => '/circulation/holdRecord',
 			],
 			'suspendBeginDate' => $today,
@@ -1758,7 +1784,7 @@ class SirsiDynixROA extends HorizonAPI {
 		$updateHoldResponse = $this->getWebServiceResponse('suspendHold', $webServiceURL . "/circulation/holdRecord/suspendHold", $params, $sessionToken, 'POST');
 
 		if (isset($updateHoldResponse->holdRecord->key)) {
-			$getHoldResponse = $this->getWebServiceResponse('getHold', $webServiceURL . "/circulation/holdRecord/key/$holdToFreezeId", null, $this->getSessionToken($patron));
+			$getHoldResponse = $this->getWebServiceResponse('getHold', $webServiceURL . "/circulation/holdRecord/key/$itemToFreezeId", null, $this->getSessionToken($patron));
 			if (isset($getHoldResponse->fields->status) && $getHoldResponse->fields->status == 'SUSPENDED') {
 				$patron->forceReloadOfHolds();
 				$result = [
@@ -1837,7 +1863,7 @@ class SirsiDynixROA extends HorizonAPI {
 		}
 	}
 
-	function thawHold($patron, $recordId, $holdToThawId): array {
+	function thawHold($patron, $recordId, $itemToThawId): array {
 		$sessionToken = $this->getStaffSessionToken();
 		if (!$sessionToken) {
 			$result = [
@@ -1866,7 +1892,7 @@ class SirsiDynixROA extends HorizonAPI {
 
 		$params = [
 			'holdRecord' => [
-				'key' => $holdToThawId,
+				'key' => $itemToThawId,
 				'resource' => '/circulation/holdRecord',
 			],
 		];
@@ -2659,12 +2685,16 @@ class SirsiDynixROA extends HorizonAPI {
 						$Zip = $fields->data;
 						break;
 					// If the library does not use the PHONE field, set $user->phone to DAYPHONE or HOMEPHONE
+					/** @noinspection SpellCheckingInspection */
 					case 'DAYPHONE' :
-						$dayphone = $fields->data;
-						$user->phone = $dayphone;
+						$dayPhone = $fields->data;
+						$user->phone = $dayPhone;
+						break;
+					/** @noinspection SpellCheckingInspection */
 					case 'HOMEPHONE' :
-						$homephone = $fields->data;
-						$user->phone = $homephone;
+						$homePhone = $fields->data;
+						$user->phone = $homePhone;
+						break;
 					case 'PHONE' :
 						$phone = $fields->data;
 						$user->phone = $phone;
@@ -2848,7 +2878,7 @@ class SirsiDynixROA extends HorizonAPI {
 
 			if ($getPhoneListResponse != null) {
 				foreach ($getPhoneListResponse->fields->phoneList as $index => $phoneInfo) {
-					$phoneList[$index + 1] = [
+					$phoneList[(int)$index + 1] = [
 						'enabled' => true,
 						'key' => $phoneInfo->key,
 						'label' => $phoneInfo->fields->label,
@@ -3025,7 +3055,7 @@ class SirsiDynixROA extends HorizonAPI {
 						if (!empty($historyEntry['recordId'])) {
 							if ($systemVariables->storeRecordDetailsInDatabase) {
 								/** @noinspection SqlResolve */
-								$getRecordDetailsQuery = 'SELECT permanent_id, indexed_format.format, recordIdentifier FROM grouped_work_records 
+								$getRecordDetailsQuery = 'SELECT permanent_id, indexed_format.format, recordIdentifier FROM grouped_work_records
 								  LEFT JOIN grouped_work ON groupedWorkId = grouped_work.id
 								  LEFT JOIN indexed_record_source ON sourceId = indexed_record_source.id
 								  LEFT JOIN indexed_format on formatId = indexed_format.id
@@ -3866,7 +3896,7 @@ class SirsiDynixROA extends HorizonAPI {
 		return $this->getWebServiceResponse('describePath', "$webServiceURL/$path/describe", null, $sessionToken);
 	}
 
-	public function getRequest(string $path): ?stdClass {
+	public function getRequest(string $path): null|stdClass|array {
 		$sessionToken = $this->getStaffSessionToken();
 		if (!$sessionToken) {
 			return null;
@@ -3874,6 +3904,169 @@ class SirsiDynixROA extends HorizonAPI {
 
 		//Now that we have the session token, get holds information
 		$webServiceURL = $this->getWebServiceURL();
-		return $this->getWebServiceResponse('describePath', "$webServiceURL/$path", null, $sessionToken);
+		return $this->getWebServiceResponse('getRequest', "$webServiceURL/$path", null, $sessionToken);
+	}
+
+	public function loadLocations() : array {
+		//Get a list of locations for the system.
+		$sessionToken = $this->getStaffSessionToken();
+		if (!$sessionToken) {
+			return [
+				'success' => false,
+				'message' => 'Unable to authenticate with Symphony'
+			];
+		}
+
+		global $library;
+		$numAdded = 0;
+
+		//Now that we have the session token, get holds information
+		$webServiceURL = $this->getWebServiceURL();
+		$allLocationsResponse = $this->getWebServiceResponse('getAllLibraries', "$webServiceURL/policy/library/simpleQuery?libraryNumber=*", null, $sessionToken);
+		foreach ($allLocationsResponse as $locationInfo) {
+			$locationCode = $locationInfo->key;
+			$location = new Location();
+			$location->code = $locationCode;
+			if (!$location->find(true)) {
+				//This location has not been added to the database yet.
+				$location = new Location();
+				$location->code = $locationCode;
+				$location->displayName = $locationInfo->fields->description;
+				$location->createSearchInterface = 1;
+				$location->showInSelectInterface = 1;
+				$location->enableAppAccess = 1;
+				$location->theme = -1;
+				$location->useLibraryThemes = 1;
+				$location->languageAndDisplayInHeader = 1;
+				$location->displayExploreMoreBarInSummon = 1;
+				$location->displayExploreMoreBarInEbscoEds = 1;
+				$location->displayExploreMoreBarInEbscoHost = 1;
+				$location->displayExploreMoreBarInCatalogSearch = 1;
+				$location->showInLocationsAndHoursList = 1;
+				$location->validHoldPickupBranch = 1;
+				$location->validSelfRegistrationBranch = 1;
+				$location->showHoldButton = 1;
+				$location->publicListsToInclude = 4;
+				$location->automaticTimeoutLength = 90;
+				$location->automaticTimeoutLengthLoggedOut = 450;
+				$location->showEmailThis = 1;
+				$location->showShareOnExternalSites = 1;
+				$location->showFavorites = 1;
+				$location->includeLibraryRecordsToInclude = 1;
+
+				$recordToInclude = new LocationRecordToInclude();
+				$recordToInclude->indexingProfileId = $this->getIndexingProfile()->id;
+				$recordToInclude->markRecordsAsOwned = 1;
+				$recordToInclude->location = $locationCode;
+				$recordsToInclude = [$recordToInclude];
+
+				//Figure out the library for the location
+				$libraryForLocation = new Library();
+				$libraryForLocation->ilsCode = $locationInfo->fields->holdGroup->key;
+				if ($libraryForLocation->find(true)){
+					$location->libraryId = $libraryForLocation->libraryId;
+				}else{
+					$location->libraryId = $library->libraryId;
+				}
+
+				$location->__set('recordsToInclude', $recordsToInclude);
+
+				$location->insert();
+				$numAdded++;
+			}
+		}
+		return [
+			'success' => true,
+			'message' => translate(['text' => 'Added %1% locations from Symphony.', 1=>$numAdded, 'isAdminFacing' => true])
+		];
+	}
+
+	public function loadHoldGroups() : array {
+		//Get a list of locations for the system.
+		$sessionToken = $this->getStaffSessionToken();
+		if (!$sessionToken) {
+			return [
+				'success' => false,
+				'message' => 'Unable to authenticate with Symphony'
+			];
+		}
+
+		$numGroupsAdded = 0;
+		$numLocationsAdded = 0;
+
+		//Now that we have the session token, get holds information
+		$webServiceURL = $this->getWebServiceURL();
+		$allLocationsResponse = $this->getWebServiceResponse('getAllLibraries', "$webServiceURL/policy/library/simpleQuery?libraryNumber=*", null, $sessionToken);
+		foreach ($allLocationsResponse as $locationInfo) {
+			$locationCode = $locationInfo->key;
+			$holdGroupKey = $locationInfo->fields->holdGroup->key;
+			require_once ROOT_DIR . '/sys/InterLibraryLoan/HoldGroup.php';
+			$holdGroup = new HoldGroup();
+			$holdGroup->name = $holdGroupKey;
+			if (!$holdGroup->find(true)){
+				$holdGroup->insert();
+				$numGroupsAdded++;
+			}
+
+			//Check to see if the location is part of the hold group
+			$holdGroupLocations = $holdGroup->getLocationCodes();
+			if (!in_array($locationCode, $holdGroupLocations)){
+				$location = new Location();
+				$location->code = $locationCode;
+				if ($location->find(true)) {
+					$locationIds = $holdGroup->getLocations();
+					$locationIds[] = $location->locationId;
+					$holdGroup->setLocations($locationIds);
+					$holdGroup->update();
+					$numLocationsAdded++;
+				}
+			}
+		}
+		return [
+			'success' => true,
+			'message' => translate(['text' => 'Added %1% groups from Symphony and %2% locations.', 1=>$numGroupsAdded, 2=>$numLocationsAdded, 'isAdminFacing' => true])
+		];
+	}
+
+	public function supportsLocalIllRequests() : bool {
+		return true;
+	}
+
+	public function submitLocalIllRequest(User $patron, LocalIllForm $localIllForm) : array {
+		$result = [
+			'success' => false,
+			'message' => translate(['text' => 'There was an unknown error placing your request', 'isPublicFacing' => true]),
+		];
+		$userHomeLocation = $patron->getHomeLocation();
+		if ($userHomeLocation->getParentLibrary()->localIllRequestType == 1) {
+			//Get values for the request
+			$catalogKey = $_REQUEST['catalogKey'] ?? '';
+			$acceptFee = $_REQUEST['acceptFee'] ?? false;
+			$pickupLocation = $_REQUEST['pickupLocation'] ?? '';
+			$okToProcess = true;
+			if ($localIllForm ->requireAcceptFee) {
+				if (empty($acceptFee) || $acceptFee == 'false') {
+					$result['message'] = translate(['text' => 'You must agree to pay any fees associated with this request before continuing.', 'isPublicFacing' => true]);
+					$okToProcess = false;
+				}
+			}
+			if (empty($catalogKey)) {
+				$result['message'] = translate(['text' => 'Could not find the title to place a hold on.', 'isPublicFacing' => true]);
+				$okToProcess = false;
+			}
+			if (empty($pickupLocation)) {
+				$result['message'] = translate(['text' => 'Please provide the location where you would like to pickup this request.', 'isPublicFacing' => true]);
+				$okToProcess = false;
+			}
+			if ($okToProcess) {
+				$holdResult = $this->placeSirsiHold($patron, $catalogKey, '', '', $pickupLocation, 'request', null, false, true);
+				if ($holdResult['success']) {
+					$result['message'] = translate(['text' => 'Your request was placed successfully.', 'isPublicFacing' => true]);
+				}
+			}
+		}else{
+			$result['message'] = translate(['text' => 'The specified ILL Request Type is not supported by this driver.', 'isPublicFacing' => true]);
+		}
+		return $result;
 	}
 }

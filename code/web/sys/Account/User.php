@@ -193,14 +193,14 @@ class User extends DataObject {
 		return $lists;
 	}
 
-	protected $_catalogDriver = null;
+	protected ?CatalogConnection $_catalogDriver = null;
 
 	/**
 	 * Get a connection to the catalog for the user
 	 *
-	 * @return CatalogConnection
+	 * @return null|CatalogConnection
 	 */
-	function getCatalogDriver() {
+	function getCatalogDriver() : ?CatalogConnection {
 		if ($this->_catalogDriver == null) {
 			//Based off the source of the user, get the AccountProfile
 			$accountProfile = $this->getAccountProfile();
@@ -891,12 +891,22 @@ class User extends DataObject {
 
 	function hasInterlibraryLoan(): bool {
 		try {
-			require_once ROOT_DIR . '/sys/VDX/VdxSetting.php';
-			require_once ROOT_DIR . '/sys/VDX/VdxForm.php';
-			$vdxSettings = new VdxSetting();
-			if ($vdxSettings->find(true)) {
-				$homeLocation = Location::getDefaultLocationForUser();
-				if ($homeLocation != null) {
+			$homeLocation = Location::getDefaultLocationForUser();
+			if ($homeLocation != null) {
+				//Check to see if local ILL is available
+				$parentLibrary = $homeLocation->getParentLibrary();
+				if ($parentLibrary != null) {
+					if ($parentLibrary->localIllRequestType != 0) {
+						if ($homeLocation->localIllFormId > 0) {
+							return true;
+						}
+					}
+				}
+				//Local ILL is not available, check to see if VDX is available.
+				require_once ROOT_DIR . '/sys/VDX/VdxSetting.php';
+				require_once ROOT_DIR . '/sys/VDX/VdxForm.php';
+				$vdxSettings = new VdxSetting();
+				if ($vdxSettings->find(true)) {
 					//Get configuration for the form.
 					if ($homeLocation->vdxFormId != -1) {
 						return true;
@@ -907,6 +917,15 @@ class User extends DataObject {
 			//This happens if the tables aren't setup, ignore
 		}
 		return false;
+	}
+
+	function getInterlibraryLoanType(): string {
+		$homeLocation = Location::getDefaultLocationForUser();
+		if ($homeLocation != null) {
+			return $homeLocation->getInterlibraryLoanType();
+		}else{
+			return 'none';
+		}
 	}
 
 	/**
@@ -3948,8 +3967,12 @@ class User extends DataObject {
 		$sections['ils_integration']->addAction(new AdminAction('Test Self Check', 'Test Self Check functionality within Aspen and Aspen / LiDA.', '/ILS/SelfCheckTester'), 'Test Self Check');
 
 		$sections['ill_integration'] = new AdminSection('Interlibrary Loan');
+		$sections['ill_integration']->addAction(new AdminAction('Hold Groups', 'Modify Hold Groups for creating interlibrary loan holds.', '/InterLibraryLoan/HoldGroups'), 'Administer Hold Groups');
+		$sections['ill_integration']->addAction(new AdminAction('Local ILL Forms', 'Configure Forms for submitting Local ILL requests.', '/InterLibraryLoan/LocalIllForms'), [
+			'Administer All Local ILL Forms',
+			'Administer Library Local ILL Forms',
+		]);
 		$sections['ill_integration']->addAction(new AdminAction('VDX Settings', 'Define Settings for VDX Integration', '/VDX/VDXSettings'), ['Administer VDX Settings']);
-		$sections['ill_integration']->addAction(new AdminAction('VDX Hold Groups', 'Modify Hold Groups for creating holds via VDX.', '/VDX/VDXHoldGroups'), 'Administer VDX Hold Groups');
 		$sections['ill_integration']->addAction(new AdminAction('VDX Forms', 'Configure Forms for submitting VDX information.', '/VDX/VDXForms'), [
 			'Administer All VDX Forms',
 			'Administer Library VDX Forms',
@@ -5331,6 +5354,19 @@ class User extends DataObject {
 		return $allRequests;
 	}
 
+	public function submitLocalIllRequest(LocalIllForm $localIllForm) : array {
+		if ($this->hasIlsConnection()) {
+			return $this->getCatalogDriver()->submitLocalIllRequest($this, $localIllForm);
+		}else{
+			return [
+				'success' => false,
+				'message' => translate([
+					'text' => 'Cannot submit ILL request, not connected to an ILS.',
+					'isPublicFacing' => true
+				])
+			];
+		}
+	}
 }
 
 function modifiedEmpty($var) {

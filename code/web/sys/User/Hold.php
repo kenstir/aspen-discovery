@@ -26,6 +26,7 @@ class Hold extends CircEntry {
 	public $reactivateDate;
 	public $isIll;
 	public $pendingCancellation;
+	public $outOfHoldGroupMessage;
 
 	//For OverDrive
 	public $collectionName;

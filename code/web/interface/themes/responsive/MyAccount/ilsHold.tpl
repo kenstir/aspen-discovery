@@ -113,7 +113,7 @@
 
 					<div class="row">
 						<div class="result-label col-tn-4">{translate text='Pickup Location' isPublicFacing=true}</div>
-						<div class="col-tn-8 result-value">
+						<div class="col-tn-8 result-value hold-pickup-location">
 							{$record->pickupLocationName|escape}
 						</div>
 					</div>
@@ -123,6 +123,15 @@
 							<div class="result-label col-tn-4">{translate text='Date Placed' isPublicFacing=true}</div>
 							<div class="col-tn-8 result-value">
 								{$record->createDate|date_format:"%b %d, %Y"}
+							</div>
+						</div>
+					{/if}
+
+					{if !empty($record->outOfHoldGroupMessage) && !$record->available}
+						<div class="row">
+							<div class="result-label col-tn-4">{translate text='Interlibrary Loan' isPublicFacing=true}</div>
+							<div class="col-tn-8 result-value">
+								{$record->outOfHoldGroupMessage}
 							</div>
 						</div>
 					{/if}

@@ -2,27 +2,27 @@
 
 require_once ROOT_DIR . '/Action.php';
 require_once ROOT_DIR . '/services/Admin/ObjectEditor.php';
-require_once ROOT_DIR . '/sys/VDX/VdxHoldGroup.php';
+require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
 
-class VDX_VDXHoldGroups extends ObjectEditor {
+class InterLibraryLoan_LocalIllForms extends ObjectEditor {
 	function getObjectType(): string {
-		return 'VdxHoldGroup';
+		return 'LocalIllForm';
 	}
 
 	function getToolName(): string {
-		return 'VDXHoldGroups';
+		return 'LocalIllForms';
 	}
 
 	function getModule(): string {
-		return 'VDX';
+		return 'InterLibraryLoan';
 	}
 
 	function getPageTitle(): string {
-		return 'VDX Hold Groups';
+		return 'Local InterLibrary Loan Forms';
 	}
 
 	function getAllObjects($page, $recordsPerPage): array {
-		$object = new VdxHoldGroup();
+		$object = new LocalIllForm();
 		$object->limit(($page - 1) * $recordsPerPage, $recordsPerPage);
 		$this->applyFilters($object);
 		$object->orderBy($this->getSort());
@@ -39,7 +39,7 @@ class VDX_VDXHoldGroups extends ObjectEditor {
 	}
 
 	function getObjectStructure($context = ''): array {
-		return VdxHoldGroup::getObjectStructure($context);
+		return LocalIllForm::getObjectStructure($context);
 	}
 
 	function getPrimaryKeyColumn(): string {
@@ -62,7 +62,7 @@ class VDX_VDXHoldGroups extends ObjectEditor {
 		$breadcrumbs = [];
 		$breadcrumbs[] = new Breadcrumb('/Admin/Home', 'Administration Home');
 		$breadcrumbs[] = new Breadcrumb('/Admin/Home#ill_integration', 'Interlibrary Loan');
-		$breadcrumbs[] = new Breadcrumb('/VDX/VDXHoldGroups', 'VDX Hold Groups');
+		$breadcrumbs[] = new Breadcrumb('/InterLibraryLoan/LocalIllForms', 'Local ILL Forms');
 		return $breadcrumbs;
 	}
 
@@ -71,6 +71,15 @@ class VDX_VDXHoldGroups extends ObjectEditor {
 	}
 
 	function canView(): bool {
-		return UserAccount::userHasPermission('Administer VDX Hold Groups');
+		return UserAccount::userHasPermission([
+			'Administer All Local ILL Forms',
+			'Administer Library Local ILL Forms',
+		]);
+	}
+
+	function canBatchEdit(): bool {
+		return UserAccount::userHasPermission([
+			'Administer All Local ILL Forms',
+		]);
 	}
 }

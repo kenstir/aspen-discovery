@@ -393,13 +393,12 @@ abstract class HorizonAPI extends AbstractIlsDriver {
 	 * @param User $patron The User to place a hold for
 	 * @param string $recordId The id of the bib record
 	 * @param string $itemId The id of the item to hold
-	 * @param string $comment Any comment regarding the hold or recall
 	 * @param string $type Whether to place a hold or recall
 	 * @return  mixed               True if successful, false if unsuccessful
-	 *                              If an error occurs, return a AspenError
+	 *                              If an error occurs, return an AspenError
 	 * @access  public
 	 */
-	function placeItemHold(User $patron, $recordId, $itemId, $comment = '', $type = 'request') {
+	function placeItemHold(User $patron, $recordId, $itemId, $pickupBranch, $type = 'request', $cancelIfNotFilledByDate = null) {
 		global $configArray;
 
 		$userId = $patron->id;

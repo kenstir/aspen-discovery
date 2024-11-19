@@ -20,6 +20,7 @@ class Admin_Libraries extends ObjectEditor {
 		$libraryList = [];
 
 		$user = UserAccount::getLoggedInUser();
+		/** @noinspection PhpIfWithCommonPartsInspection */
 		if (UserAccount::userHasPermission('Administer All Libraries')) {
 			$object = new Library();
 			$object->orderBy($this->getSort());
@@ -36,7 +37,6 @@ class Admin_Libraries extends ObjectEditor {
 			if ($homeLibrary != null) {
 				$object->whereAdd("libraryId = $homeLibrary->libraryId");
 			}
-			$user = UserAccount::getActiveUserObj();
 			$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
 			if (!empty($additionalAdministrationLocations)) {
 				$locationsForUser = Location::getLocationListAsObjects(true);
@@ -81,11 +81,11 @@ class Admin_Libraries extends ObjectEditor {
 		return 'libraryId';
 	}
 
-	function canAddNew() {
+	function canAddNew() : bool {
 		return UserAccount::userHasPermission('Administer All Libraries');
 	}
 
-	function canDelete() {
+	function canDelete() : bool {
 		return UserAccount::userHasPermission('Administer All Libraries');
 	}
 
@@ -93,8 +93,10 @@ class Admin_Libraries extends ObjectEditor {
 		return [];
 	}
 
-	/** @noinspection PhpUnused */
-	function defaultMaterialsRequestForm() {
+	/** @noinspection PhpUnused
+	 * @noinspection PhpNoReturnAttributeCanBeAddedInspection
+	 */
+	function defaultMaterialsRequestForm() : void {
 		$library = new Library();
 		$libraryId = $_REQUEST['id'];
 		$library->libraryId = $libraryId;
@@ -110,8 +112,10 @@ class Admin_Libraries extends ObjectEditor {
 
 	}
 
-	/** @noinspection PhpUnused */
-	function defaultMaterialsRequestFormats() {
+	/** @noinspection PhpUnused
+	 * @noinspection PhpNoReturnAttributeCanBeAddedInspection
+	 */
+	function defaultMaterialsRequestFormats() : void {
 		$library = new Library();
 		$libraryId = $_REQUEST['id'];
 		$library->libraryId = $libraryId;
@@ -153,27 +157,27 @@ class Admin_Libraries extends ObjectEditor {
 		]);
 	}
 
-	protected function getDefaultRecordsPerPage() {
+	protected function getDefaultRecordsPerPage() : int {
 		return 250;
 	}
 
-	protected function showQuickFilterOnPropertiesList() {
+	protected function showQuickFilterOnPropertiesList() : bool {
 		return true;
 	}
 
-	public function canCopy() {
+	public function canCopy() : bool {
 		return $this->canAddNew();
 	}
 
-	public function hasCopyOptions() {
+	public function hasCopyOptions() : bool {
 		return true;
 	}
 
-	public function getCopyNotes() {
+	public function getCopyNotes() : string {
 		return '/admin_instructions/library_copy.MD';
 	}
 
-	public function getCopyOptionsFormStructure($activeObject) {
+	public function getCopyOptionsFormStructure($activeObject) : array {
 		$settings = [
 			'aspenLida' => [
 				'property' => 'aspenLida',

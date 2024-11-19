@@ -7,7 +7,7 @@ global $configArray;
 
 class Record_AJAX extends Action {
 
-	function launch() {
+	function launch() : void {
 		global $timer;
 		$method = (isset($_GET['method']) && !is_array($_GET['method'])) ? $_GET['method'] : '';
 		$timer->logTime("Starting method $method");
@@ -29,7 +29,7 @@ class Record_AJAX extends Action {
 
 
 	/** @noinspection PhpUnused */
-	function downloadMarc() {
+	function downloadMarc() : void {
 		$id = $_REQUEST['id'];
 		$marcData = MarcLoader::loadMarcRecordByILSId($id);
 		header('Content-Description: File Transfer');
@@ -183,7 +183,7 @@ class Record_AJAX extends Action {
 			$vdxSettings = new VdxSetting();
 			if ($vdxSettings->find(true)) {
 				$vdxDriver = new VdxDriver();
-				$results = $vdxDriver->submitRequest($vdxSettings, UserAccount::getActiveUserObj(), $_REQUEST, false);
+				$results = $vdxDriver->submitRequest($vdxSettings, UserAccount::getActiveUserObj(), $_REQUEST);
 			} else {
 				$results = [
 					'title' => translate([
@@ -192,6 +192,173 @@ class Record_AJAX extends Action {
 					]),
 					'message' => translate([
 						'text' => "VDX Settings do not exist, please contact the library to make a request.",
+						'isPublicFacing' => true,
+					]),
+					'success' => false,
+				];
+			}
+		} else {
+			$results = [
+				'title' => translate([
+					'text' => 'Please login',
+					'isPublicFacing' => true,
+				]),
+				'message' => translate([
+					'text' => "You must be logged in.  Please close this dialog and login before placing your request.",
+					'isPublicFacing' => true,
+				]),
+				'success' => false,
+			];
+		}
+		return $results;
+	}
+
+	/** @noinspection PhpUnused */
+	function getLocalIllRequestForm(): array {
+		global $interface;
+		if (UserAccount::isLoggedIn()) {
+			$user = UserAccount::getLoggedInUser();
+			$id = $_REQUEST['id'];
+			if (strpos($id, ':') > 0) {
+				[
+					,
+					$id,
+				] = explode(':', $id);
+			}
+			$recordSource = $_REQUEST['recordSource'];
+			$interface->assign('recordSource', $recordSource);
+			require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
+
+			$homeLocation = Location::getDefaultLocationForUser();
+			if ($homeLocation != null) {
+				//Get configuration for the form.
+				$localIllForm = new LocalIllForm();
+				$localIllForm->id = $homeLocation->localIllFormId;
+				if ($localIllForm->find(true)) {
+					//Check to see if the patron is eligible to place holds
+					$accountSummary = $user->getAccountSummary();
+					if ($accountSummary->isExpired()) {
+						$results = [
+							'title' => translate([
+								'text' => 'Request Title',
+								'isPublicFacing' => true,
+							]),
+							'modalBody' => translate([
+								'text' => 'Your account is not eligible to request titles from other libraries.  Please visit the library to renew your account.',
+								'isPublicFacing' => true,
+							]),
+							'modalButtons' => '',
+							'success' => true,
+						];
+					} elseif ($user->isBlockedFromIllRequests()) {
+						$results = [
+							'title' => translate([
+								'text' => 'Request Title',
+								'isPublicFacing' => true,
+							]),
+							'modalBody' => translate([
+								'text' => 'Your account is not eligible to request titles from other libraries.  Please visit the library to update your account.',
+								'isPublicFacing' => true,
+							]),
+							'modalButtons' => '',
+							'success' => true,
+						];
+					} else {
+						$marcRecord = new MarcRecordDriver($id);
+
+						$interface->assign('localIllForm', $localIllForm);
+						$localIllFormFields = $localIllForm->getFormFields($marcRecord);
+						$interface->assign('structure', $localIllFormFields);
+						$interface->assign('localIllFormFields', $interface->fetch('DataObjectUtil/ajaxForm.tpl'));
+
+						$results = [
+							'title' => translate([
+								'text' => 'Request Title',
+								'isPublicFacing' => true,
+							]),
+							'modalBody' => $interface->fetch("Record/local-ill-request-popup.tpl"),
+							'modalButtons' => '<a href="#" class="btn btn-primary" onclick="return AspenDiscovery.Record.submitLocalIllRequest(\'Record\', \'' . $id . '\')">' . translate([
+									'text' => 'Place Request',
+									'isPublicFacing' => true,
+								]) . '</a>',
+							'success' => true,
+						];
+					}
+				} else {
+					$results = [
+						'title' => translate([
+							'text' => 'Invalid Configuration',
+							'isPublicFacing' => true,
+						]),
+						'message' => translate([
+							'text' => "Unable to find the specified form.",
+							'isPublicFacing' => true,
+						]),
+						'success' => false,
+					];
+				}
+			} else {
+				$results = [
+					'title' => translate([
+						'text' => 'Invalid Configuration',
+						'isPublicFacing' => true,
+					]),
+					'message' => translate([
+						'text' => "Unable to determine home library to place request from.",
+						'isPublicFacing' => true,
+					]),
+					'success' => false,
+				];
+			}
+		} else {
+			$results = [
+				'title' => translate([
+					'text' => 'Please login',
+					'isPublicFacing' => true,
+				]),
+				'message' => translate([
+					'text' => "You must be logged in.  Please close this dialog and login before placing your request.",
+					'isPublicFacing' => true,
+				]),
+				'success' => false,
+			];
+		}
+		return $results;
+	}
+
+	/** @noinspection PhpUnused */
+	function submitLocalIllRequest(): array {
+		if (UserAccount::isLoggedIn()) {
+			$user = UserAccount::getLoggedInUser();
+			$homeLocation = Location::getDefaultLocationForUser();
+			if ($homeLocation != null) {
+				//Get configuration for the form.
+				require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
+				$localIllForm = new LocalIllForm();
+				$localIllForm->id = $homeLocation->localIllFormId;
+				if ($localIllForm->find(true)) {
+					$results = $user->submitLocalIllRequest($localIllForm);
+				} else {
+					$results = [
+						'title' => translate([
+							'text' => 'Invalid Configuration',
+							'isPublicFacing' => true,
+						]),
+						'message' => translate([
+							'text' => "Local ILL settings do not exist, please contact the library to make a request.",
+							'isPublicFacing' => true,
+						]),
+						'success' => false,
+					];
+				}
+			}else{
+				$results = [
+					'title' => translate([
+						'text' => 'Invalid Configuration',
+						'isPublicFacing' => true,
+					]),
+					'message' => translate([
+						'text' => "Your account does not hava a valid home library, please contact the library to make a request.",
 						'isPublicFacing' => true,
 					]),
 					'success' => false,
@@ -356,6 +523,7 @@ class Record_AJAX extends Action {
 					}
 				} else {
 					$rememberHoldPickupLocation = false;
+					/** @noinspection PhpConditionAlreadyCheckedInspection */
 					$interface->assign('rememberHoldPickupLocation', $rememberHoldPickupLocation);
 				}
 			}
@@ -366,7 +534,7 @@ class Record_AJAX extends Action {
 			}
 
 			if ($bypassHolds) {
-				if (strpos($id, ':') !== false) {
+				if (str_contains($id, ':')) {
 					[
 						,
 						$shortId,
@@ -401,7 +569,7 @@ class Record_AJAX extends Action {
 				}
 				$results['holdFormBypassed'] = true;
 
-				//If the result was successful, add a message for where the hold can be picked up with a link to the preferences page.
+				//If the result was successful, add a message for where the hold can be picked up with a link to the user preferences page.
 				if ($results['success']) {
 					$pickupLocation = new Location();
 					$pickupLocation->locationId = $user->pickupLocationId;
@@ -411,7 +579,7 @@ class Record_AJAX extends Action {
 					}
 					if (count($locations) > 1) {
 						$results['message'] .= '<br/>' . translate([
-								'text' => "When ready, your hold will be available at %1%, you can change your default pickup location <a href='/MyAccount/MyPreferences'>here</a>.",
+								'text' => "When ready, your hold will be available at %1%. You can change your default pickup location <a href='/MyAccount/MyPreferences'>here</a>.",
 								1 => $pickupLocationName,
 								'isPublicFacing' => true,
 							]);
@@ -424,7 +592,7 @@ class Record_AJAX extends Action {
 					}
 					$results['message'] = "<div class='alert alert-success'>" . $results['message'] . '</div>';
 				} else {
-					if (isset($results['confirmationNeeded']) && $results['confirmationNeeded'] == true) {
+					if (isset($results['confirmationNeeded']) && $results['confirmationNeeded']) {
 						$results['modalButtons'] = '<a href="#" class="btn btn-primary" onclick="return AspenDiscovery.Record.confirmHold(\'Record\', \'' . $shortId . '\', ' . $results['confirmationId'] . ')">' . translate([
 								'text' => 'Yes, Place Hold',
 								'isPublicFacing' => true,
@@ -454,7 +622,7 @@ class Record_AJAX extends Action {
 				} else {
 					$interface->assign('whileYouWaitTitles', []);
 					if (isset($results['items'])) {
-						$results = $this->getItemHoldForm($user->_homeLocationCode, $results, $shortId, $user, $user->getHomeLibrary());
+						$results = $this->getItemHoldForm($user->_homeLocationCode, $results, $shortId, $user);
 						$results['holdFormBypassed'] = true;
 					}
 				}
@@ -730,7 +898,7 @@ class Record_AJAX extends Action {
 				$patron = null;
 				if (!empty($_REQUEST['selectedUser'])) {
 					$selectedUserId = $_REQUEST['selectedUser'];
-					if (is_numeric($selectedUserId)) { // we expect an id
+					if (is_numeric($selectedUserId)) {
 						if ($user->id == $selectedUserId) {
 							$patron = $user;
 						} else {
@@ -744,7 +912,7 @@ class Record_AJAX extends Action {
 						}
 					}
 				} else {
-					//block below sets the $patron variable to place the hold through pick-up location. (shouldn't be needed anymore. plb 10-27-2015)
+					//The block below sets the $patron variable to place the hold through pick-up location. (shouldn't be necessary anymore. plb 10-27-2015)
 					$location = new Location();
 					$userPickupLocations = $location->getPickupBranches($user);
 					foreach ($userPickupLocations as $tmpLocation) {
@@ -805,14 +973,14 @@ class Record_AJAX extends Action {
 					}
 
 					if (isset($return['items'])) {
-						$results = $this->getItemHoldForm($pickupBranch, $return, $shortId, $patron, $homeLibrary);
+						$results = $this->getItemHoldForm($pickupBranch, $return, $shortId, $patron);
 					} else { // Completed Hold Attempt
 						$interface->assign('message', $return['message']);
 						$interface->assign('success', $return['success']);
 
 						$confirmationNeeded = false;
 						if ($return['success']) {
-							//Only update remember hold pickup location and the preferred pickup location if the  hold is successful
+							//Only update to remember hold pickup location and the preferred pickup location if the hold is successful
 							if (isset($_REQUEST['rememberHoldPickupLocation']) && ($_REQUEST['rememberHoldPickupLocation'] == 'true' || $_REQUEST['rememberHoldPickupLocation'] == 'on')) {
 								if ($patron->rememberHoldPickupLocation == 0) {
 									$patron->setRememberHoldPickupLocation(1);
@@ -829,52 +997,80 @@ class Record_AJAX extends Action {
 						} elseif (isset($return['confirmationNeeded']) && $return['confirmationNeeded']) {
 							$confirmationNeeded = true;
 						} else {
-							//Check to see if we can place the hold via Interlibrary Loan
-							require_once ROOT_DIR . '/sys/VDX/VdxSetting.php';
-							require_once ROOT_DIR . '/sys/VDX/VdxForm.php';
-							//Check to see if we can use VDX.  We only allow VDX if the reason is: "hold not allowed"
+							//Check to see if we can use Interlibrary Loan.  We only allow Interlibrary Loan if the reason is: "hold not allowed"
 							if (array_key_exists('error_code', $return) && (($return['error_code'] == 'hatErrorResponse.17286') || ($return['error_code'] == 'hatErrorResponse.447'))) {
-								$vdxSettings = new VdxSetting();
-								if ($vdxSettings->find(true)) {
+								//Check to see if we can place the hold via Interlibrary Loan
+								$illLoanType = $user->getInterlibraryLoanType();
+								if ($illLoanType != 'none') {
+									$interface->assign('fromHoldError', true);
+									$marcRecord = new MarcRecordDriver($recordId);
+
+									$volumeInfo = null;
+									if (isset($_REQUEST['volume'])) {
+										//Get the name of the volume, so we can add it as a note
+										require_once ROOT_DIR . '/sys/ILS/IlsVolumeInfo.php';
+										$volumeDataDB = new IlsVolumeInfo();
+										$volumeDataDB->volumeId = $_REQUEST['volume'];
+										if ($volumeDataDB->find(true)) {
+											$volumeInfo = $volumeDataDB->displayLabel;
+										} else {
+											$volumeInfo = $_REQUEST['volume'];
+										}
+									}
+
 									$homeLocation = Location::getDefaultLocationForUser();
 									if ($homeLocation != null) {
-										//Get configuration for the form.
-										$vdxForm = new VdxForm();
-										$vdxForm->id = $homeLocation->vdxFormId;
-										if ($vdxForm->find(true)) {
-											$interface->assign('fromHoldError', true);
-											$marcRecord = new MarcRecordDriver($recordId);
+										if ($illLoanType == 'vdx') {
+											require_once ROOT_DIR . '/sys/VDX/VdxForm.php';
 
-											$interface->assign('vdxForm', $vdxForm);
+											//Get configuration for the form.
+											$vdxForm = new VdxForm();
+											$vdxForm->id = $homeLocation->vdxFormId;
+											if ($vdxForm->find(true)) {
+												$interface->assign('vdxForm', $vdxForm);
 
-											$volumeInfo = null;
-											if (isset($_REQUEST['volume'])) {
-												//Get the name of the volume so we can add it as a note
-												require_once ROOT_DIR . '/sys/ILS/IlsVolumeInfo.php';
-												$volumeDataDB = new IlsVolumeInfo();
-												$volumeDataDB->volumeId = $_REQUEST['volume'];
-												if ($volumeDataDB->find(true)) {
-													$volumeInfo = $volumeDataDB->displayLabel;
-												} else {
-													$volumeInfo = $_REQUEST['volume'];
-												}
-											}
-											$vdxFormFields = $vdxForm->getFormFields($marcRecord, $volumeInfo);
-											$interface->assign('structure', $vdxFormFields);
-											$interface->assign('vdxFormFields', $interface->fetch('DataObjectUtil/ajaxForm.tpl'));
-											return [
-												'title' => translate([
-													'text' => 'Hold Failed, Request Title?',
-													'isPublicFacing' => true,
-												]),
-												'modalBody' => $interface->fetch("Record/vdx-request-popup.tpl"),
-												'modalButtons' => '<a href="#" class="btn btn-primary" onclick="return AspenDiscovery.Record.submitVdxRequest(\'Record\', \'' . $recordId . '\')">' . translate([
-														'text' => 'Place Request',
+												$vdxFormFields = $vdxForm->getFormFields($marcRecord, $volumeInfo);
+												$interface->assign('structure', $vdxFormFields);
+												$interface->assign('vdxFormFields', $interface->fetch('DataObjectUtil/ajaxForm.tpl'));
+												return [
+													'title' => translate([
+														'text' => 'Hold Failed, Request Title?',
 														'isPublicFacing' => true,
-													]) . '</a>',
-												'success' => true,
-												'needsIllRequest' => true,
-											];
+													]),
+													'modalBody' => $interface->fetch("Record/vdx-request-popup.tpl"),
+													'modalButtons' => '<a href="#" class="btn btn-primary" onclick="return AspenDiscovery.Record.submitVdxRequest(\'Record\', \'' . $recordId . '\')">' . translate([
+															'text' => 'Place Request',
+															'isPublicFacing' => true,
+														]) . '</a>',
+													'success' => true,
+													'needsIllRequest' => true,
+												];
+											}
+										}elseif ($illLoanType == 'localIll') {
+											require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
+											//Get configuration for the form.
+											$localIllForm = new LocalIllForm();
+											$localIllForm->id = $homeLocation->localIllFormId;
+											if ($localIllForm->find(true)) {
+												$interface->assign('localIllForm', $localIllForm);
+
+												$localIllFormFields = $localIllForm->getFormFields($marcRecord, $volumeInfo);
+												$interface->assign('structure', $localIllFormFields);
+												$interface->assign('localIllFormFields', $interface->fetch('DataObjectUtil/ajaxForm.tpl'));
+												return [
+													'title' => translate([
+														'text' => 'Hold Failed, Request Title?',
+														'isPublicFacing' => true,
+													]),
+													'modalBody' => $interface->fetch("Record/local-ill-request-popup.tpl"),
+													'modalButtons' => '<a href="#" class="btn btn-primary" onclick="return AspenDiscovery.Record.submitLocalIllRequest(\'Record\', \'' . $recordId . '\')">' . translate([
+															'text' => 'Place Request',
+															'isPublicFacing' => true,
+														]) . '</a>',
+													'success' => true,
+													'needsIllRequest' => true,
+												];
+											}
 										}
 									}
 								}
@@ -884,9 +1080,9 @@ class Record_AJAX extends Action {
 						$interface->assign('confirmationNeeded', $confirmationNeeded);
 
 						$canUpdateContactInfo = $homeLibrary->allowProfileUpdates == 1;
-						// set update permission based on active library's settings. Or allow by default.
+						// Set the update permission based on active library's settings. Or allow by default.
 						$canChangeNoticePreference = $homeLibrary->showNoticeTypeInProfile == 1;
-						// when user preference isn't set, they will be shown a link to account profile. this link isn't needed if the user can not change notification preference.
+						// when user preference isn't set, they will be shown a link to account profile. this link isn't necessary if the user cannot change notification preference.
 						$interface->assign('canUpdate', $canUpdateContactInfo);
 						$interface->assign('canChangeNoticePreference', $canChangeNoticePreference);
 						$interface->assign('profile', $patron);
@@ -1217,7 +1413,7 @@ class Record_AJAX extends Action {
 								'application/vnd.oasis.opendocument.presentation',
 							])) {
 								$fileOk = true;
-							} elseif ($fileType = 'application/octect-stream') {
+							} elseif ($fileType = 'application/octet-stream') {
 								$fileExtension = $uploadedFile["name"];
 								$fileExtension = strtolower(substr($fileExtension, strrpos($fileExtension, '.') + 1));
 								if (in_array($fileExtension, [
@@ -1280,7 +1476,6 @@ class Record_AJAX extends Action {
 		$result = [
 			'success' => false,
 			'title' => 'Deleting Uploaded File',
-			'message' => 'Unknown error deleting file',
 		];
 		if (UserAccount::isLoggedIn() && (UserAccount::userHasPermission([
 				'Upload PDFs',
@@ -1471,7 +1666,9 @@ class Record_AJAX extends Action {
 		}
 	}
 
-	/** @noinspection PhpUnused */
+	/** @noinspection PhpUnused
+	 * @noinspection PhpNoReturnAttributeCanBeAddedInspection
+	 */
 	function View856(): string {
 		global $interface;
 
@@ -1490,11 +1687,10 @@ class Record_AJAX extends Action {
 
 			$validUrls = $recordDriver->getViewable856Links();
 			header('Location: ' . $validUrls[$linkId]['url']);
-			die();
 		} else {
 			header('Location: ' . "/Record/$id");
-			die();
 		}
+		die();
 	}
 
 	function getStaffView(): array {
@@ -1527,7 +1723,7 @@ class Record_AJAX extends Action {
 	 * @param Location[] $locations
 	 * @return bool
 	 */
-	function setupHoldForm($recordSource, &$rememberHoldPickupLocation, $marcRecord, &$locations): bool {
+	function setupHoldForm(string $recordSource, ?bool &$rememberHoldPickupLocation, MarcRecordDriver $marcRecord, ?array &$locations): bool {
 		global $interface;
 		$user = UserAccount::getLoggedInUser();
 		if ($user->getCatalogDriver() == null) {
@@ -1570,7 +1766,7 @@ class Record_AJAX extends Action {
 		$relatedRecord = $marcRecord->getGroupedWorkDriver()->getRelatedRecord($marcRecord->getIdWithSource());
 		$pickupAt = $relatedRecord->getHoldPickupSetting();
 		//1 = restrict to owning location
-		//2 = restrict to owning library
+		//2 = restrict to the owning library
 		if ($pickupAt > 0) {
 			$itemLocations = $marcRecord->getValidPickupLocations($pickupAt);
 			//Loop through all pickup locations for the user and remove anything that is not valid for the record
@@ -1593,7 +1789,7 @@ class Record_AJAX extends Action {
 		global $library;
 		//Check to see if we can bypass the holds popup and just place the hold
 		if (!$multipleAccountPickupLocations && !$promptForHoldNotifications && $library->allowRememberPickupLocation) {
-			//If the patron's preferred pickup location is not valid then force them to pick a new location
+			//If the patron's preferred pickup location is not valid, then force them to pick a new location
 			$preferredPickupLocationIsValid = false;
 			foreach ($locations as $location) {
 				if (is_object($location) && ($location->locationId == $user->pickupLocationId)) {
@@ -1622,7 +1818,7 @@ class Record_AJAX extends Action {
 		$activeIP = IPAddress::getActiveIp();
 		$subnet = IPAddress::getIPAddressForIP($activeIP);
 
-		if ($subnet != false) {
+		if ($subnet !== false) {
 			$interface->assign('logMeOutDefault', $subnet->defaultLogMeOutAfterPlacingHoldOn);
 		} else {
 			$interface->assign('logMeOutDefault', 0);
@@ -1657,10 +1853,9 @@ class Record_AJAX extends Action {
 	 * @param array $return
 	 * @param string $shortId
 	 * @param $patron
-	 * @param Library|null $homeLibrary
 	 * @return array
 	 */
-	protected function getItemHoldForm($pickupBranch, array $return, string $shortId, $patron, ?Library $homeLibrary): array {
+	protected function getItemHoldForm($pickupBranch, array $return, string $shortId, $patron): array {
 		global $interface;
 		$interface->assign('pickupBranch', $pickupBranch);
 		$items = $return['items'];
@@ -1788,13 +1983,6 @@ class Record_AJAX extends Action {
 		/** @var MarcRecordDriver $recordDriver */
 		$recordDriver = RecordDriverFactory::initRecordDriverById($id);
 		if ($recordDriver->isValid()) {
-			if (strpos($id, ':')) {
-				[
-					,
-					$id,
-				] = explode(':', $id);
-			}
-
 			$idWithSource = $recordDriver->getIdWithSource();
 			$relatedRecord = $recordDriver->getGroupedWorkDriver()->getRelatedRecordForVariation($idWithSource, $variationId);
 			$allItems = $relatedRecord->getItems();

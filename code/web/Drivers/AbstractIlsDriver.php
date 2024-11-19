@@ -891,4 +891,15 @@ abstract class AbstractIlsDriver extends AbstractDriver {
 			'message' => 'This functionality has not been implemented for this ILS',
 		];
 	}
+
+	public function supportsLocalIllRequests() : bool {
+		return false;
+	}
+
+	public function submitLocalIllRequest(User $patron, LocalIllForm $localIllForm) : array {
+		return [
+			'success' => false,
+			'message' => 'This functionality has not been implemented for this ILS',
+		];
+	}
 }

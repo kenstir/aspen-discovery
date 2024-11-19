@@ -28,7 +28,7 @@ class Admin_Locations extends ObjectEditor {
 				//Need to use where add here so the where add in below works properly
 				$object->whereAdd("locationId = $user->homeLocationId");
 			} else {
-				//Scope to just locations for the user based on home library
+				//Scope to just locations for the user based on their home library
 				$patronLibrary = Library::getLibraryForLocation($user->homeLocationId);
 				$object->whereAdd("libraryId = $patronLibrary->libraryId");
 			}
@@ -90,19 +90,19 @@ class Admin_Locations extends ObjectEditor {
 		]);
 	}
 
-	function canAddNew() {
+	function canAddNew() : bool {
 		return UserAccount::userHasPermission(['Administer All Locations']);
 	}
 
-	function canDelete() {
+	function canDelete() : bool {
 		return UserAccount::userHasPermission(['Administer All Locations']);
 	}
 
-	protected function getDefaultRecordsPerPage() {
+	protected function getDefaultRecordsPerPage() : int {
 		return 250;
 	}
 
-	protected function showQuickFilterOnPropertiesList() {
+	protected function showQuickFilterOnPropertiesList() : bool {
 		return true;
 	}
 
@@ -110,14 +110,14 @@ class Admin_Locations extends ObjectEditor {
 		return 'return AspenDiscovery.Admin.updateLocationFields();';
 	}
 
-	public function canCopy() {
+	public function canCopy() : bool {
 		return $this->canAddNew();
 	}
 
-	public function hasCopyOptions() {
+	public function hasCopyOptions() : bool {
 		return true;
 	}
-	public function getCopyOptionsFormStructure($activeObject) {
+	public function getCopyOptionsFormStructure($activeObject) : array {
 		$settings = [
 			'aspenLida' => [
 				'property' => 'aspenLida',
@@ -200,5 +200,45 @@ class Admin_Locations extends ObjectEditor {
 			}
 		}
 		return $settings;
+	}
+
+	function customListActions() : array {
+		$actions = [];
+		$symphonyActive = false;
+		foreach (UserAccount::getAccountProfiles() as $accountProfileInfo) {
+			/** @var AccountProfile $accountProfile */
+			$accountProfile = $accountProfileInfo['accountProfile'];
+			if ($accountProfile->ils == 'symphony') {
+				$symphonyActive = true;
+			}
+		}
+		if ($symphonyActive) {
+			$actions[] = [
+				'label' => 'Update From Symphony',
+				'action' => 'loadLocationsFromSymphony',
+			];
+		}
+		return $actions;
+	}
+
+	/** @noinspection PhpUnused */
+	function loadLocationsFromSymphony() : void {
+		global $library;
+		$user = UserAccount::getActiveUserObj();
+		$accountProfile = $library->getAccountProfile();
+		$catalogDriverName = trim($accountProfile->driver);
+		$catalogDriver = null;
+		if (!empty($catalogDriverName)) {
+			$catalogDriver = CatalogFactory::getCatalogConnectionInstance($catalogDriverName, $accountProfile);
+		}
+		if ($catalogDriver->driver instanceof SirsiDynixROA) {
+			$result = $catalogDriver->driver->loadLocations();
+			$user->__set('updateMessage', $result['message']);
+			$user->__set('updateMessageIsError', !$result['success']);
+		}else{
+			$user->__set('updateMessage', translate(['text'=>'This instance is not connected to Symphony, cannot load locations.', 'isAdminFacing' => true]));
+		}
+		$user->update();
+		header("Location: /Admin/Locations");
 	}
 }

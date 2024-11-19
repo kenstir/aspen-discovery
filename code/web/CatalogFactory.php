@@ -1,15 +1,15 @@
 <?php
 
 class CatalogFactory {
-	/** @var array An array of connections keyed by driver name */
-	private static $catalogConnections = [];
+	/** @var array|null An array of connections keyed by driver name */
+	private static ?array $catalogConnections = [];
 
 	/**
 	 * @param string|null $driver
-	 * @param AccountProfile $accountProfile
+	 * @param AccountProfile|null $accountProfile
 	 * @return CatalogConnection|null
 	 */
-	public static function getCatalogConnectionInstance($driver = null, $accountProfile = null) : ?CatalogConnection {
+	public static function getCatalogConnectionInstance(?string $driver = null, ?AccountProfile $accountProfile = null) : ?CatalogConnection {
 		require_once ROOT_DIR . '/CatalogConnection.php';
 		if ($driver == null) {
 			global $activeRecordProfile;
@@ -50,7 +50,7 @@ class CatalogFactory {
 		}
 	}
 
-	public static function closeCatalogConnections() {
+	public static function closeCatalogConnections() : void {
 		if (CatalogFactory::$catalogConnections != null) {
 			foreach (CatalogFactory::$catalogConnections as $driver) {
 				if ($driver != null) {

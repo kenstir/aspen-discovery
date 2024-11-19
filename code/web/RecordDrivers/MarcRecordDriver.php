@@ -397,7 +397,7 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 	 */
 	public function getEditions() {
 		$editions = $this->getFieldArray('250');
-	
+
 		return $editions;
 	}
 
@@ -1089,25 +1089,24 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 				if ($volumeData == null) {
 					$volumeData = $relatedRecord->getVolumeData();
 				}
-				//See if we have VDX integration. If so, we will either be placing a hold or requesting depending on if there is a copy local to the hold group (whether available or not)
-				$useVdxForRecord = false;
+				//See if we have InterLibrary Loan integration. If so, we will either be placing a hold or requesting depending on if there is a copy local to the hold group (whether available or not)
+				$interLibraryLoanType = 'none';
 				$vdxGroupsForLocation = [];
 				try {
-					require_once ROOT_DIR . '/sys/VDX/VdxSetting.php';
-					$vdxSettings = new VdxSetting();
-					if ($vdxSettings->find(true)) {
-						require_once ROOT_DIR . '/sys/VDX/VdxHoldGroup.php';
-						require_once ROOT_DIR . '/sys/VDX/VdxHoldGroupLocation.php';
-						$useVdxForRecord = true;
-						$homeLocation = Location::getDefaultLocationForUser();
-						if ($homeLocation != null) {
+					$homeLocation = Location::getDefaultLocationForUser();
+					if ($homeLocation != null) {
+						$interLibraryLoanType = $homeLocation->getInterlibraryLoanType();
+						if ($interLibraryLoanType != 'none') {
+							require_once ROOT_DIR . '/sys/InterLibraryLoan/HoldGroup.php';
+							require_once ROOT_DIR . '/sys/InterLibraryLoan/HoldGroupLocation.php';
+
 							//Get the VDX Group(s) that we will interact with
-							$vdxGroupsForLocation = new VdxHoldGroupLocation();
+							$vdxGroupsForLocation = new HoldGroupLocation();
 							$vdxGroupsForLocation->locationId = $homeLocation->locationId;
-							$vdxGroupIds = $vdxGroupsForLocation->fetchAll('vdxHoldGroupId');
+							$vdxGroupIds = $vdxGroupsForLocation->fetchAll('holdGroupId');
 							$vdxGroups = [];
 							foreach ($vdxGroupIds as $vdxGroupId) {
-								$vdxGroup = new VdxHoldGroup();
+								$vdxGroup = new HoldGroup();
 								$vdxGroup->id = $vdxGroupId;
 								if ($vdxGroup->find(true)) {
 									$vdxGroups[] = clone $vdxGroup;
@@ -1123,18 +1122,18 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 										if ($itemDetail->holdable) {
 											//The patron's home location is always valid!
 											if ($itemDetail->locationCode == $homeLocation->code) {
-												$useVdxForRecord = false;
+												$interLibraryLoanType = 'none';
 												break;
 											}
 
 											foreach ($vdxGroups as $vdxGroup) {
 												if (in_array($itemDetail->locationCode, $vdxGroup->getLocationCodes())) {
-													$useVdxForRecord = false;
+													$interLibraryLoanType = 'none';
 													break;
 												}
 											}
 										}
-										if (!$useVdxForRecord) {
+										if ($interLibraryLoanType == 'none') {
 											break;
 										}
 									}
@@ -1145,7 +1144,7 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 				} catch (Exception $e) {
 					//This happens if the tables are not installed yet
 				}
-				if (!$useVdxForRecord) {
+				if ($interLibraryLoanType == 'none') {
 					if (!is_null($volumeData) && count($volumeData) > 0 && !$treatVolumeHoldsAsItemHolds) {
 						//Check the items to see which volumes are holdable
 						$hasItemsWithoutVolumes = false;
@@ -1210,17 +1209,32 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 						];
 					}
 				} else {
-					$this->_actions[$variationId][] = [
-						'title' => translate([
-							'text' => 'Request',
-							'isPublicFacing' => true,
-						]),
-						'url' => '',
-						'onclick' => "return AspenDiscovery.Record.showVdxRequest('{$this->getModule()}', '$source', '$id');",
-						'requireLogin' => false,
-						'type' => 'vdx_request',
-						'btnType' => 'btn-vdx-request btn-action'
-					];
+					if ($interLibraryLoanType == 'vdx') {
+						$this->_actions[$variationId][] = [
+							'title' => translate([
+								'text' => 'Request',
+								'isPublicFacing' => true,
+							]),
+							'url' => '',
+							'onclick' => "return AspenDiscovery.Record.showVdxRequest('{$this->getModule()}', '$source', '$id');",
+							'requireLogin' => false,
+							'type' => 'vdx_request',
+							'btnType' => 'btn-vdx-request btn-action'
+						];
+					}elseif ($interLibraryLoanType == 'localIll') {
+						$this->_actions[$variationId][] = [
+							'title' => translate([
+								'text' => 'Request',
+								'isPublicFacing' => true,
+							]),
+							'url' => '',
+							'onclick' => "return AspenDiscovery.Record.showLocalIllRequest('{$this->getModule()}', '$source', '$id');",
+							'requireLogin' => false,
+							'type' => 'vdx_request',
+							'btnType' => 'btn-local-ill-request btn-action'
+						];
+					}
+
 				}
 			}
 

@@ -3,7 +3,7 @@ require_once ROOT_DIR . '/services/Admin/Admin.php';
 require_once ROOT_DIR . '/sys/Parsedown/AspenParsedown.php';
 
 class Admin_SymphonyApiTester extends Admin_Admin {
-	function launch() {
+	function launch() : void {
 		global $interface;
 
 		if (!empty($_REQUEST['pathToDescribe'])) {

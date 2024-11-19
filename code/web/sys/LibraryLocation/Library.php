@@ -358,6 +358,7 @@ class Library extends DataObject {
 	public $materialsRequestSendStaffEmailOnAssign;
 	public $materialsRequestNewEmail;
 	public $showGroupedHoldCopiesCount;
+	public $localIllRequestType;
 	public $ILLSystem;
 	public $interLibraryLoanName;
 	public $interLibraryLoanUrl;
@@ -3547,6 +3548,18 @@ class Library extends DataObject {
 				'hideInLists' => true,
 				'permissions' => ['Library ILL Options'],
 				'properties' => [
+					'localIllRequestType' =>  [
+						'property' => 'localIllRequestType',
+						'type' => 'enum',
+						'values' => [
+							0 => 'None',
+							1 => 'Symphony Demand Management Using Books by Mail',
+						],
+						'label' => 'Local ILL Request Type',
+						'description' => 'The system to use when generating local ILL requests within the ILS',
+						'hideInLists' => true,
+						'default' => 0,
+					],
 					'ILLSystem' => [
 						'property' => 'ILLSystem',
 						'type' => 'enum',

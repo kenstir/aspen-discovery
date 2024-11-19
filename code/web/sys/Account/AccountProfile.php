@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 class AccountProfile extends DataObject {
 	public $__table = 'account_profiles';    // table name

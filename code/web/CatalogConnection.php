@@ -1827,4 +1827,15 @@ class CatalogConnection {
 	public function updateUserMessageQueue(User $patron): array {
 		return $this->driver->updateUserMessageQueue($patron);
 	}
+
+	public function submitLocalIllRequest(User $patron, LocalIllForm $localIllForm) : array {
+		if ($this->driver->supportsLocalIllRequests()) {
+			return $this->driver->submitLocalIllRequest($patron, $localIllForm);
+		}else{
+			return [
+				'success' => false,
+				'message' => 'This ILS does not support local ILL requests',
+			];
+		}
+	}
 }

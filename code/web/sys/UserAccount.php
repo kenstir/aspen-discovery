@@ -68,7 +68,7 @@ class UserAccount {
 	 *
 	 * @return bool
 	 */
-	public static function isLoggedIn() {
+	public static function isLoggedIn() : bool {
 		if (UserAccount::$isLoggedIn == null) {
 			if (isset($_SESSION['activeUserId'])) {
 				if(isset($_SESSION['loggedInViaSSO'])) {
@@ -82,7 +82,11 @@ class UserAccount {
 						$session->setUserId($_REQUEST['user']);
 						if($session->find(true)) {
 							UserAccount::$isLoggedIn = true;
+						}else{
+							UserAccount::$isLoggedIn = false;
 						}
+					}else{
+						UserAccount::$isLoggedIn = false;
 					}
 				} else {
 					UserAccount::$isLoggedIn = !UserAccount::needsToComplete2FA();
@@ -110,7 +114,7 @@ class UserAccount {
 						$casUsername = $casAuthentication->validateAccount(null, null, null, null, false);
 						$_SESSION['lastCASCheck'] = time();
 						$logger->log("Checked CAS Authentication from UserAccount::isLoggedIn result was $casUsername", Logger::LOG_DEBUG);
-						if ($casUsername == false || $casUsername instanceof AspenError) {
+						if ($casUsername === false || $casUsername instanceof AspenError) {
 							//The user could not be authenticated in CAS
 							UserAccount::$isLoggedIn = false;
 
@@ -838,7 +842,7 @@ class UserAccount {
 	/**
 	 * @return AccountProfile[]
 	 */
-	static function getAccountProfiles() {
+	static function getAccountProfiles() : array {
 		if (UserAccount::$_accountProfiles == null) {
 			UserAccount::$_accountProfiles = [];
 
@@ -858,7 +862,7 @@ class UserAccount {
 				];
 				UserAccount::$_accountProfiles[$accountProfile->name] = $additionalInfo;
 			}
-			if (count(UserAccount::$_accountProfiles) == 0) {
+			if (empty(UserAccount::$_accountProfiles)) {
 				echo("Account profiles must be defined in the database for proper setup.");
 				die();
 			}

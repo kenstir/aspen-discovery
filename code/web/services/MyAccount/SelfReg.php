@@ -12,6 +12,12 @@ class SelfReg extends Action {
 		$selfRegFields = $catalog->getSelfRegistrationFields();
 		if ($library->enableSelfRegistration == 0) {
 			$this->display('selfRegistrationNotAllowed.tpl', 'Register for a Library Card', '');
+		} elseif ($library->enableSelfRegistration == 2) {
+			if (!empty($library->selfRegistrationUrl)) {
+				header("Location: {$library->selfRegistrationUrl}");
+				exit;
+			}
+			$this->display('selfRegistrationNotAllowed.tpl', 'Register for a Library Card', '');
 		} else {
 			if (isset($_REQUEST['submit'])) {
 

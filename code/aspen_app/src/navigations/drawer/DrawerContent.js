@@ -1,8 +1,9 @@
+import NetInfo from '@react-native-community/netinfo';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { useFocusEffect, useLinkTo } from '@react-navigation/native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, onlineManager, focusManager } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
@@ -11,6 +12,8 @@ import _ from 'lodash';
 import { Badge, Box, Button, Container, Divider, HStack, Icon, Image, Pressable, Text, useColorModeValue, useToken, VStack } from 'native-base';
 import React from 'react';
 import { AuthContext } from '../../components/navigation';
+import { AppState, Platform } from 'react-native';
+import { AppStateStatus } from "react-native";
 
 // custom components and helper files
 import { showILSMessage } from '../../components/Notifications';
@@ -37,6 +40,24 @@ Notifications.setNotificationHandler({
           shouldSetBadge: false,
      }),
 });
+
+onlineManager.setEventListener(setOnline => {
+	return NetInfo.addEventListener(state => {
+		setOnline(!!state.isConnected)
+	})
+})
+
+function onAppStateChange(AppStateStatus) {
+	if (Platform.OS !== 'web') {
+		focusManager.setFocused(AppStateStatus === 'active')
+	}
+}
+
+onlineManager.setEventListener(setOnline => {
+	return NetInfo.addEventListener(state => {
+		setOnline(!!state.isConnected)
+	})
+})
 
 const prefix = Linking.createURL('/');
 
@@ -73,13 +94,18 @@ export const DrawerContent = () => {
           const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
                handleNewNotificationResponse(response);
           });
-          return () => subscription.remove();
+		 const stateChangeSubscription = AppState.addEventListener('change', onAppStateChange)
+          return () => {
+			subscription.remove();
+			stateChangeSubscription.remove();
+		};
      }, []);
 
      useQuery(['catalog_status', library.baseUrl], () => getCatalogStatus(library.baseUrl), {
           enabled: !!library.baseUrl,
           refetchInterval: 60 * 1000 * 5,
           refetchIntervalInBackground: true,
+		 refetchOnWindowFocus: 'always',
           onSuccess: (data) => {
                updateCatalogStatus(data);
           },
@@ -89,18 +115,26 @@ export const DrawerContent = () => {
           initialData: user,
           refetchInterval: 60 * 1000 * 15,
           refetchIntervalInBackground: true,
+		  refetchOnWindowFocus: 'always',
           onSuccess: (data) => {
-               if (user) {
-                    if (data !== user) {
-                         updateUser(data);
-                         updateLanguage(data.interfaceLanguage ?? 'en');
-                         PATRON.language = data.interfaceLanguage ?? 'en';
-                    }
-               } else {
-                    updateUser(data);
-                    updateLanguage(data.interfaceLanguage ?? 'en');
-                    PATRON.language = data.interfaceLanguage ?? 'en';
-               }
+			  const validProfile = data.success ?? true;
+			  if(validProfile) {
+				  setInvalidSession(false);
+					if (user) {
+						if (data !== user) {
+							updateUser(data);
+							updateLanguage(data.interfaceLanguage ?? 'en');
+							PATRON.language = data.interfaceLanguage ?? 'en';
+						}
+					} else {
+						updateUser(data);
+						updateLanguage(data.interfaceLanguage ?? 'en');
+						PATRON.language = data.interfaceLanguage ?? 'en';
+					}
+				} else {
+				  // no profile returned, invalid user
+				  setInvalidSession(true);
+			  }
           },
      });
 
@@ -116,6 +150,7 @@ export const DrawerContent = () => {
      useQuery(['holds', user.id, library.baseUrl, language], () => getPatronHolds(readySortMethod, pendingSortMethod, 'all', library.baseUrl, false, language), {
           refetchInterval: 60 * 1000 * 15,
           refetchIntervalInBackground: true,
+		 refetchOnWindowFocus: 'always',
           onSuccess: (data) => updateHolds(data),
           placeholderData: [],
      });
@@ -123,6 +158,7 @@ export const DrawerContent = () => {
      useQuery(['checkouts', user.id, library.baseUrl, language], () => getPatronCheckedOutItems('all', library.baseUrl, false, language), {
           refetchInterval: 60 * 1000 * 15,
           refetchIntervalInBackground: true,
+		 refetchOnWindowFocus: 'always',
           onSuccess: (data) => updateCheckouts(data),
           placeholderData: [],
      });
@@ -131,6 +167,7 @@ export const DrawerContent = () => {
           refetchInterval: 60 * 1000 * 15,
           refetchIntervalInBackground: true,
           notifyOnChangeProps: ['data'],
+		 refetchOnWindowFocus: 'always',
           onSuccess: (data) => updateLists(data),
           placeholderData: [],
      });
@@ -140,6 +177,7 @@ export const DrawerContent = () => {
           refetchInterval: 60 * 1000 * 15,
           refetchIntervalInBackground: true,
           notifyOnChangeProps: ['data'],
+		 refetchOnWindowFocus: 'always',
           onSuccess: (data) => {
                if (accounts !== data.accounts) {
                     updateLinkedAccounts(data.accounts);
@@ -170,6 +208,7 @@ export const DrawerContent = () => {
      useQuery(['ils_messages', user.id, library.baseUrl, language], () => getILSMessages(library.baseUrl), {
           refetchInterval: 60 * 1000 * 5,
           refetchIntervalInBackground: true,
+		  refetchOnWindowFocus: 'always',
           placeholderData: [],
      });
 
@@ -194,6 +233,7 @@ export const DrawerContent = () => {
      useQuery(['locations', library.baseUrl, language, userLatitude, userLongitude], () => getLocations(library.baseUrl, language, userLatitude, userLongitude), {
           refetchInterval: 60 * 1000 * 30,
           refetchIntervalInBackground: true,
+		 refetchOnWindowFocus: 'always',
           placeholderData: [],
           onSuccess: (data) => {
                updateLocations(data);
@@ -262,30 +302,6 @@ export const DrawerContent = () => {
           onSuccess: (data) => {
                if (typeof data.result?.session !== 'undefined') {
                     GLOBALS.appSessionId = data.result.session;
-               }
-          },
-     });
-
-     useQuery(['valid_user', library.baseUrl, user.id], () => revalidateUser(library.baseUrl), {
-          initialData: true,
-          refetchInterval: 60 * 1000 * 5,
-          refetchIntervalInBackground: true,
-          retry: 5,
-          onSuccess: (data) => {
-               if (data === false || data === 'false') {
-                    let tmp = numFailedSessions;
-                    tmp = tmp + 1;
-                    setNumFailedSessions(tmp);
-                    console.log('Added +1 to numFailedSessions');
-                    if (tmp >= 2) {
-                         console.log('More than two failed sessions, logging user out');
-                         setInvalidSession(true);
-                    }
-                    setInvalidSession(false);
-               } else {
-                    console.log('Resetting numFailedSessions to 0');
-                    setNumFailedSessions(0);
-                    setInvalidSession(false);
                }
           },
      });

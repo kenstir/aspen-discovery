@@ -1,11 +1,10 @@
 <?php
 /**
- * Generates test reading history data for test users.
- *
+ * Generates test materials request data for test users.
  * Parameters (positional)
  * 1) server name
  * 2) background process ID
- * 3) generation type (1 = Test users with no reading history, 2 = All test users, 3 = Specified patron)
+ * 3) generation type (1 = Test users with no materials requests, 2 = All test users, 3 = Specified patron)
  * 4) Number of years to generate
  * 5) Minimum entries per month
  * 6) Maximum entries per month
@@ -62,9 +61,9 @@ if ($argc > 6) {
 	die();
 }
 if ($argc > 7) {
-	$clearExistingReadingHistory = (bool)$argv[7];
+	$clearExistingMaterialRequests = (bool)$argv[7];
 }else{
-	$backgroundProcess->endProcess('Whether existing reading histories should be cleared was not provided');
+	$backgroundProcess->endProcess('Whether existing material requests should be cleared was not provided');
 	die();
 }
 
@@ -85,11 +84,10 @@ if ($generationType == '1') {
 	$user->isLocalTestUser = 1;
 	$user->find();
 	while ($user->fetch()) {
-		require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
-		$readingHistoryDB = new ReadingHistoryEntry();
-		$readingHistoryDB->userId = $user->id;
-		$readingHistoryDB->whereAdd('deleted = 0');
-		if ($readingHistoryDB->count() == 0){
+		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php';
+		$materialsRequestDB = new MaterialsRequest();
+		$materialsRequestDB->createdBy = $user->id;
+		if ($materialsRequestDB->count() == 0){
 			$userIdsToProcess[] = $user->id;
 		}
 	}
@@ -140,17 +138,17 @@ $groupedWork->orderBy('RAND()');
 $groupedWork->find();
 
 $numProcessed = 0;
+$numUsersSkipped = 0;
 if (!is_null($backgroundProcess)) {
 	$backgroundProcess->addNote('Processing ' . count($userIdsToProcess) . ' Users');
 }
+
+$defaultStatusesByLibrary = [];
 foreach ($userIdsToProcess as $userId) {
 	$user = new User();
 	$user->id = $userId;
 	if ($user->find(true)) {
-		if ($user->trackReadingHistory == 0) {
-			$user->trackReadingHistory = 1;
-		}
-		require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php';
 		global $aspen_db;
 		$getGroupedWorkIdStmt = $aspen_db->prepare("SELECT * FROM grouped_work AS t1 JOIN (SELECT id FROM grouped_work ORDER BY RAND() LIMIT 1) as t2 ON t1.id=t2.id", [PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY]);
 
@@ -159,73 +157,86 @@ foreach ($userIdsToProcess as $userId) {
 			$minEntriesPerMonth = $maxEntriesPerMonth;
 			$maxEntriesPerMonth = $tmp;
 		}
-		if ($clearExistingReadingHistory) {
-			$readingHistoryDB = new ReadingHistoryEntry();
-			$readingHistoryDB->userId = $user->id;
-			$numDeleted = $readingHistoryDB->delete(true);
-			$user->totalCostSavings = 0;
+		if ($clearExistingMaterialRequests) {
+			$materialsRequestDB = new MaterialsRequest();
+			$materialsRequestDB->createdBy = $user->id;
+			$numDeleted = $materialsRequestDB->delete(true);
 			if (!is_null($backgroundProcess)) {
-				$backgroundProcess->addNote("Removed $numDeleted Reading History Entries for {$user->getDisplayName()}.");
+				$backgroundProcess->addNote("Removed $numDeleted Material Requests for {$user->getDisplayName()}.");
 			}
 		}
 
 		$currentYear = date('Y', time());
 		$numEntriesGenerated = 0;
-		//Loop through the years to generate
-		for ($year = $currentYear; $year >= ($currentYear - $numberOfYears + 1); $year--) {
-			//Loop through each month
-			$maxMonth = 12;
-			if ($year == $currentYear) {
-				//Restrict the maximum month to this month
-				$maxMonth = date('m', time());
+
+		$homeLibrary = $user->getHomeLibrary();
+
+		if (!array_key_exists($homeLibrary->libraryId, $defaultStatusesByLibrary)){
+			require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestStatus.php';
+			$defaultStatus = new MaterialsRequestStatus();
+			$defaultStatus->isDefault = 1;
+			$defaultStatus->libraryId = $homeLibrary->libraryId;
+			if (!$defaultStatus->find(true)) {
+				$defaultStatusesByLibrary[$homeLibrary->libraryId] = -1;
+			}else{
+				$defaultStatusesByLibrary[$homeLibrary->libraryId] = $defaultStatus->id;
 			}
-			for ($month = 1; $month <= $maxMonth; $month++) {
-				$numEntriesToGenerate = rand($minEntriesPerMonth, $maxEntriesPerMonth);
-				for ($entryNumber = 0; $entryNumber < $numEntriesToGenerate; $entryNumber++) {
-					if ($groupedWork->fetch()){
-						$readingHistoryEntry = new ReadingHistoryEntry();
-						$readingHistoryEntry->userId = $user->id;
-						$readingHistoryEntry->groupedWorkPermanentId =$groupedWork->permanent_id;
-						$readingHistoryEntry->title = $groupedWork->full_title;
-						$readingHistoryEntry->author = $groupedWork->author;
-						//Grab a record at random from the grouped work
-						require_once ROOT_DIR . '/sys/Grouping/GroupedWorkRecord.php';
-						$groupedWorkRecord = new GroupedWorkRecord();
-						$groupedWorkRecord->groupedWorkId = $groupedWork->id;
-						$groupedWorkRecord->orderBy('RAND()');
-						$groupedWorkRecord->limit(0, 1);
-						if ($groupedWorkRecord->find(true)) {
-							$readingHistoryEntry->source = $sources[$groupedWorkRecord->sourceId];
-							$readingHistoryEntry->sourceId = $groupedWorkRecord->recordIdentifier;
-							if (array_key_exists($groupedWorkRecord->formatId, $formats)) {
-								$readingHistoryEntry->format = $formats[$groupedWorkRecord->formatId];
+		}
+
+		if ($defaultStatusesByLibrary[$homeLibrary->libraryId] == -1) {
+			$numUsersSkipped++;
+		}else{
+			//Loop through the years to generate
+			for ($year = $currentYear; $year >= ($currentYear - $numberOfYears + 1); $year--) {
+				//Loop through each month
+				$maxMonth = 12;
+				if ($year == $currentYear) {
+					//Restrict the maximum month to this month
+					$maxMonth = date('m', time());
+				}
+				for ($month = 1; $month <= $maxMonth; $month++) {
+					$numEntriesToGenerate = rand($minEntriesPerMonth, $maxEntriesPerMonth);
+					for ($entryNumber = 0; $entryNumber < $numEntriesToGenerate; $entryNumber++) {
+						if ($groupedWork->fetch()){
+							$materialRequest = new MaterialsRequest();
+							$materialRequest->createdBy = $user->id;
+							$materialRequest->libraryId = $homeLibrary->libraryId;
+							$materialRequest->title = $groupedWork->full_title;
+							$materialRequest->author = $groupedWork->author;
+							//Grab a record at random from the grouped work
+							require_once ROOT_DIR . '/sys/Grouping/GroupedWorkRecord.php';
+							$groupedWorkRecord = new GroupedWorkRecord();
+							$groupedWorkRecord->groupedWorkId = $groupedWork->id;
+							$groupedWorkRecord->orderBy('RAND()');
+							$groupedWorkRecord->limit(0, 1);
+							if ($groupedWorkRecord->find(true)) {
+								if (array_key_exists($groupedWorkRecord->formatId, $formats)) {
+									$materialRequest->format = $formats[$groupedWorkRecord->formatId];
+								}else{
+									//Hardcode something
+									$materialRequest->format = 'Book';
+								}
 							}else{
-								//Hardcode something
-								$readingHistoryEntry->format = 'Book';
+								//Hardcode a format
+								$materialRequest->format = 'Book';
 							}
-						}else{
-							//Hardcode a format
-							$readingHistoryEntry->format = 'Book';
+							$checkoutDay = rand(0, 28);
+							$materialRequest->dateCreated = strtotime("$year-$month-$checkoutDay");
+							$materialRequest->placeHoldWhenAvailable = true;
+
+							$materialRequest->status = $defaultStatusesByLibrary[$homeLibrary->libraryId];
+							$materialRequest->insert();
+							$numEntriesGenerated++;
 						}
-						$checkoutDay = rand(0, 28);
-						$readingHistoryEntry->checkOutDate = strtotime("$year-$month-$checkoutDay");
-						$readingHistoryEntry->checkInDate = $readingHistoryEntry->checkOutDate;
-						$formatLower = strtolower($readingHistoryEntry->format);
-						if (array_key_exists($formatLower, $replacementCosts)) {
-							$readingHistoryEntry->costSavings = $replacementCosts[$formatLower];
-							$user->totalCostSavings += $readingHistoryEntry->costSavings;
-						}
-						$readingHistoryEntry->insert();
-						$numEntriesGenerated++;
-						$getGroupedWorkIdStmt->closeCursor();
 					}
 				}
 			}
 		}
-		$user->update();
+		$getGroupedWorkIdStmt->closeCursor();
+
 		$results['success'] = true;
 		if (!is_null($backgroundProcess)) {
-			$backgroundProcess->addNote("Successfully generated $numEntriesGenerated reading history entries for user {$user->getDisplayName()}.");
+			$backgroundProcess->addNote("Successfully generated $numEntriesGenerated material requests for user {$user->getDisplayName()}.");
 		}
 		$numProcessed++;
 	}else{
@@ -235,5 +246,5 @@ foreach ($userIdsToProcess as $userId) {
 	}
 }
 if (!is_null($backgroundProcess)) {
-	$backgroundProcess->endProcess("Processed $numProcessed users.");
+	$backgroundProcess->endProcess("Processed $numProcessed users, skipped $numUsersSkipped that did not have a valid default status for their library.");
 }

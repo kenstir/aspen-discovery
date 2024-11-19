@@ -110,6 +110,7 @@
 						<div class="panel-body">
 							<div class="adminMenuLink "><a href="/Testing/GenerateTestUsers">{translate text="Generate Test Users" isAdminFacing=true}</a></div>
 							<div class="adminMenuLink "><a href="/Testing/GenerateReadingHistory">{translate text="Generate Reading History" isAdminFacing=true}</a></div>
+							<div class="adminMenuLink "><a href="/Testing/GenerateMaterialRequests">{translate text="Generate Material Requests" isAdminFacing=true}</a></div>
 						</div>
 					</div>
 				</div>

@@ -5354,9 +5354,43 @@ class User extends DataObject {
 		return $allRequests;
 	}
 
-	public function submitLocalIllRequest(LocalIllForm $localIllForm) : array {
+	public function submitLocalIllRequest() : array {
 		if ($this->hasIlsConnection()) {
-			return $this->getCatalogDriver()->submitLocalIllRequest($this, $localIllForm);
+			$homeLocation = Location::getDefaultLocationForUser();
+			if ($homeLocation != null) {
+				//Get configuration for the form.
+				require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
+				$localIllForm = new LocalIllForm();
+				$localIllForm->id = $homeLocation->localIllFormId;
+				if ($localIllForm->find(true)) {
+					$results = $this->getCatalogDriver()->submitLocalIllRequest($this, $localIllForm);
+				} else {
+					$results = [
+						'title' => translate([
+							'text' => 'Invalid Configuration',
+							'isPublicFacing' => true,
+						]),
+						'message' => translate([
+							'text' => "Local ILL settings do not exist, please contact the library to make a request.",
+							'isPublicFacing' => true,
+						]),
+						'success' => false,
+					];
+				}
+			}else{
+				$results = [
+					'title' => translate([
+						'text' => 'Invalid Configuration',
+						'isPublicFacing' => true,
+					]),
+					'message' => translate([
+						'text' => "Your account does not hava a valid home library, please contact the library to make a request.",
+						'isPublicFacing' => true,
+					]),
+					'success' => false,
+				];
+			}
+			return $results;
 		}else{
 			return [
 				'success' => false,

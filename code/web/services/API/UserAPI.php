@@ -70,6 +70,7 @@ class UserAPI extends AbstractAPI {
 					'getNotificationPushToken',
 					'submitVdxRequest',
 					'cancelVdxRequest',
+					'submitLocalIllRequest',
 					'getNotificationPreference',
 					'setNotificationPreference',
 					'getNotificationPreferences',
@@ -940,7 +941,7 @@ class UserAPI extends AbstractAPI {
 
 			//Add Interlibrary Loan
 			$userData->hasInterlibraryLoan = false;
-			if ($user->hasInterlibraryLoan()) {
+			if ($user->getInterlibraryLoanType() == 'vdx') {
 				$userData->hasInterlibraryLoan = true;
 				require_once ROOT_DIR . '/Drivers/VdxDriver.php';
 				$driver = new VdxDriver();
@@ -3501,7 +3502,7 @@ class UserAPI extends AbstractAPI {
 	}
 
 	/** @noinspection PhpUnused */
-	function submitVdxRequest() {
+	function submitVdxRequest() : array {
 		$user = $this->getUserForApiCall();
 		if ($user && !($user instanceof AspenError)) {
 			require_once ROOT_DIR . '/Drivers/VdxDriver.php';
@@ -3533,7 +3534,7 @@ class UserAPI extends AbstractAPI {
 	}
 
 	/** @noinspection PhpUnused */
-	function cancelVdxRequest() {
+	function cancelVdxRequest() : array {
 		$user = $this->getUserForApiCall();
 		$title = translate([
 			'text' => 'Error',
@@ -3562,14 +3563,27 @@ class UserAPI extends AbstractAPI {
 		}
 	}
 
+	/** @noinspection PhpUnused */
+	function submitLocalIllRequest() : array {
+		$user = $this->getUserForApiCall();
+		if ($user && !($user instanceof AspenError)) {
+			return $user->submitLocalIllRequest();
+		} else {
+			return [
+				'success' => false,
+				'message' => 'Login unsuccessful',
+			];
+		}
+	}
+
 	/**
 	 * Loads the reading history for the user.  Includes print, eContent, and OverDrive titles.
 	 * Note: The return of this method can be quite lengthy if the patron has a large number of items in their reading history.
 	 *
 	 * Parameters:
 	 * <ul>
-	 * <li>username - The barcode of the user.  Can be truncated to the last 7 or 9 digits.</li>
-	 * <li>password - The pin number for the user. </li>
+	 *  <li>username - The barcode of the user. Can be truncated to the last 7 or 9 digits.</li>
+	 * <li>password - The pin for the user. </li>
 	 * </ul>
 	 *
 	 * Returns:

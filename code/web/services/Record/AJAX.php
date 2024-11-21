@@ -330,40 +330,7 @@ class Record_AJAX extends Action {
 	function submitLocalIllRequest(): array {
 		if (UserAccount::isLoggedIn()) {
 			$user = UserAccount::getLoggedInUser();
-			$homeLocation = Location::getDefaultLocationForUser();
-			if ($homeLocation != null) {
-				//Get configuration for the form.
-				require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
-				$localIllForm = new LocalIllForm();
-				$localIllForm->id = $homeLocation->localIllFormId;
-				if ($localIllForm->find(true)) {
-					$results = $user->submitLocalIllRequest($localIllForm);
-				} else {
-					$results = [
-						'title' => translate([
-							'text' => 'Invalid Configuration',
-							'isPublicFacing' => true,
-						]),
-						'message' => translate([
-							'text' => "Local ILL settings do not exist, please contact the library to make a request.",
-							'isPublicFacing' => true,
-						]),
-						'success' => false,
-					];
-				}
-			}else{
-				$results = [
-					'title' => translate([
-						'text' => 'Invalid Configuration',
-						'isPublicFacing' => true,
-					]),
-					'message' => translate([
-						'text' => "Your account does not hava a valid home library, please contact the library to make a request.",
-						'isPublicFacing' => true,
-					]),
-					'success' => false,
-				];
-			}
+			$results = $user->submitLocalIllRequest();
 		} else {
 			$results = [
 				'title' => translate([

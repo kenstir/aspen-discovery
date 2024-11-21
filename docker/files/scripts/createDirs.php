@@ -126,7 +126,7 @@ try {
         exec("chmod -R 755 $logDir2");
     }
 
-    exec("chown $newOwner $logDir/*");
+    exec("chown -R $newOwner $logDir");
     exec("chown -R $newOwner $logDir/logs");
 
     //Conf directory

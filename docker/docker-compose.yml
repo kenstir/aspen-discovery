@@ -16,7 +16,7 @@ services:
     volumes:
       - ${ASPEN_DATA_DIR}/conf:/usr/local/aspen-discovery/sites/${SITE_NAME}
       - ${ASPEN_DATA_DIR}/data:/data/aspen-discovery/${SITE_NAME}
-      - ${ASPEN_DATA_DIR}/logs:/var/log/aspen-discovery
+      - ${ASPEN_DATA_DIR}/logs:/var/log/aspen-discovery/${SITE_NAME}
     depends_on:
       db:
         condition: service_healthy
@@ -31,7 +31,7 @@ services:
     volumes:
       - ${ASPEN_DATA_DIR}/conf:/usr/local/aspen-discovery/sites/${SITE_NAME}
       - ${ASPEN_DATA_DIR}/data:/data/aspen-discovery/${SITE_NAME}
-      - ${ASPEN_DATA_DIR}/logs:/var/log/aspen-discovery
+      - ${ASPEN_DATA_DIR}/logs:/var/log/aspen-discovery/${SITE_NAME}
     command:
       - cron
     depends_on:
@@ -52,7 +52,7 @@ services:
     networks:
       - net-aspen
     healthcheck:
-      interval: 60s
+      interval: 10s
       retries: 10
       test:
         [

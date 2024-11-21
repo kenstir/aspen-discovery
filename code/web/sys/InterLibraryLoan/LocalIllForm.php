@@ -260,13 +260,15 @@ class LocalIllForm extends DataObject {
 	}
 
 	private function getLocations() : array {
-		if (!isset($this->_locations) && $this->id) {
+		if (!isset($this->_locations)) {
 			$this->_locations = [];
-			$obj = new Location();
-			$obj->localIllFormId = $this->id;
-			$obj->find();
-			while ($obj->fetch()) {
-				$this->_locations[$obj->locationId] = $obj->locationId;
+			if (!empty($this->id)) {
+				$obj = new Location();
+				$obj->localIllFormId = $this->id;
+				$obj->find();
+				while ($obj->fetch()) {
+					$this->_locations[$obj->locationId] = $obj->locationId;
+				}
 			}
 		}
 		return $this->_locations;

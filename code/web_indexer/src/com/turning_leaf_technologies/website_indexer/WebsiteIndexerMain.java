@@ -185,7 +185,7 @@ public class WebsiteIndexerMain {
 						}
 						if (logEntry != null) {
 							try {
-								solrUpdateServer.commit(true, true, false);
+								solrUpdateServer.commit(false, false, true);
 							}catch (Exception e){
 								logEntry.incErrors("Error updating solr after deleting pages for " + websiteName, e );
 							}
@@ -245,7 +245,7 @@ public class WebsiteIndexerMain {
 				try {
 					//noinspection unused
 					UpdateResponse deleteResponse = solrUpdateServer.deleteByQuery("-settingId:[* TO *]");
-					solrUpdateServer.commit(true, true, false);
+					solrUpdateServer.commit(false, false, true);
 				}catch (Exception e){
 					logger.error("Error deleting all content without a settingId", e );
 				}

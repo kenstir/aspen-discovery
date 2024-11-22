@@ -115,7 +115,7 @@ class CourseReservesIndexer {
 				numCourseReservesProcessed++;
 			}
 			if (numCourseReservesProcessed > 0){
-				updateServer.commit(true, true);
+				updateServer.commit(false, false, true);
 			}
 
 		}catch (Exception e){

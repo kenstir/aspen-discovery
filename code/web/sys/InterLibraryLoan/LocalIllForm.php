@@ -355,6 +355,22 @@ class LocalIllForm extends DataObject {
 			'maxLength' => 255,
 		];
 
+		$fields['catalogKey'] = [
+			'type' => 'text',
+			'property' => 'catalogKey',
+			'display' => 'hide',
+			'label' => translate([
+				'text' => 'Record Number',
+				'isPublicFacing' => true,
+			]),
+			'description' => translate([
+				'text' => 'The record number to be requested',
+				'isPublicFacing' => true,
+			]),
+			'required' => false,
+			'maxLength' => 20,
+		];
+
 		require_once ROOT_DIR . '/services/API/UserAPI.php';
 		$user = new UserAPI();
 

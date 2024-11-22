@@ -40,6 +40,7 @@ export async function RemoveData() {
      LIBRARY.version = '22.10.00';
      LIBRARY.languages = [];
      LIBRARY.vdx = [];
+     LIBRARY.localIll = [];
      PATRON.userToken = null;
      PATRON.scope = null;
      PATRON.library = null;

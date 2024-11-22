@@ -462,7 +462,7 @@ class VdxForm extends DataObject {
 		$fields['acceptFee'] = [
 			'type' => 'checkbox',
 			'property' => 'acceptFee',
-			'display' => $this->showMaximumFee ? 'show' : 'hide',
+			'display' => $this->showAcceptFee ? 'show' : 'hide',
 			'label' => translate([
 				'text' => 'I will pay any fees associated with this request up to the maximum amount defined above',
 				'isPublicFacing' => true,

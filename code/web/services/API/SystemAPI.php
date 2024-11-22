@@ -1004,7 +1004,7 @@ class SystemAPI extends AbstractAPI {
 			'message' => 'Unable to load VDX form',
 		];
 
-		require_once ROOT_DIR . '/sys/InterlibraryLoan/LocalIllForm.php';
+		require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
 
 		if (isset($_REQUEST['formId'])) {
 			$formId = $_REQUEST['formId'];

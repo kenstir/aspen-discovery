@@ -5393,6 +5393,10 @@ class User extends DataObject {
 			return $results;
 		}else{
 			return [
+				'title' => translate([
+					'text' => 'Error',
+					'isPublicFacing' => true,
+				]),
 				'success' => false,
 				'message' => translate([
 					'text' => 'Cannot submit ILL request, not connected to an ILS.',

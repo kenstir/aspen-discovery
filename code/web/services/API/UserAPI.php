@@ -3571,7 +3571,8 @@ class UserAPI extends AbstractAPI {
 		} else {
 			return [
 				'success' => false,
-				'message' => 'Login unsuccessful',
+				'message' => translate(['text'=>'Login unsuccessful', 'isPublicFacing'=>true]),
+				'title' => translate(['text'=>'Error', 'isPublicFacing'=>true])
 			];
 		}
 	}

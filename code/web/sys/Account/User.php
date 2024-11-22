@@ -3872,6 +3872,10 @@ class User extends DataObject {
 			'Administer All System Messages',
 			'Administer Library System Messages',
 		]);
+		$sections['local_enrichment']->addAction(new AdminAction('Year in Review', 'Year in Review allows you to display a summary slideshow to patrons at the start of each year.', '/Admin/YearInReview'), [
+			'Administer Year in Review for All Libraries',
+			'Administer Year in Review for Home Library',
+		]);
 
 		$sections['third_party_enrichment'] = new AdminSection('Third Party Enrichment');
 		$sections['third_party_enrichment']->addAction(new AdminAction('Accelerated Reader Settings', 'Define settings to load Accelerated Reader information directly from Renaissance Learning.', '/Enrichment/ARSettings'), 'Administer Third Party Enrichment API Keys');

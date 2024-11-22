@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMissingFieldTypeInspection */
 
 require_once ROOT_DIR . '/sys/DB/DataObject.php';
 
@@ -18,6 +18,7 @@ class PType extends DataObject {
 	public $enableReadingHistory;
 	public $canSuggestMaterials;
 	public $canRenewOnline;
+	public $enableYearInReview;
 
 	public function getNumericColumnNames(): array {
 		return [
@@ -30,9 +31,11 @@ class PType extends DataObject {
 			'enableReadingHistory',
 			'canSuggestMaterials',
 			'canRenewOnline',
+			'enableYearInReview'
 		];
 	}
 
+	/** @noinspection PhpUnusedParameterInspection */
 	static function getObjectStructure($context = ''): array {
 		$roles = [];
 		$roles[-1] = 'None';
@@ -104,8 +107,7 @@ class PType extends DataObject {
 				'property' => 'enableReadingHistory',
 				'type' => 'checkbox',
 				'label' => 'Enable Reading History',
-				'description' => 'Whether or not reading history should be enabled for users with this PType
-				',
+				'description' => 'Whether or not reading history should be enabled for users with this PType',
 				'note' => "Reading History must also be enabled for the user's home library",
 				'default' => 1,
 			],
@@ -159,6 +161,14 @@ class PType extends DataObject {
 				'type' => 'checkbox',
 				'label' => 'Allow users to renew their account online',
 				'description' => 'Allow users of this patron type to renew their account when permitted by library system settings.',
+			],
+			'enableYearInReview' => [
+				'property' => 'enableYearInReview',
+				'type' => 'checkbox',
+				'label' => 'Enable Year In Review',
+				'description' => 'Whether or not Year In Review should be enabled for users with this PType',
+				'note' => "Reading History must also be enabled for the user's home library",
+				'default' => 1,
 			],
 		];
 		if (!UserAccount::userHasPermission('Administer Permissions')) {
@@ -214,10 +224,8 @@ class PType extends DataObject {
 		}
 	}
 
-	public function update($context = '') {
-		if ($this->accountLinkingSetting == 0) {
-			return parent::update();
-		} else {
+	public function update($context = '') : bool {
+		if ($this->accountLinkingSetting != 0) {
 			$user = new User();
 			$user->patronType = $this->pType;
 			$user->find();
@@ -265,7 +273,7 @@ class PType extends DataObject {
 					$userLink->delete(true);
 				}
 			}
-			return parent::update();
 		}
+		return parent::update();
 	}
 }

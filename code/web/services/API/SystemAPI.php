@@ -37,6 +37,7 @@ class SystemAPI extends AbstractAPI {
 					'getBulkTranslations',
 					'getLanguages',
 					'getVdxForm',
+					'getLocalIllForm',
 					'getSelfCheckSettings',
 					'getSystemMessages',
 					'dismissSystemMessage',
@@ -912,7 +913,8 @@ class SystemAPI extends AbstractAPI {
 		];
 	}
 
-	function getVdxForm() {
+	/** @noinspection PhpUnused */
+	function getVdxForm() : array {
 		$result = [
 			'success' => false,
 			'title' => 'Error',
@@ -986,6 +988,70 @@ class SystemAPI extends AbstractAPI {
 				]),
 				'message' => translate([
 					'text' => 'VDX Settings do not exist, please contact the library to make a request.',
+					'isPublicFacing' => true,
+				]),
+			];
+		}
+
+		return $result;
+	}
+
+	/** @noinspection PhpUnused */
+	function getLocalIllForm(): array {
+		$result = [
+			'success' => false,
+			'title' => 'Error',
+			'message' => 'Unable to load VDX form',
+		];
+
+		require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
+
+		if (isset($_REQUEST['formId'])) {
+			$formId = $_REQUEST['formId'];
+		} else {
+			return [
+				'success' => false,
+				'title' => translate([
+					'text' => 'Invalid Configuration',
+					'isPublicFacing' => true,
+				]),
+				'message' => translate([
+					'text' => 'A LocalIll form id was not given.',
+					'isPublicFacing' => true,
+				]),
+			];
+		}
+
+		$localIllForm = new LocalIllForm();
+		$localIllForm->id = $formId;
+		if ($localIllForm->find(true)) {
+			$localIllFormFields = $localIllForm->getFormFieldsForApi();
+			$result = [
+				'success' => true,
+				'title' => translate([
+					'text' => 'Request Title',
+					'isPublicFacing' => true,
+				]),
+				'message' => '',
+				'buttonLabel' => translate([
+					'text' => 'Place Request',
+					'isPublicFacing' => true,
+				]),
+				'buttonLabelProcessing' => translate([
+					'text' => 'Placing Request',
+					'isPublicFacing' => true,
+				]),
+				'fields' => $localIllFormFields,
+			];
+		} else {
+			return [
+				'success' => false,
+				'title' => translate([
+					'text' => 'Invalid Configuration',
+					'isPublicFacing' => true,
+				]),
+				'message' => translate([
+					'text' => 'Unable to find the specified form.',
 					'isPublicFacing' => true,
 				]),
 			];

@@ -331,3 +331,36 @@ export async function submitVdxRequest(url, request) {
           console.log(response);
      }
 }
+
+export async function submitLocalIllRequest(url, request) {
+     const postBody = await postData();
+     const api = create({
+          baseURL: url + '/API',
+          timeout: GLOBALS.timeoutAverage,
+          headers: getHeaders(true),
+          auth: createAuthTokens(),
+          params: {
+               title: request.title,
+               acceptFee: request.acceptFee,
+               pickupLocation: request.pickupLocation,
+               catalogKey: request.catalogKey,
+               note: request.note,
+          },
+     });
+     console.log("Submitting Local ILL Request for catalog key " + request.catalogKey);
+     const response = await api.post('/UserAPI?method=submitLocalIllRequest', postBody);
+     if (response.ok) {
+          console.dir(response.data);
+          if (response.data.result?.success === true) {
+               popAlert(response.data.result.title, response.data.result.message, 'success');
+               return response.data.result;
+          } else {
+               popAlert(response.data.title ?? 'Unknown Error', response.data.result.message, 'error');
+               return response.data.result;
+          }
+     } else {
+          const problem = problemCodeMap(response.problem);
+          popAlert(problem.title, problem.message, 'error');
+          console.log(response);
+     }
+}

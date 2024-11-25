@@ -330,7 +330,7 @@ class LocalIllForm extends DataObject {
 		$fields['acceptFee'] = [
 			'type' => 'checkbox',
 			'property' => 'acceptFee',
-			'display' => $this->showMaximumFee ? 'show' : 'hide',
+			'display' => $this->showAcceptFee ? 'show' : 'hide',
 			'label' => translate([
 				'text' => 'I will pay any fees associated with this request up to the maximum amount defined above',
 				'isPublicFacing' => true,
@@ -353,6 +353,22 @@ class LocalIllForm extends DataObject {
 			]),
 			'required' => false,
 			'maxLength' => 255,
+		];
+
+		$fields['catalogKey'] = [
+			'type' => 'text',
+			'property' => 'catalogKey',
+			'display' => 'hide',
+			'label' => translate([
+				'text' => 'Record Number',
+				'isPublicFacing' => true,
+			]),
+			'description' => translate([
+				'text' => 'The record number to be requested',
+				'isPublicFacing' => true,
+			]),
+			'required' => false,
+			'maxLength' => 20,
 		];
 
 		require_once ROOT_DIR . '/services/API/UserAPI.php';

@@ -3872,6 +3872,10 @@ class User extends DataObject {
 			'Administer All System Messages',
 			'Administer Library System Messages',
 		]);
+		$sections['local_enrichment']->addAction(new AdminAction('Year in Review', 'Year in Review allows you to display a summary slideshow to patrons at the start of each year.', '/Admin/YearInReview'), [
+			'Administer Year in Review for All Libraries',
+			'Administer Year in Review for Home Library',
+		]);
 
 		$sections['third_party_enrichment'] = new AdminSection('Third Party Enrichment');
 		$sections['third_party_enrichment']->addAction(new AdminAction('Accelerated Reader Settings', 'Define settings to load Accelerated Reader information directly from Renaissance Learning.', '/Enrichment/ARSettings'), 'Administer Third Party Enrichment API Keys');
@@ -5354,11 +5358,49 @@ class User extends DataObject {
 		return $allRequests;
 	}
 
-	public function submitLocalIllRequest(LocalIllForm $localIllForm) : array {
+	public function submitLocalIllRequest() : array {
 		if ($this->hasIlsConnection()) {
-			return $this->getCatalogDriver()->submitLocalIllRequest($this, $localIllForm);
+			$homeLocation = Location::getDefaultLocationForUser();
+			if ($homeLocation != null) {
+				//Get configuration for the form.
+				require_once ROOT_DIR . '/sys/InterLibraryLoan/LocalIllForm.php';
+				$localIllForm = new LocalIllForm();
+				$localIllForm->id = $homeLocation->localIllFormId;
+				if ($localIllForm->find(true)) {
+					$results = $this->getCatalogDriver()->submitLocalIllRequest($this, $localIllForm);
+				} else {
+					$results = [
+						'title' => translate([
+							'text' => 'Invalid Configuration',
+							'isPublicFacing' => true,
+						]),
+						'message' => translate([
+							'text' => "Local ILL settings do not exist, please contact the library to make a request.",
+							'isPublicFacing' => true,
+						]),
+						'success' => false,
+					];
+				}
+			}else{
+				$results = [
+					'title' => translate([
+						'text' => 'Invalid Configuration',
+						'isPublicFacing' => true,
+					]),
+					'message' => translate([
+						'text' => "Your account does not hava a valid home library, please contact the library to make a request.",
+						'isPublicFacing' => true,
+					]),
+					'success' => false,
+				];
+			}
+			return $results;
 		}else{
 			return [
+				'title' => translate([
+					'text' => 'Error',
+					'isPublicFacing' => true,
+				]),
 				'success' => false,
 				'message' => translate([
 					'text' => 'Cannot submit ILL request, not connected to an ILS.',

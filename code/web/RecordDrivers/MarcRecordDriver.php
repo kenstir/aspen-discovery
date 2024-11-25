@@ -1221,7 +1221,7 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 							'type' => 'vdx_request',
 							'btnType' => 'btn-vdx-request btn-action'
 						];
-					}elseif ($interLibraryLoanType == 'localIll') {
+					} else if ($interLibraryLoanType == 'localIll') {
 						$this->_actions[$variationId][] = [
 							'title' => translate([
 								'text' => 'Request',
@@ -1230,11 +1230,10 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 							'url' => '',
 							'onclick' => "return AspenDiscovery.Record.showLocalIllRequest('{$this->getModule()}', '$source', '$id');",
 							'requireLogin' => false,
-							'type' => 'vdx_request',
+							'type' => 'local_ill_request',
 							'btnType' => 'btn-local-ill-request btn-action'
 						];
 					}
-
 				}
 			}
 

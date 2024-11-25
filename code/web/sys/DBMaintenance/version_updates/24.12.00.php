@@ -68,7 +68,48 @@ function getUpdates24_12_00(): array {
 			'sql' => [
 				'ALTER TABLE user_hold ADD COLUMN outOfHoldGroupMessage TINYTEXT'
 			]
-		],
+		], //add_hold_out_of_hold_group_message
+		'year_in_review_permissions' => [
+			'title' => 'Year In Review Permissions',
+			'description' => 'Add new permissions for Year In Review functionality',
+			'continueOnError' => true,
+			'sql' => [
+				"INSERT INTO permissions (sectionName, name, requiredModule, weight, description) VALUES ('Year in Review', 'Administer Year in Review for All Libraries', '', 10, 'Allows Year in Review functionality to be configured for all libraries.')",
+				"INSERT INTO permissions (sectionName, name, requiredModule, weight, description) VALUES ('Year in Review', 'Administer Year in Review for Home Library', '', 20, 'Allows Year in Review functionality to be configured for the user\'s home library.')",
+				"INSERT INTO role_permissions(roleId, permissionId) VALUES ((SELECT roleId from roles where name='opacAdmin'), (SELECT id from permissions where name='Administer Year in Review for All Libraries'))",
+			],
+		], //year_in_review_permissions
+		'year_in_review_settings' => [
+			'title' => 'Year In Review Settings',
+			'description' => 'Add new settings for Year In Review functionality',
+			'continueOnError' => true,
+			'sql' => [
+				"CREATE TABLE year_in_review_settings (
+					id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					name VARCHAR(50) NOT NULL UNIQUE,
+					year int,
+					staffStartDate int,
+					patronStartDate int
+				) ENGINE INNODB CHARACTER SET utf8 COLLATE utf8_general_ci",
+				'CREATE TABLE library_year_in_review (
+					id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					yearInReviewId INT NOT NULL,
+					libraryId INT NOT NULL,
+					UNIQUE (yearInReviewId, libraryId)
+				) ENGINE INNODB CHARACTER SET utf8 COLLATE utf8_general_ci',
+				'DROP TABLE user_year_in_review',
+				'CREATE TABLE user_year_in_review (
+					id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					userId INT NOT NULL,
+					settingId int NOT NULL,
+					wrappedActive TINYINT(1) DEFAULT 0,
+					wrappedViewed TINYINT(1) DEFAULT 0,
+					wrappedResults TEXT,
+					UNIQUE (userId, settingId)
+				) ENGINE INNODB CHARACTER SET utf8 COLLATE utf8_general_ci',
+				'ALTER TABLE ptype ADD COLUMN enableYearInReview TINYINT DEFAULT 0'
+			]
+		], //year_in_review_settings
 
 		//katherine
 
@@ -78,6 +119,13 @@ function getUpdates24_12_00(): array {
 
 
 		//alexander - PTFS-Europe
+		'add_regular_expression_for_iTypes_to_treat_as_eContent' => [
+			'title' => 'Add Regular Expression For iTypes To Treat As Econtent',
+			'description' => 'Add treatItemsAsEcontent to give control over iTypes to be treated as eContent',
+			'sql' => [
+				"ALTER TABLE indexing_profiles ADD COLUMN treatItemsAsEcontent VARCHAR(512) DEFAULT 'ebook|ebk|eaudio|evideo|online|oneclick|eaudiobook|download|eresource|electronic resource'",
+			],
+		], //add_treatItemsAsEcontent_field
 
 		//chloe - PTFS-Europe
 

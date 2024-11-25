@@ -431,10 +431,32 @@ public class MarcRecordFormatClassifier {
 					}else if (fieldData.contains("playaway digital audio") || fieldData.contains("findaway world")) {
 						if (groupedWork != null && groupedWork.isDebugEnabled()) {groupedWork.addDebugMessage("Adding bib level format Playaway based on 710 Added Entry", 2);}
 						result.add("Playaway");
+					}else if (fieldData.contains("boxine")) {
+						//The 245a should also contain the word tonie
+						if (titleContainsText(record, "tonie")) {
+							if (groupedWork != null && groupedWork.isDebugEnabled()) {groupedWork.addDebugMessage("Adding bib level format Tonie based on 710 Added Entry and 245", 2);}
+							result.add("Tonies");
+						}
+					} else if (fieldData.contains("yoto")) {
+						//Also confirm the title has yoto
+						if (titleContainsText(record, "yoto")) {
+							if (groupedWork != null && groupedWork.isDebugEnabled()) {
+								groupedWork.addDebugMessage("Adding bib level format Yoto based on 710 Added Entry and 245", 2);
+							}
+							result.add("Yoto");
+						}
 					}
 				}
 			}
 		}
+	}
+
+	private boolean titleContainsText(org.marc4j.marc.Record record, String textToLookFor) {
+		String titleField = MarcUtil.getFirstFieldVal(record, "245a");
+		if (titleField != null) {
+			return titleField.toLowerCase().contains(textToLookFor.toLowerCase());
+		}
+		return false;
 	}
 
 	public void getFormatFromTitle(AbstractGroupedWorkSolr groupedWork, org.marc4j.marc.Record record, Set<String> printFormats) {
@@ -530,6 +552,21 @@ public class MarcRecordFormatClassifier {
 				} else if (sysDetailsValue.contains("go reader") || sysDetailsValue.contains("goreader")) {
 					if (groupedWork != null && groupedWork.isDebugEnabled()) {groupedWork.addDebugMessage("Adding bib level format GoReader based on 260/264", 2);}
 					result.add("GoReader");
+				} else if (sysDetailsValue.contains("boxine")) {
+					//The 245a should also contain the word tonie
+					if (titleContainsText(record, "tonie")) {
+						if (groupedWork != null && groupedWork.isDebugEnabled()) {
+							groupedWork.addDebugMessage("Adding bib level format Tonie based on 260/264", 2);
+						}
+						result.add("Tonies");
+					}
+				} else if (sysDetailsValue.contains("yoto")) {
+					if (titleContainsText(record, "yoto")) {
+						if (groupedWork != null && groupedWork.isDebugEnabled()) {
+							groupedWork.addDebugMessage("Adding bib level format Yoto based on 260/264", 2);
+						}
+						result.add("Yoto");
+					}
 				}
 			}
 		}

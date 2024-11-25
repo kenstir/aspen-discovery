@@ -3,6 +3,7 @@ import { CheckedOutToYou } from './CheckedOutToYou';
 import { CheckOut } from './CheckOut/CheckOut';
 import { PlaceHold } from './Holds/PlaceHold';
 import { StartVDXRequest } from './Holds/VDXRequest';
+import { StartLocalIllRequest } from './Holds/LocalIllRequest';
 import { LoadOverDriveSample } from './LoadOverDriveSample';
 import { OnHoldForYou } from './OnHoldForYou';
 import { OpenSideLoad } from './OpenSideLoad';
@@ -99,6 +100,30 @@ export const ActionButton = (data) => {
                          publisher={publisher}
                          isbn={isbn}
                          oclcNumber={oclcNumber}
+                         holdTypeForFormat={holdTypeForFormat}
+                         variationId={variationId}
+                         prevRoute={prevRoute}
+                         setResponseIsOpen={setResponseIsOpen}
+                         responseIsOpen={responseIsOpen}
+                         onResponseClose={onResponseClose}
+                         cancelResponseRef={cancelResponseRef}
+                         response={response}
+                         setResponse={setResponse}
+                         setHoldConfirmationIsOpen={setHoldConfirmationIsOpen}
+                         holdConfirmationIsOpen={holdConfirmationIsOpen}
+                         onHoldConfirmationClose={onHoldConfirmationClose}
+                         cancelHoldConfirmationRef={cancelHoldConfirmationRef}
+                         holdConfirmationResponse={holdConfirmationResponse}
+                         setHoldConfirmationResponse={setHoldConfirmationResponse}
+                    />
+               );
+          } else if (action.type === 'local_ill_request') {
+               return (
+                    <StartLocalIllRequest
+                         title={action.title}
+                         record={fullRecordId}
+                         id={groupedWorkId}
+                         workTitle={title}
                          holdTypeForFormat={holdTypeForFormat}
                          variationId={variationId}
                          prevRoute={prevRoute}

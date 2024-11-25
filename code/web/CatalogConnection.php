@@ -1834,7 +1834,14 @@ class CatalogConnection {
 		}else{
 			return [
 				'success' => false,
-				'message' => 'This ILS does not support local ILL requests',
+				'message' => translate([
+					'text' => 'This ILS does not support local ILL requests',
+					'isPublicFacing' => true,
+				]),
+				'title' => translate([
+					'text' => 'Error',
+					'isPublicFacing' => true,
+				]),
 			];
 		}
 	}

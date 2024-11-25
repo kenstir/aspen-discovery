@@ -113,7 +113,7 @@
   },
   "private": true,
   "name": "aspen-lida",
-  "version": "24.07.00",
+  "version": "24.12.00",
   "repository": "https://github.com/Aspen-Discovery/aspen-discovery",
   "author": "ByWater Solutions",
   "eslintConfig": {

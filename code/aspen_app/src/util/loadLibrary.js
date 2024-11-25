@@ -17,6 +17,7 @@ export const LIBRARY = {
      favicon: '',
      languages: [],
      vdx: [],
+     localIll: [],
 };
 
 export const BRANCH = {
@@ -24,6 +25,7 @@ export const BRANCH = {
      vdxFormId: null,
      vdxLocation: null,
      vdx: [],
+     localIllFormId: null,
 };
 
 export const ALL_LOCATIONS = {
@@ -254,6 +256,28 @@ export async function getVdxForm(url, id) {
      const response = await api.post('/SystemAPI?method=getVdxForm', postBody);
      if (response.ok) {
           LIBRARY.vdx = response.data.result;
+          return response.data.result;
+     } else {
+          popToast(getTermFromDictionary('en', 'error_no_server_connection'), getTermFromDictionary('en', 'error_no_library_connection'), 'error');
+          console.log(response);
+     }
+}
+
+export async function getLocalIllForm(url, id) {
+     const postBody = await postData();
+     const api = create({
+          baseURL: url + '/API',
+          timeout: GLOBALS.timeoutAverage,
+          headers: getHeaders(true),
+          auth: createAuthTokens(),
+          params: { formId: id },
+     });
+     console.log("Form ID " + id);
+     const response = await api.post('/SystemAPI?method=getLocalIllForm', postBody);
+     console.log("Response for  getLocalIllForm");
+     console.log(response);
+     if (response.ok) {
+          LIBRARY.localIll = response.data.result;
           return response.data.result;
      } else {
           popToast(getTermFromDictionary('en', 'error_no_server_connection'), getTermFromDictionary('en', 'error_no_library_connection'), 'error');

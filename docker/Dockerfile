@@ -30,6 +30,7 @@ RUN apt -y update \
 	  netcat-openbsd \
 	  inetutils-ping \
 	  rsync \
+	  man \
 	&& rm -rf /var/cache/apt/archives/* \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& rm -rf /etc/cron.*/*
@@ -69,7 +70,6 @@ RUN a2dissite 000-default
 
 # Add aspen-discovery
 COPY . /usr/local/aspen-discovery
-RUN chown -R www-data /usr/local/aspen-discovery
 
 # Delete sites
 RUN cd /usr/local/aspen-discovery/sites \

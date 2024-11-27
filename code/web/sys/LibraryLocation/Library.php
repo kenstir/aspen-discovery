@@ -5251,7 +5251,11 @@ class Library extends DataObject {
 					$overdriveScopeIds[] = $libraryOverDriveScope->scopeId;
 				}
 				$overdriveScope->whereAddIn('id', $overdriveScopeIds, false);
-				$this->_overdriveScopes = $overdriveScope->fetchAll(null, null, false, true);
+				if (empty($overdriveScopeIds)) {
+					$this->_overdriveScopes = [];
+				}else{
+					$this->_overdriveScopes = $overdriveScope->fetchAll(null, null, false, true);
+				}
 			}
 		}
 		return $this->_overdriveScopes;

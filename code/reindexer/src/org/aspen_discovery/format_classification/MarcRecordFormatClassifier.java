@@ -1,10 +1,12 @@
 package org.aspen_discovery.format_classification;
 
+import com.ctc.wstx.util.StringUtil;
 import com.turning_leaf_technologies.indexing.BaseIndexingSettings;
 import com.turning_leaf_technologies.indexing.FormatMapValue;
 import com.turning_leaf_technologies.indexing.IndexingProfile;
 import com.turning_leaf_technologies.logging.BaseIndexingLogEntry;
 import com.turning_leaf_technologies.marc.MarcUtil;
+import com.turning_leaf_technologies.strings.AspenStringUtils;
 import org.apache.logging.log4j.Logger;
 import org.aspen_discovery.reindexer.AbstractGroupedWorkSolr;
 import org.aspen_discovery.reindexer.ItemInfo;
@@ -348,6 +350,7 @@ public class MarcRecordFormatClassifier {
 				for (Subfield subfield : subfields) {
 					if (subfield.getCode() == 'a'){
 						String subfieldData = subfield.getData().toLowerCase();
+						subfieldData = AspenStringUtils.trimTrailingPunctuation(subfieldData);
 						if (subfieldData.contains("large type")) {
 							if (groupedWork != null && groupedWork.isDebugEnabled()) {groupedWork.addDebugMessage("Adding bib level format LargePrint based on 655 Genre", 2);}
 							result.add("LargePrint");
@@ -1436,6 +1439,18 @@ public class MarcRecordFormatClassifier {
 		}
 		if (printFormats.contains("XboxOne")){
 			printFormats.remove("XBoxSeriesX");
+		}
+		if (printFormats.contains("Zines")){
+			printFormats.clear();
+			printFormats.add("Zines");
+		}
+		if (printFormats.contains("Tonies")){
+			printFormats.clear();
+			printFormats.add("Tonies");
+		}
+		if (printFormats.contains("Yoto")){
+			printFormats.clear();
+			printFormats.add("Yoto");
 		}
 		if (printFormats.contains("Kinect") || printFormats.contains("XBox360")  || printFormats.contains("Xbox360")
 				|| printFormats.contains("XboxOne") || printFormats.contains("XBoxSeriesX") || printFormats.contains("PlayStation")

@@ -199,7 +199,7 @@ class UserListIndexer {
 			if (numListsProcessed > 0){
 				logEntry.addNote("Calling final commit");
 				logEntry.saveResults();
-				updateServer.commit(true, true, false);
+				updateServer.commit(false, false, true);
 			}
 
 		} catch (IOException e) {

@@ -413,7 +413,7 @@ public class OaiIndexerMain {
 						}
 						if (!fullReload) {
 							try {
-								updateServer.commit(true, true, false);
+								updateServer.commit(false, false, true);
 							} catch (SolrServerException | IOException e) {
 								logEntry.incErrors("Error posting documents to Solr", e);
 							}
@@ -469,7 +469,7 @@ public class OaiIndexerMain {
 
 			//Now that we are done with all changes, commit them.
 			try {
-				updateServer.commit(true, true, false);
+				updateServer.commit(false, false, true);
 			} catch (Exception e) {
 				logEntry.incErrors("Error in final commit while finishing extract, shutting down", e);
 				logEntry.setFinished();
@@ -493,7 +493,7 @@ public class OaiIndexerMain {
 			try {
 				//Use the ID rather than name in case the name changes.
 				updateServer.deleteByQuery("collection_id:\"" + collectionId + "\"");
-				updateServer.commit(true, true, false);
+				updateServer.commit(false, false, true);
 				//3-19-2019 Don't commit so the index does not get cleared during run (but will clear at the end).
 			} catch (BaseHttpSolrClient.RemoteSolrException rse) {
 				logger.error("Solr is not running properly, try restarting", rse);

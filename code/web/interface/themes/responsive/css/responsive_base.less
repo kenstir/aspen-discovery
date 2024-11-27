@@ -141,20 +141,30 @@ body {
 // Modals
 .modal {
   //position: fixed; // In modals.less
-  left: 50%;
-  width: 80%;
-  margin-left: -40%;
+  //left: 50%;
+  //width: 80%;
+  //margin-left: -40%;
   overflow-y: auto;
 
-  @media(max-width: @screen-xs-max) {
-    width: 98%;
-    margin-left: -50%;
-  }
+  //@media(max-width: @screen-xs-max) {
+    //width: 98%;
+    //margin-left: -50%;
+  //}
 }
 
 .modal-dialog {
   max-width: 100%; // constrain content to the modal box
 }
+
+.modal-dialog-large {
+  width: 98%; // constrain content to the modal box
+  height: 98%;
+
+  .modal-body {
+    max-height: 70svh;
+  }
+}
+
 .modal-buttons{
   margin-left: 3px;
   margin-right: 3px;

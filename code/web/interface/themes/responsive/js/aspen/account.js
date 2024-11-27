@@ -2774,6 +2774,19 @@ AspenDiscovery.Account = (function () {
 					return AspenDiscovery.Account.markILSMessageAsUnread(id);
 				}, false);
 			}
+		},
+		viewYearInReview: function(slideNumber) {
+			if (slideNumber === undefined) {
+				slideNumber = 1;
+			}
+			$.getJSON(Globals.path + "/MyAccount/AJAX?method=getYearInReviewSlide&slide=" + slideNumber, function(data){
+				if (data.success) {
+					AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons, false, '', true, true);
+				} else{
+					AspenDiscovery.showMessage(data.title, data.message);
+				}
+			}).fail(AspenDiscovery.ajaxFail);
+			return false;
 		}
 	};
 }(AspenDiscovery.Account || {}));

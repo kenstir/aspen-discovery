@@ -1,0 +1,177 @@
+{
+  "slides": [
+    {
+      "title": "Your 2024 Shelved",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_1.png",
+      "overlay_text" : []
+    },
+    {
+      "title": "Your Borrower Experience Points",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_2a.png",
+      "overlay_text" : [
+        {
+          "text": "You checked out <strong>{totalCheckouts}</strong> titles in 2024. <br/>And saved <strong>{yearlyCostSavings}</strong>.",
+          "left": "43%",
+          "top": "45%",
+          "width": "40%",
+          "height": "20%",
+          "color" : "#000000",
+          "font_size": "2em",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "title": "Your Borrower Experience Points",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_2b.png",
+      "overlay_text" : [
+        {
+          "text": "You checked out <strong>{totalCheckouts}</strong> titles in 2024.",
+          "left": "43%",
+          "top": "45%",
+          "width": "40%",
+          "height": "20%",
+          "color" : "#000000",
+          "font_size": "2em",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "title": "Your Hot Month",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_3a.png",
+      "overlay_text" : [
+        {
+          "text": "In {topMonth}, you borrowed the most from the library.",
+          "left": "20%",
+          "top": "30%",
+          "width": "40%",
+          "height": "20%",
+          "color" : "#FFFFFF",
+          "font_size": "2em",
+          "align": "left"
+        }
+      ]
+    },
+    {
+      "title": "Every Month was Your Busy Month",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_3b.png",
+      "overlay_text" : [
+        {
+          "text": "You were a steady user of the library this year with a checkout average of {averageCheckouts} per month. What kept you coming back for more?",
+          "left": "20%",
+          "top": "35%",
+          "width": "40%",
+          "height": "20%",
+          "color" : "#FFFFFF",
+          "font_size": "2em",
+          "align": "left"
+        }
+      ]
+    },
+    {
+      "title": "Top Formats",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_4.png",
+      "overlay_text" : [
+        {
+          "text": "Your favorite ways to engage: {top_formats}",
+          "position": "center",
+          "color" : "#000000"
+        }
+      ]
+    },
+    {
+      "title": "Favorite Genres",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_5.png",
+      "overlay_text" : [
+        {
+          "text": "You dove into {top_genres} this year. Such impeccable taste!",
+          "position": "center",
+          "color" : "#000000"
+        }
+      ]
+    },
+    {
+      "title": "Author You Couldn't Put Down",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_6.png",
+      "overlay_text" : [
+        {
+          "text": "You checked out multiple titles by {top_author}.",
+          "position": "center",
+          "color" : "#000000"
+        }
+      ]
+    },
+    {
+      "title": "Top Series",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_7.png",
+      "overlay_text" : [
+        {
+          "text": "{top_series} kept you hooked in 2024!",
+          "position": "center",
+          "color" : "#000000"
+        }
+      ]
+    },
+    {
+      "title": "Your 2025 Forecast",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_8.png",
+      "overlay_text" : [
+        {
+          "text": "You might like these titles based on your 2024 picks: {recommendations}",
+          "position": "center",
+          "color" : "#000000"
+        }
+      ]
+    },
+    {
+      "title": "Thank you for using the library!",
+      "background_tn" : "",
+      "background_xs" : "",
+      "background_sm" : "",
+      "background_md" : "",
+      "background_lg" : "2024_9.png",
+      "overlay_text" : []
+    }
+  ]
+}

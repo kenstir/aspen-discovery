@@ -110,6 +110,13 @@ function getUpdates24_12_00(): array {
 				'ALTER TABLE ptype ADD COLUMN enableYearInReview TINYINT DEFAULT 0'
 			]
 		], //year_in_review_settings
+		'add_end_date_to_year_in_review_settings' => [
+			'title' => 'Add End Date to Year In Review Settings',
+			'description' => 'Add end date for Year In Review functionality',
+			'sql' => [
+				'ALTER TABLE year_in_review_settings ADD COLUMN endDate int',
+			]
+		], //add_end_date_to_year_in_review_settings
 
 		//katherine
 

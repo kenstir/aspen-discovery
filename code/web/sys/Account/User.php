@@ -3193,7 +3193,93 @@ class User extends DataObject {
 		return $obj->count();
 	}
 
-	function getReadingHistorySize() {
+	function getReadingHistorySizeForYear($year) : int {
+		if ($this->isReadingHistoryEnabled()) {
+			$catalogDriver = $this->getCatalogDriver();
+			if ($this->trackReadingHistory && $this->initialReadingHistoryLoaded) {
+				require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+				$readingHistoryDB = new ReadingHistoryEntry();
+				$readingHistoryDB->userId = $this->id;
+				$readingHistoryDB->whereAdd('deleted = 0');
+				$yearStart = strtotime($year . '-01-01');
+				$yearEnd = strtotime(($year+1) . '-01-01');
+				$readingHistoryDB->whereAdd("checkOutDate >= $yearStart");
+				$readingHistoryDB->whereAdd("checkOutDate < $yearEnd");
+				$readingHistoryDB->groupBy('groupedWorkPermanentId, title, author');
+				return $readingHistoryDB->count();
+			}
+		}
+		return 0;
+	}
+
+	public function getReadingHistorySummaryForYear($year) : ?ReadingHistorySummary {
+		if ($this->isReadingHistoryEnabled()) {
+			$catalogDriver = $this->getCatalogDriver();
+			if ($this->trackReadingHistory && $this->initialReadingHistoryLoaded) {
+				require_once ROOT_DIR . '/sys/YearInReview/ReadingHistorySummary.php';
+				$summary = new ReadingHistorySummary();
+
+				//Generate Yearly checkouts
+				require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+				$readingHistoryDB = new ReadingHistoryEntry();
+				$readingHistoryDB->userId = $this->id;
+				$readingHistoryDB->whereAdd('deleted = 0');
+				$yearStart = strtotime($year . '-01-01');
+				$yearEnd = strtotime(($year+1) . '-01-01');
+				$readingHistoryDB->whereAdd("checkOutDate >= $yearStart");
+				$readingHistoryDB->whereAdd("checkOutDate < $yearEnd");
+				$readingHistoryDB->groupBy('groupedWorkPermanentId, title, author');
+
+				$summary->totalYearlyCheckouts = $readingHistoryDB->count();
+
+				//Cost Savings By Year
+				require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
+				$yearlyCostSavings = $this->getCostSavingsByYear($year);
+				if ($yearlyCostSavings > 0) {
+					$summary->yearlyCostSavings = StringUtils::formatCurrency($yearlyCostSavings);
+				}
+
+				$minCheckouts = 10000;
+				$minCheckoutMonth = 0;
+				$maxCheckouts = 0;
+				$maxCheckoutMonth = 0;
+				for ($month = 1; $month <= 12; $month++) {
+					$readingHistoryDB = new ReadingHistoryEntry();
+					$readingHistoryDB->userId = $this->id;
+					$readingHistoryDB->whereAdd('deleted = 0');
+					$monthStart = strtotime("$year-$month-01");
+					$monthEnd = strtotime(($year+1) . "-$month-01");
+					$readingHistoryDB->whereAdd("checkOutDate >= $monthStart");
+					$readingHistoryDB->whereAdd("checkOutDate < $monthEnd");
+					$readingHistoryDB->groupBy('groupedWorkPermanentId, title, author');
+
+					$numMonthlyCheckouts = $readingHistoryDB->count();
+					if ($numMonthlyCheckouts < $minCheckouts) {
+						$minCheckouts = $numMonthlyCheckouts;
+						$minCheckoutMonth = $month;
+					}
+					if ($numMonthlyCheckouts > $maxCheckouts) {
+						$maxCheckouts = $numMonthlyCheckouts;
+						$maxCheckoutMonth = $month;
+					}
+					$summary->monthlyCheckouts[$month] = $numMonthlyCheckouts;
+				}
+
+				$summary->topMonth = $maxCheckoutMonth;
+				$summary->maxMonthlyCheckouts = $maxCheckouts;
+				$summary->averageCheckouts = ceil($summary->totalYearlyCheckouts / 12);
+
+
+				return $summary;
+			}else{
+				return null;
+			}
+		}else{
+			return null;
+		}
+	}
+
+	function getReadingHistorySize() : int {
 		if ($this->_readingHistorySize == null) {
 			if ($this->isReadingHistoryEnabled()) {
 				$catalogDriver = $this->getCatalogDriver();
@@ -4725,16 +4811,20 @@ class User extends DataObject {
 	}
 
 	public function getCostSavingsByYear($year) : float{
-		$startTimeStamp = strtotime($year . '-01-01');
-		$endTimeStamp = strtotime(($year + 1) . '-01-01');
+		if ($this->enableCostSavings) {
+			$startTimeStamp = strtotime($year . '-01-01');
+			$endTimeStamp = strtotime(($year + 1) . '-01-01');
 
-		require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
-		$readingHistoryEntry = new ReadingHistoryEntry();
-		$readingHistoryEntry->userId = $this->id;
-		$readingHistoryEntry->whereAdd("checkOutDate >= $startTimeStamp AND checkOutDate < $endTimeStamp", 'AND');
-		$readingHistoryEntry->selectAdd('SUM(costSavings) as costSavings');
-		if ($readingHistoryEntry->find(true)) {
-			return (float)$readingHistoryEntry->costSavings;
+			require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+			$readingHistoryEntry = new ReadingHistoryEntry();
+			$readingHistoryEntry->userId = $this->id;
+			$readingHistoryEntry->whereAdd("checkOutDate >= $startTimeStamp AND checkOutDate < $endTimeStamp", 'AND');
+			$readingHistoryEntry->selectAdd('SUM(costSavings) as costSavings');
+			if ($readingHistoryEntry->find(true)) {
+				return (float)$readingHistoryEntry->costSavings;
+			} else {
+				return 0;
+			}
 		}else{
 			return 0;
 		}
@@ -5407,6 +5497,53 @@ class User extends DataObject {
 					'isPublicFacing' => true
 				])
 			];
+		}
+	}
+
+	private function loadYearInReviewInfo() : void {
+		if ($this->_hasYearInReview == null) {
+			$this->_hasYearInReview = false;
+			$this->_yearInReviewResults = false;
+			require_once ROOT_DIR . '/sys/YearInReview/UserYearInReview.php';
+			require_once ROOT_DIR . '/sys/YearInReview/YearInReviewSetting.php';
+			$userYearInReview = new UserYearInReview();
+			$userYearInReview->userId = $this->id;
+			$userYearInReview->wrappedActive = true;
+			$this->_yearInReviewSetting = false;
+			if ($userYearInReview->find(true)){
+				$this->_yearInReviewResults = $userYearInReview->wrappedResults;
+				$yearInReviewSetting = new YearInReviewSetting();
+				$yearInReviewSetting->id = $userYearInReview->settingId;
+				if ($yearInReviewSetting->find(true)) {
+					$this->_yearInReviewSetting = $yearInReviewSetting;
+					global $interface;
+					$interface->assign('yearInReviewName', $yearInReviewSetting->name);
+					$this->_hasYearInReview = true;
+				}
+			}
+		}
+	}
+
+	private $_hasYearInReview;
+	private $_yearInReviewSetting;
+	private $_yearInReviewResults;
+	public function hasYearInReview() : bool {
+		$this->loadYearInReviewInfo();
+		return $this->_hasYearInReview;
+	}
+
+	public function getYearInReviewSetting() : YearInReviewSetting|false {
+		//Use the side effect of has Year
+		$this->loadYearInReviewInfo();
+		return $this->_yearInReviewSetting;
+	}
+
+	public function getYearInReviewResults() : ?stdClass {
+		$this->loadYearInReviewInfo();
+		if (empty($this->_yearInReviewResults)){
+			return null;
+		}else{
+			return json_decode($this->_yearInReviewResults);
 		}
 	}
 }

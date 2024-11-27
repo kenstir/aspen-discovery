@@ -591,12 +591,6 @@ class UserAccount {
 					}
 				}
 
-				//global $memCache;
-				//global $serverName;
-				//global $configArray;
-				//$memCache->set("user_{$serverName}_{$tempUser->id}", $tempUser, $configArray['Caching']['user']);
-				//$logger->log("Cached user {$tempUser->id}", Logger::LOG_DEBUG);
-
 				if ($primaryUser == null) {
 					$primaryUser = $tempUser;
 					self::updateSession($primaryUser);
@@ -632,6 +626,10 @@ class UserAccount {
 				$_SESSION['has2FA'] = $codeSent;
 				return new TwoFactorAuthenticationError(UserAccount::getActiveUserId(), TwoFactorAuthenticationError::MUST_COMPLETE_AUTHENTICATION, 'You must authenticate before logging in. Please provide the 6-digit code that was emailed to you.');
 			} else {
+				if ($primaryUser instanceof User) {
+					require_once ROOT_DIR . '/sys/YearInReview/YearInReviewGenerator.php';
+					generateYearInReview($primaryUser);
+				}
 				$_SESSION['enroll2FA'] = false;
 				$_SESSION['has2FA'] = false;
 				$_SESSION['codeSent'] = false;
@@ -670,12 +668,12 @@ class UserAccount {
 	 *
 	 * @param $username       string
 	 * @param $password       string
-	 * @param $accountSource  string The source of the user account if known or null to test all sources
-	 * @param $parentAccount  User   The parent user if any
+	 * @param $accountSource  ?string The source of the user account if known or null to test all sources
+	 * @param $parentAccount  ?User   The parent user if any
 	 *
 	 * @return User|false
 	 */
-	public static function validateAccount($username, $password, $accountSource = null, $parentAccount = null) {
+	public static function validateAccount(string $username, string $password, ?string $accountSource = null, ?User $parentAccount = null) {
 		if (array_key_exists($username . $password, UserAccount::$validatedAccounts)) {
 			return UserAccount::$validatedAccounts[$username . $password];
 		}
@@ -726,11 +724,6 @@ class UserAccount {
 				}
 				$validatedUser = $authN->validateAccount($username, $password, $additionalInfo['accountProfile'], $parentAccount, $validatedViaSSO);
 				if ($validatedUser && !($validatedUser instanceof AspenError)) {
-					//global $memCache;
-					//global $serverName;
-					//global $configArray;
-					//$memCache->set("user_{$serverName}_{$validatedUser->id}", $validatedUser, $configArray['Caching']['user']);
-					//$logger->log("Cached user {$validatedUser->id}", Logger::LOG_DEBUG);
 					if ($validatedViaSSO) {
 						if (isset($_REQUEST['casLogin'])) {
 							$_SESSION['loggedInViaCAS'] = true;
@@ -741,6 +734,7 @@ class UserAccount {
 						}
 					}
 					UserAccount::$validatedAccounts[$username . $password. $accountSource] = $validatedUser;
+
 					return $validatedUser;
 				}
 			}

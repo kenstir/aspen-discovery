@@ -440,7 +440,7 @@ $interface->assign('canLoginSSO', IPAddress::allowSSOAccessForClientIP());
 $isLoggedIn = UserAccount::isLoggedIn();
 $timer->logTime('Check if user is logged in');
 
-// Process Authentication, must be done here so we can redirect based on user information
+// Processing of the authentication information needs to be done here, so we can redirect based on user information
 // immediately after logging in.
 $interface->assign('loggedIn', $isLoggedIn);
 if ($isLoggedIn) {
@@ -496,6 +496,7 @@ if ($isLoggedIn) {
 	$interface->assign('enableReadingHistory', $user->isReadingHistoryEnabled());
 	$interface->assign('enablePaymentHistory', $user->isPaymentHistoryEnabled());
 	$interface->assign('enableCostSavings', $user->isCostSavingsEnabled());
+	$interface->assign('hasYearInReview', $user->hasYearInReview());
 	$interface->assign('enableNotificationHistory', $user->isNotificationHistoryEnabled());
 
 	//Check to see if there is a followup module and if so, use that module and action for the next page load
@@ -657,6 +658,7 @@ if (UserAccount::isLoggedIn() && (!isset($_REQUEST['action']) || $_REQUEST['acti
 	$interface->assign('enableReadingHistory', $user->isReadingHistoryEnabled());
 	$interface->assign('enablePaymentHistory', $user->isPaymentHistoryEnabled());
 	$interface->assign('enableCostSavings', $user->isCostSavingsEnabled());
+	$interface->assign('hasYearInReview', $user->hasYearInReview());
 	$interface->assign('enableNotificationHistory', $user->isNotificationHistoryEnabled());
 
 	$homeLibrary = Library::getLibraryForLocation(UserAccount::getUserHomeLocationId());
@@ -676,6 +678,7 @@ if (UserAccount::isLoggedIn() && (!isset($_REQUEST['action']) || $_REQUEST['acti
 	$interface->assign('enableReadingHistory', false);
 	$interface->assign('enablePaymentHistory', false);
 	$interface->assign('enableCostSavings', false);
+	$interface->assign('hasYearInReview', false);
 	$interface->assign('enableNotificationHistory', false);
 }
 

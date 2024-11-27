@@ -8743,4 +8743,34 @@ class MyAccount_AJAX extends JSON_Action {
 
 		return $result;
 	}
+
+	function getYearInReviewSlideImage() {
+		$gotImage = false;
+		//This returns an image to the browser
+		if (UserAccount::isLoggedIn()) {
+			$patron = UserAccount::getActiveUserObj();
+
+			//TODO: Take this out, the data should already be generated at this point
+			require_once ROOT_DIR . '/sys/YearInReview/YearInReviewGenerator.php';
+			generateYearInReview($patron);
+
+			if ($patron->hasYearInReview()) {
+				$slideNumber = $_REQUEST['slide'] ?? 1;
+				if (is_numeric($slideNumber)) {
+					$yearInReviewSettings = $patron->getYearInReviewSetting();
+					$gotImage = $yearInReviewSettings->getSlideImage($patron, (int)$slideNumber);
+				}
+			}
+		}
+		if (!$gotImage) {
+			global $interface;
+			$interface->assign('module', 'Error');
+			$interface->assign('action', 'Handle404');
+			$module = 'Error';
+			$action = 'Handle404';
+			require_once ROOT_DIR . "/services/Error/Handle404.php";
+		}
+		//Since this returns an image, don't return
+		die();
+	}
 }

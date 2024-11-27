@@ -97,7 +97,6 @@ function getUpdates24_12_00(): array {
 					libraryId INT NOT NULL,
 					UNIQUE (yearInReviewId, libraryId)
 				) ENGINE INNODB CHARACTER SET utf8 COLLATE utf8_general_ci',
-				'DROP TABLE user_year_in_review',
 				'CREATE TABLE user_year_in_review (
 					id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 					userId INT NOT NULL,

@@ -211,7 +211,7 @@ class YearInReviewSetting extends DataObject {
 					}
 
 					$result['slideConfiguration'] = $slideInfo;
-					$result['modalBody'] = $this->formatSlide($slideInfo, $patron);
+					$result['modalBody'] = $this->formatSlide($slideInfo, $patron, $slideNumber, $this->year);
 
 					$modalButtons = '';
 					if ($slideNumber > 1) {
@@ -251,9 +251,113 @@ class YearInReviewSetting extends DataObject {
 		return $result;
 	}
 
-	private function formatSlide(stdClass $slideInfo, User $patron) : string {
+	private function formatSlide(stdClass $slideInfo, User $patron, int $slideNumber, string|int $year) : string {
 		global $interface;
+		$interface->assign('slideNumber', $slideNumber);
 		$interface->assign('slideInfo', $slideInfo);
 		return $interface->fetch('YearInReview/slide.tpl');
+	}
+
+	public function getSlideImage(User $patron, int|string $slideNumber) : bool {
+		//Load slide configuration for the year
+		$gotImage = true;
+		$configurationFile = ROOT_DIR . "/year_in_review/$this->year.json";
+		if (file_exists($configurationFile)) {
+			$slideConfiguration = json_decode(file_get_contents($configurationFile));
+			$userYearInResults = $patron->getYearInReviewResults();
+			if ($userYearInResults !== false) {
+				if ($slideNumber > 0 && $slideNumber <= $userYearInResults->numSlidesToShow) {
+					$slideIndex = $userYearInResults->slidesToShow[$slideNumber - 1];
+					$slideInfo = $slideConfiguration->slides[$slideIndex - 1];
+
+					foreach ($slideInfo->overlay_text as $overlayText) {
+						foreach ($userYearInResults->userData as $field => $value) {
+							$overlayText->text = str_replace("{" . $field . "}", $value, $overlayText->text);
+						}
+					}
+
+					$gotImage = $this->createSlideImage($slideInfo);
+				}
+			}
+		}
+
+		return $gotImage;
+	}
+
+	private function createSlideImage(stdClass $slideInfo) : ?string {
+		$gotImage = false;
+		if (count($slideInfo->overlay_text) == 0) {
+			//This slide is not dynamic, we just return the static contents
+		}else{
+			require_once ROOT_DIR . '/sys/Covers/CoverImageUtils.php';
+			global $configArray;
+			//Get the background image for the slide
+			$backgroundImageFile = ROOT_DIR . '/year_in_review/images/' . $slideInfo->background;
+			$backgroundImageFile = realpath($backgroundImageFile);
+			$backgroundImage = imagecreatefrompng($backgroundImageFile);
+			$backgroundImageInfo = getimagesize($backgroundImageFile);
+			$backgroundWidth = $backgroundImageInfo[0];
+			$backgroundHeight = $backgroundImageInfo[1];
+			//Create a canvas for the slide
+			$slideCanvas = imagecreatetruecolor($backgroundWidth, $backgroundHeight);
+			//Display the background to the slide
+			imagecopy($slideCanvas, $backgroundImage, 0, 0, 0, 0, $backgroundWidth, $backgroundHeight);
+
+			$font = ROOT_DIR . '/fonts/JosefinSans-Bold.ttf';
+			$white = imagecolorallocate($slideCanvas, 255, 255, 255);
+			$black = imagecolorallocate($slideCanvas, 0, 0, 0);
+
+			//Add overlay text to the image
+			foreach ($slideInfo->overlay_text as $overlayText) {
+				$overlayWidth = $overlayText->width;
+				if (str_ends_with($overlayWidth,'%')) {
+					$percent = str_replace('%', '', $overlayWidth) / 100;
+					$textWidth = $backgroundWidth * $percent;
+				}else{
+					$textWidth = $overlayWidth;
+				}
+				$fontSize = $overlayText->font_size;
+				if (str_ends_with($fontSize,'em')) {
+					$fontSize = str_replace('em', '', $fontSize) * 16;
+				}
+				$left = $overlayText->left;
+				if (str_ends_with($left,'%')) {
+					$percent = str_replace('%', '', $left) / 100;
+					$left = $backgroundWidth * $percent;
+				}elseif (str_ends_with($left,'px')) {
+					$left = str_replace('px', '', $left);
+				}
+				$top = $overlayText->top;
+				if (str_ends_with($top,'%')) {
+					$percent = str_replace('%', '', $top) / 100;
+					$top = $backgroundWidth * $percent;
+				}elseif (str_ends_with($top,'px')) {
+					$top = str_replace('px', '', $top);
+				}
+
+				if ($overlayText == 'white') {
+					$color = $white;
+				}else{
+					$color = $black;
+				}
+
+				[
+					$totalHeight,
+					$lines,
+				] = wrapTextForDisplay($font, $overlayText->text, $fontSize, $fontSize * .1, $textWidth);
+				if ($overlayText->align == 'center') {
+					addCenteredWrappedTextToImage($slideCanvas, $font, $lines, $fontSize, $fontSize * .1, $left, $top, $textWidth, $color);
+				}else{
+					addWrappedTextToImage($slideCanvas, $font, $lines, $fontSize, $fontSize * .1, $left, $top, $color);
+				}
+			}
+
+			//Output the image to the browser
+			imagepng($slideCanvas);
+			imagedestroy($slideCanvas);
+			$gotImage = true;
+		}
+
+		return $gotImage;
 	}
 }

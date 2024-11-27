@@ -130,26 +130,35 @@ abstract class DataObject implements JsonSerializable {
 		$this->__lastQuery = $query;
 		$this->__queryStmt = $aspen_db->prepare($query, [PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY]);
 		$this->__queryStmt->setFetchMode(PDO::FETCH_INTO, $this);
-		if ($this->__queryStmt->execute()) {
-			$this->__N = $this->__queryStmt->rowCount();
-			if ($this->__N > 0 && $fetchFirst) {
-				$okToFetch = ($this->__N === 1);
-				if (!$okToFetch && !$requireOneMatchToReturn) {
-					$okToFetch = true;
+		try {
+			if ($this->__queryStmt->execute()) {
+				$this->__N = $this->__queryStmt->rowCount();
+				if ($this->__N > 0 && $fetchFirst) {
+					$okToFetch = ($this->__N === 1);
+					if (!$okToFetch && !$requireOneMatchToReturn) {
+						$okToFetch = true;
+					}
+					if ($okToFetch) {
+						$this->fetch();
+						//If we are fetching the first record, we can clean up since it won't be used again.
+						$this->__queryStmt->closeCursor();
+						$this->__queryStmt = null;
+					} else {
+						$this->__queryStmt->closeCursor();
+						$this->__queryStmt = null;
+						return false;
+					}
 				}
-				if ($okToFetch) {
-					$this->fetch();
-					//If we are fetching the first record, we can cleanup since it won't be used again.
-					$this->__queryStmt->closeCursor();
-					$this->__queryStmt = null;
-				} else {
-					$this->__queryStmt->closeCursor();
-					$this->__queryStmt = null;
-					return false;
-				}
+			} else {
+				echo("Failed to execute " . $query);
 			}
-		} else {
-			echo("Failed to execute " . $query);
+		}catch (PDOException $e) {
+			if (IPAddress::showDebuggingInformation() && !($this instanceof AspenError)) {
+				$errorToLog = new AspenError("Error finding object of type " . get_class($this) . "<br/>\n" . $e->getMessage() . "<br/>\n" . $e->getTraceAsString());
+				$errorToLog->insert();
+			}
+			$this->setLastError("Error finding object of type " . get_class($this) . "<br/>\n" . $e->getMessage() . "<br/>\n" . $e->getTraceAsString());
+			return false;
 		}
 		if (IPAddress::logAllQueries()) {
 			global $logger;
@@ -1273,7 +1282,7 @@ abstract class DataObject implements JsonSerializable {
 
 	}
 
-	public function getTextBlockTranslation($fieldName, $languageCode, $returnDefault = true){
+	public function getTextBlockTranslation($fieldName, $languageCode, $returnDefault = true) : string {
 		$key = "{$fieldName}_{$languageCode}_$returnDefault";
 		if (!empty($this->_data[$key])){
 			return $this->_data[$key];
@@ -1305,7 +1314,7 @@ abstract class DataObject implements JsonSerializable {
 		if ($loadDefault) {
 			$objectStructure = $this::getObjectStructure();
 			$fieldDefinition = $this->getFieldDefinition($fieldName, $objectStructure);
-			if ($fieldDefinition == false) {
+			if ($fieldDefinition === false) {
 				$this->_data[$key] = '';
 			} else {
 				$defaultFile = $fieldDefinition['defaultTextFile'];

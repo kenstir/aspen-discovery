@@ -30,7 +30,7 @@ class EventsFacet extends FacetSetting {
 		return $availableFacets;
 	}
 
-	static function getObjectStructure($availableFacets = null) {
+	static function getObjectStructure($context = '') {
 
 		return [
 			'id' => [

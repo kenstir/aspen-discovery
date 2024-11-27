@@ -8302,7 +8302,7 @@ class Koha extends AbstractIlsDriver {
 		$this->initDatabaseConnection();
 
 		/** @noinspection SqlResolve */
-		$sql = "SELECT * FROM message_queue where message_transport_type like 'email' and time_queue < DATE_SUB(NOW(), INTERVAL 24 HOUR) and borrowernumber = '" . mysqli_escape_string($this->dbConnection, $patron->unique_ils_id) . "'";
+		$sql = "SELECT * FROM message_queue where message_transport_type like 'email' and time_queued < DATE_SUB(NOW(), INTERVAL 24 HOUR) and borrowernumber = '" . mysqli_escape_string($this->dbConnection, $patron->unique_ils_id) . "'";
 		$results = mysqli_query($this->dbConnection, $sql);
 		if($results) {
 			require_once ROOT_DIR . '/sys/Account/UserILSMessage.php';

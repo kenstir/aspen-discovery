@@ -4867,7 +4867,8 @@ class Koha extends AbstractIlsDriver {
 						];
 					}
 				}
-				$response = $this->kohaApiUserAgent->post("/api/v1/suggestions",$postFields,"koha.processMaterialsRequestForm",[]);
+				$extraHeaders = ['x-koha-library: ' .  $user->getHomeLocationCode()];
+				$response = $this->kohaApiUserAgent->post("/api/v1/suggestions",$postFields,"koha.processMaterialsRequestForm",[],$extraHeaders);
 				$responseCode = $response['code'];
 				$responseBody = $response['content'];
 				if ($response) {

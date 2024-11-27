@@ -71,6 +71,15 @@ if (count($_SERVER['argv']) > 1){
 			$variables['ilsClientId'] = $configArray['Symphony']['ClientId'];
 			$variables['ilsStaffUser'] = $configArray['Symphony']['StaffUser'];
 			$variables['ilsStaffPassword'] = $configArray['Symphony']['StaffPassword'];
+		}elseif ($variables['ils'] == 'Polaris') {
+			$variables['ilsDriver'] = 'Polaris';
+			$variables['ilsApiVersion'] = $configArray['Polaris']['APIVersion'];
+			$variables['ilsClientId'] = $configArray['Polaris']['ClientId'];
+			$variables['ilsClientSecret'] = $configArray['Polaris']['ClientSecret'];
+			$variables['ilsDomain'] = $configArray['Polaris']['Domain'];
+			$variables['ilsStaffUser'] = $configArray['Polaris']['StaffUser'];
+			$variables['ilsStaffPassword'] = $configArray['Polaris']['StaffPassword'];
+			$variables['ilsWorkstationID'] = $configArray['Polaris']['WorkstationID'];
 		}else{
 			$variables['ilsDriver'] = $configArray['ILS']['ilsDriver'];
 		}
@@ -181,6 +190,15 @@ if (!$foundConfig) {
 		$variables['ilsClientId'] = readline("Client ID for Symphony API > ");
 		$variables['ilsStaffUser'] = readline("Staff Username for use with the Symphony API > ");
 		$variables['ilsStaffPassword'] = readline("Staff Password for use with the Symphony API > ");
+	}elseif ($variables['ils'] == 'Polaris'){
+		$variables['ilsDriver'] = 'Polaris';
+		$variables['ilsApiVersion'] = readline("API Version for Polaris API i.e. 7.6 > ");
+		$variables['ilsClientId'] = readline("Client ID for Polaris API > ");
+		$variables['ilsClientSecret'] = readline("Client Secret for Polaris API > ");
+		$variables['ilsDomain'] = readline("Staff Domain for use with the Polaris API > ");
+		$variables['ilsStaffUser'] = readline("Staff Username for use with the Polaris API > ");
+		$variables['ilsStaffPassword'] = readline("Staff Password for use with the Polaris API > ");
+		$variables['ilsWorkstationID'] = readline("Workstation ID for use with the Polaris API > ");
 	}
 
 	while (empty($variables['ilsDriver'])) {
@@ -353,10 +371,16 @@ if ($variables['ils'] == 'Koha'){
 	exec("mysql -u{$variables['databaseUser']} -p\"{$variables['databasePassword']}\" {$variables['databaseName']} < $tmp_dir/koha_connection_$sitename.sql");
 }elseif ($variables['ils'] == 'Symphony'){
 	$tmp_dir = rtrim(sys_get_temp_dir(), "/");
-	echo("Loading Koha information to database\r\n");
+	echo("Loading Symphony information to database\r\n");
 	copy("$installDir/install/symphony_connection.sql", "$tmp_dir/symphony_connection_$sitename.sql");
 	replaceVariables("$tmp_dir/symphony_connection_$sitename.sql", $variables);
 	exec("mysql -u{$variables['databaseUser']} -p\"{$variables['databasePassword']}\" {$variables['databaseName']} < $tmp_dir/symphony_connection_$sitename.sql");
+}elseif ($variables['ils'] == 'Polaris'){
+	$tmp_dir = rtrim(sys_get_temp_dir(), "/");
+	echo("Loading Polaris information to database\r\n");
+	copy("$installDir/install/polaris_connection.sql", "$tmp_dir/polaris_connection_$sitename.sql");
+	replaceVariables("$tmp_dir/polaris_connection_$sitename.sql", $variables);
+	exec("mysql -u{$variables['databaseUser']} -p\"{$variables['databasePassword']}\" {$variables['databaseName']} < $tmp_dir/polaris_connection_$sitename.sql");
 }
 
 $aspen_db = null;

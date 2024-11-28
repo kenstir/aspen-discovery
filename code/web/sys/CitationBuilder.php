@@ -43,8 +43,8 @@ class CitationBuilder {
 			'APA' => 'APA',
 			'ChicagoHumanities' => 'Chicago/Turabian - Humanities',
 			'ChicagoAuthDate' => 'Chicago/Turabian - Author Date',
-			'MLA' => 'MLA',
 			'Harvard' => 'Harvard',
+			'MLA' => 'MLA',
 		];
 	}
 

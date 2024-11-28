@@ -672,6 +672,7 @@ class GroupedWorkDriver extends IndexRecordDriver {
 		if (!empty($primary)) {
 			$authors[] = $primary;
 		}
+		$authors = array_unique(array_merge($authors, $this->getContributors()));
 
 		// Collect all details for citation builder:
 		$publishers = $this->getPublishers();

@@ -114,8 +114,30 @@
                 });
             }
       });
-      editor.on('load', () => {
-        const buttonsWithTooltips = [
+      editor.getWrapper().set('stylable', true);
+
+      //Add headers in Headers block
+      editor.BlockManager.add('h1', {
+          label: 'H1',
+          content: '<h1>Heading 1</h1>',
+          category: 'Headers',
+          attributes: { class: 'fa fa-header' }
+      });
+      editor.BlockManager.add('h2', {
+          label: 'H2',
+          content: '<h2>Heading 2</h2>',
+          category: 'Headers',
+          attributes: { class: 'fa fa-header' },
+      });
+      editor.BlockManager.add('h3', {
+          label: 'H3',
+          content: '<h3>Heading 3</h3>',
+          category: 'Headers',
+          attributes: { class: 'fa fa-header' },
+      });
+
+      //Add tooltips for buttons that do not include them by default
+      const buttonsWithTooltips = [
             { id: 'undo', title: 'Undo Last Action' },
             { id: 'redo', title: 'Redo Last Action' },
             { id: 'gjs-open-import-webpage', title: 'Add Custom Code' },
@@ -124,35 +146,15 @@
 
         buttonsWithTooltips.forEach(button => {
           const buttonElement = editor.Panels.getButton('options', button.id);
-                if (buttonElement) {
-                    buttonElement.set('attributes', {
-                        title: button.title,
-                        'data-tooltips-pos': 'bottom'
-                    });
-                }
+          if (buttonElement) {
+              buttonElement.set('attributes', {
+                  title: button.title,
+                  'data-tooltips-pos': 'bottom'
+              });
+          }
         });
 
-        editor.getWrapper().set('stylable', true);
-         //Add headers in Headers block
-         editor.BlockManager.add('h1', {
-                label: 'H1',
-                content: '<h1>Heading 1</h1>',
-                category: 'Headers',
-                attributes: { class: 'fa fa-header' }
-            });
-            editor.BlockManager.add('h2', {
-                label: 'H2',
-                content: '<h2>Heading 2</h2>',
-                category: 'Headers',
-                attributes: { class: 'fa fa-header' },
-            });
-            editor.BlockManager.add('h3', {
-                label: 'H3',
-                content: '<h3>Heading 3</h3>',
-                category: 'Headers',
-                attributes: { class: 'fa fa-header' },
-            });
-
+      editor.on('load', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const templateId = urlParams.get('templateId'); 
         const grapesPageId = urlParams.get('id');

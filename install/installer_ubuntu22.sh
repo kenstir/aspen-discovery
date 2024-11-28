@@ -9,7 +9,8 @@ if [ "$pwd" != "$dst" ]; then
 	exit 1
 fi
 
-git config --global --add safe.directory /usr/local/aspen-discovery
+# This is better done as the user owning the clone, not root
+#git config --global --add safe.directory /usr/local/aspen-discovery
 
 # Expects to be installed on Ubuntu 22.04
 # Run as sudo ./installer_debian.sh

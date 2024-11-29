@@ -5504,22 +5504,26 @@ class User extends DataObject {
 		if ($this->_hasYearInReview == null) {
 			$this->_hasYearInReview = false;
 			$this->_yearInReviewResults = false;
-			require_once ROOT_DIR . '/sys/YearInReview/UserYearInReview.php';
-			require_once ROOT_DIR . '/sys/YearInReview/YearInReviewSetting.php';
-			$userYearInReview = new UserYearInReview();
-			$userYearInReview->userId = $this->id;
-			$userYearInReview->wrappedActive = true;
 			$this->_yearInReviewSetting = false;
-			if ($userYearInReview->find(true)){
-				$this->_yearInReviewResults = $userYearInReview->wrappedResults;
-				$yearInReviewSetting = new YearInReviewSetting();
-				$yearInReviewSetting->id = $userYearInReview->settingId;
-				if ($yearInReviewSetting->find(true)) {
-					$this->_yearInReviewSetting = $yearInReviewSetting;
-					global $interface;
-					$interface->assign('yearInReviewName', $yearInReviewSetting->name);
-					$this->_hasYearInReview = true;
+			try {
+				require_once ROOT_DIR . '/sys/YearInReview/UserYearInReview.php';
+				require_once ROOT_DIR . '/sys/YearInReview/YearInReviewSetting.php';
+				$userYearInReview = new UserYearInReview();
+				$userYearInReview->userId = $this->id;
+				$userYearInReview->wrappedActive = true;
+				if ($userYearInReview->find(true)){
+					$this->_yearInReviewResults = $userYearInReview->wrappedResults;
+					$yearInReviewSetting = new YearInReviewSetting();
+					$yearInReviewSetting->id = $userYearInReview->settingId;
+					if ($yearInReviewSetting->find(true)) {
+						$this->_yearInReviewSetting = $yearInReviewSetting;
+						global $interface;
+						$interface->assign('yearInReviewName', $yearInReviewSetting->name);
+						$this->_hasYearInReview = true;
+					}
 				}
+			}catch (Exception $e) {
+				//We get an exception if the tables are not setup, ignore
 			}
 		}
 	}

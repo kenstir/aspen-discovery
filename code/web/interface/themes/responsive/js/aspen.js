@@ -5033,7 +5033,7 @@ var AspenDiscovery = (function(){
 			}else{
 				aspenJQ('#modalDialog').addClass('modal-dialog-large');
 			}
-			if (hideTitle === undefined || hideTitle === true) {
+			if (hideTitle !== undefined && hideTitle === true) {
 				aspenJQ('.modal-header').hide();
 			}else{
 				aspenJQ('.modal-header').show();
@@ -5074,7 +5074,7 @@ var AspenDiscovery = (function(){
 			}else{
 				aspenJQ('.modal-dialog').addClass('modal-dialog-large');
 			}
-			if (hideTitle === undefined || hideTitle === true) {
+			if (hideTitle !== undefined && hideTitle === true) {
 				aspenJQ('.modal-header').hide();
 			}else{
 				aspenJQ('.modal-header').show();

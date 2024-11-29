@@ -5458,6 +5458,27 @@ class User extends DataObject {
 				$localIllForm->id = $homeLocation->localIllFormId;
 				if ($localIllForm->find(true)) {
 					$results = $this->getCatalogDriver()->submitLocalIllRequest($this, $localIllForm);
+					if ($results['success']) {
+						$thisUser = translate([
+							'text' => 'You',
+							'isPublicFacing' => true,
+						]);
+						if (!empty($this->parentUser)) {
+							$thisUser = $this->displayName;
+						}
+						$viewHoldsText = translate([
+							'text' => 'On Hold for %1%',
+							1 => $thisUser,
+							'isPublicFacing' => true,
+							'inAttribute' => true
+						]);
+						$recordId = $_REQUEST['catalogKey'] ?? '';
+						$results['viewHoldsAction'] = "<a id='onHoldAction$recordId' href='/MyAccount/Holds' class='btn btn-sm btn-info btn-wrap' title='$viewHoldsText'>$viewHoldsText</a>";
+
+						$this->clearCache();
+
+						$this->forceReloadOfHolds();
+					}
 				} else {
 					$results = [
 						'title' => translate([

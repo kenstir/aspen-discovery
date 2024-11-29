@@ -5084,6 +5084,7 @@ var AspenDiscovery = (function(){
 			}
 			aspenJQ("#myModalLabel").html(title);
 			aspenJQ(".modal-body").html(body);
+			aspenJQ('.modal-body [data-toggle="tooltip"]').tooltip();
 			aspenJQ('.modal-buttons').html(buttons);
 			if (closeDestination !== undefined) {
 				Globals.modalCloseDestination = closeDestination;
@@ -14159,6 +14160,14 @@ AspenDiscovery.Record = (function(){
 					document.body.style.cursor = "default";
 					if (data.success) {
 						AspenDiscovery.showMessage(data.title, data.message, false, false);
+						var existingButton = $("#onHoldAction" + id);
+						if (existingButton.length === 0) {
+							$(data.viewHoldsAction).insertBefore('#actionButton' + id);
+							$(data.viewHoldsAction).insertBefore('#relatedRecordactionButton' + id);
+						}
+						if (!data.autologout){
+							AspenDiscovery.Account.loadMenuData();
+						}
 					} else {
 						AspenDiscovery.showMessage(data.title, data.message, false, false);
 					}

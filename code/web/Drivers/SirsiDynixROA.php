@@ -4083,6 +4083,7 @@ class SirsiDynixROA extends HorizonAPI {
 			if ($okToProcess) {
 				$holdResult = $this->placeSirsiHold($patron, $catalogKey, '', '', $pickupLocation, 'request', null, false, true);
 				if ($holdResult['success']) {
+					$result['success'] = true;
 					$result['message'] = translate(['text' => 'Your request was placed successfully.', 'isPublicFacing' => true]);
 				}
 			}

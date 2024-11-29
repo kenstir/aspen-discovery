@@ -417,6 +417,7 @@ var AspenDiscovery = (function(){
 			}
 			aspenJQ("#myModalLabel").html(title);
 			aspenJQ(".modal-body").html(body);
+			aspenJQ('.modal-body [data-toggle="tooltip"]').tooltip();
 			aspenJQ('.modal-buttons').html(buttons);
 			if (closeDestination !== undefined) {
 				Globals.modalCloseDestination = closeDestination;

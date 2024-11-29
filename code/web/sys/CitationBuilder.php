@@ -553,9 +553,14 @@ class CitationBuilder {
 			$numAuthors = count($this->details['authors']);
 			foreach($this->details['authors'] as $author) {
 				$author = $this->abbreviateName($author);
+				//After listing 8 authors, stop listing and add 'et al.'
+				if ($i == 7) {
+					$authorStr .= ' et al';
+					break;
+				}
 
 				//Add "and" for last author
-				if (($i +1 == $numAuthors) && ($i > 0)) {
+				if (($i +1 == $numAuthors || $i == 6) && ($i > 0)) {
 					$authorStr .= ' and ' . $this->stripPunctuation($author) . '.';
 				} elseif ($i > 0) {
 					$authorStr .= ', ' . $this->stripPunctuation($author) . '.';
@@ -591,7 +596,6 @@ class CitationBuilder {
 				}
 			}
 		}
-
 		// No edition statement found:
 		return false;
 	}

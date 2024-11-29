@@ -166,15 +166,17 @@ class LocalIllForm extends DataObject {
 		if ($this->introText) {
 			$fields['introText'] = [
 				'property' => 'introText',
-				'type' => 'label',
-				'label' => $this->introText,
+				'type' => 'alert',
+				'alertType' => 'alert-info',
+				'label' => 'Introductory Text',
+				'default' => $this->introText,
 				'description' => '',
 			];
 		}
 		require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
 		$fields['title'] = [
 			'property' => 'title',
-			'type' => 'text',
+			'type' => 'label',
 			'label' => 'Title',
 			'description' => 'The title of the title to be requested',
 			'maxLength' => 255,

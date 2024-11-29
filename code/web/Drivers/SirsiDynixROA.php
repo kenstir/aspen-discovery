@@ -1429,6 +1429,16 @@ class SirsiDynixROA extends HorizonAPI {
 				$workingLibraryId = $pickupBranch;
 			}
 
+			//Check to see if there is a note
+			if (isset($_REQUEST['note'])) {
+				if (empty($holdData['comment'])) {
+					$holdData['comment'] = $_REQUEST['note'];
+				}else{
+					$holdData['comment'] .= "\n" . $_REQUEST['note'];
+				}
+
+			}
+
 			$createHoldResponse = $this->getWebServiceResponse('placeHold', $webServiceURL . "/circulation/holdRecord/placeHold", $holdData, $sessionToken, null, null, [], $workingLibraryId);
 
 			$hold_result = [];

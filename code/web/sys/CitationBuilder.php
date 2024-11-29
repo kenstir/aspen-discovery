@@ -182,7 +182,7 @@ class CitationBuilder {
 			'authors' => $this->getHarvardAuthors(),
 			'publisher' => $this->getPublisher(),
 			'year' => $this->getHarvardYear(),
-			'edition' => $this->getEdition(),
+			'edition' => $this->getHarvardEdition(),
 		];
 		$interface->assign('citeDetails', $harvard);
 		return 'Citation/harvard.tpl';
@@ -593,6 +593,32 @@ class CitationBuilder {
 			} else {
 				if ($this->details['edition'] !== '1st ed.') {
 					return $this->details['edition'];
+				}
+			}
+		}
+		// No edition statement found:
+		return false;
+	}
+
+	/**
+	 * Get edition statement for inclusion in a citation. Used for Harvard functionality.
+	 * 
+	 * @access private
+	 * @return string
+	 */
+	private function getHarvardEdition() {
+		if (isset($this->details['edition'])) {
+			if (is_array($this->details['edition'])) {
+				foreach ($this->details['edition'] as $edition) {
+					if ($edition !== '1st ed.'){
+						$edition =preg_replace('/\bedition\b/i', 'edn', $edition);
+						return $edition;
+					}
+				}
+			} else {
+				if ($this->details['edition'] !== '1st ed.') {
+					$edition = preg_replace('/\bedition\b/i', 'edn', $this->details['edition']);
+					return $edition;
 				}
 			}
 		}

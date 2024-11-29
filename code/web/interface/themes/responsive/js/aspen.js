@@ -14317,7 +14317,7 @@ AspenDiscovery.Record = (function(){
 						document.querySelector('.fa-spinner').classList.add('hidden');
 						$('.modal-body').html(data.message);
 					}else if (data.needsIllRequest){
-						AspenDiscovery.showMessageWithButtons(data.title, data.message, data.modalButtons);
+						AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons);
 					}else{
 						AspenDiscovery.showMessage(data.title, data.message, false, data.autologout);
 						var existingButton = $("#onHoldAction" + id);

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Grapes JS Page Editor</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/grapesjs@0.21.10/dist/css/grapes.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/grapesjs/0.21.10/grapes.min.js" integrity="sha512-TavCuu5P1hn5roGNJSursS0xC7ex1qhRcbAG90OJYf5QEc4C/gQfFH/0MKSzkAFil/UBCTJCe/zmW5Ei091zvA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/grapesjs-blocks-basic@1.0.2/dist/index.min.js"></script>
   <script src="https://unpkg.com/grapesjs-script-editor"></script>
@@ -113,6 +114,46 @@
                 });
             }
       });
+      editor.getWrapper().set('stylable', true);
+
+      //Add headers in Headers block
+      editor.BlockManager.add('h1', {
+          label: 'H1',
+          content: '<h1>Heading 1</h1>',
+          category: 'Headers',
+          attributes: { class: 'fa fa-header' }
+      });
+      editor.BlockManager.add('h2', {
+          label: 'H2',
+          content: '<h2>Heading 2</h2>',
+          category: 'Headers',
+          attributes: { class: 'fa fa-header' },
+      });
+      editor.BlockManager.add('h3', {
+          label: 'H3',
+          content: '<h3>Heading 3</h3>',
+          category: 'Headers',
+          attributes: { class: 'fa fa-header' },
+      });
+
+      //Add tooltips for buttons that do not include them by default
+      const buttonsWithTooltips = [
+            { id: 'undo', title: 'Undo Last Action' },
+            { id: 'redo', title: 'Redo Last Action' },
+            { id: 'gjs-open-import-webpage', title: 'Add Custom Code' },
+            { id: 'canvas-clear', title: 'Clear Canvas' }
+        ];
+
+        buttonsWithTooltips.forEach(button => {
+          const buttonElement = editor.Panels.getButton('options', button.id);
+          if (buttonElement) {
+              buttonElement.set('attributes', {
+                  title: button.title,
+                  'data-tooltips-pos': 'bottom'
+              });
+          }
+        });
+
       editor.on('load', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const templateId = urlParams.get('templateId'); 

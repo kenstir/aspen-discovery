@@ -179,7 +179,7 @@
 							</div>
 						</div>
 
-						{if !empty($showPosition) && $record->position}
+						{if !empty($showPosition) && empty($record->outOfHoldGroupMessage) && $record->position}
 							<div class="row">
 								<div class="result-label col-tn-4">{translate text='Position' isPublicFacing=true}</div>
 								<div class="col-tn-8 result-value">

@@ -1164,16 +1164,20 @@ class SirsiDynixROA extends HorizonAPI {
 
 				$curHold->status = ucfirst(strtolower($hold->fields->status));
 				$isLocalIllHold = false;
+				$currentLocation = '';
 				if (!empty($hold->fields->mailFlag)){
 					$isLocalIllHold = true;
 				}elseif (!empty($hold->fields->selectedItem->fields->currentLocation->key)) {
 					$currentLocation = $hold->fields->selectedItem->fields->currentLocation->key;
-					if ($currentLocation == 'ILL') {
+					if ($currentLocation == 'ILL' || $currentLocation == 'ILLSHIPPED' || $currentLocation == 'ILL_WYLD') {
 						$isLocalIllHold = true;
+						$curHold->status = str_replace('_', ' ', $currentLocation);
 					}
 				}
 				if ($isLocalIllHold){
-					if (strcasecmp($curHold->status, 'INSHIPPING') === 0 || strcasecmp($curHold->status, 'INTRANSIT') === 0){
+					if (strcasecmp($curHold->status, 'INSHIPPING') === 0
+						|| strcasecmp($curHold->status, 'INTRANSIT') === 0
+						|| strcasecmp($curHold->status, 'ILLSHIPPED') === 0){
 						$curHold->outOfHoldGroupMessage = translate(['text' => 'Shipping from Another Library', 'isPublicFacing' => true]);
 					}else{
 						$curHold->outOfHoldGroupMessage = translate(['text' => 'Hold Pending from Another Library', 'isPublicFacing' => true]);
@@ -1183,15 +1187,17 @@ class SirsiDynixROA extends HorizonAPI {
 				$curHold->expirationDate = strtotime($expireDate);
 				$curHold->automaticCancellationDate = strtotime($fillByDate);
 				$curHold->reactivateDate = strtotime($reactivateDate);
-				$curHold->cancelable = strcasecmp($curHold->status, 'Suspended') != 0 && strcasecmp($curHold->status, 'Expired') != 0;
+				$curHold->cancelable = strcasecmp($curHold->status, 'Suspended') != 0 && strcasecmp($curHold->status, 'Expired') != 0 && strcasecmp($curHold->status, 'INSHIPPING') != 0 && strcasecmp($curHold->status, 'ILL WYLD') != 0;
 				$curHold->frozen = strcasecmp($curHold->status, 'Suspended') == 0;
 				$curHold->canFreeze = true;
-				if (strcasecmp($curHold->status, 'Transit') == 0 || strcasecmp($curHold->status, 'Expired') == 0) {
-					$curHold->canFreeze = false;
-				}
 				$curHold->locationUpdateable = true;
-				if (strcasecmp($curHold->status, 'Transit') == 0 || strcasecmp($curHold->status, 'Expired') == 0) {
+				if (strcasecmp($curHold->status, 'Transit') == 0
+					|| strcasecmp($curHold->status, 'Expired') == 0
+					|| strcasecmp($curHold->status, 'INSHIPPING') == 0
+					|| strcasecmp($curHold->status, 'ILL WYLD') == 0
+					) {
 					$curHold->locationUpdateable = false;
+					$curHold->canFreeze = false;
 				}
 				if (isset($hold->fields->selectedItem->fields->call->fields->volumetric)) {
 					$curHold->volume = $hold->fields->selectedItem->fields->call->fields->volumetric;
@@ -1211,7 +1217,13 @@ class SirsiDynixROA extends HorizonAPI {
 					$curHold->updateFromRecordDriver($recordDriver);
 				}
 
-				if (!isset($curHold->status) || strcasecmp($curHold->status, "being_held") != 0) {
+				$holdAvailable = false;
+				if (!isset($curHold->status)){
+					$holdAvailable = true;
+				}elseif (strcasecmp($curHold->status, "being_held") === 0) {
+					$holdAvailable = true;
+				}
+				if (!$holdAvailable) {
 					$curHold->available = false;
 					$holds['unavailable'][] = $curHold;
 				} else {

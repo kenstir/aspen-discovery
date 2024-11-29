@@ -7,6 +7,7 @@ class GrapesPage extends DB_LibraryLinkedObject {
 	public $__table = 'grapes_web_builder';
 	public $id;
 	public $title;
+	public $showTitleOnPage;
 	public $urlAlias;
 	public $teaser;
 	public $templatesSelect;
@@ -45,6 +46,13 @@ class GrapesPage extends DB_LibraryLinkedObject {
 				'size' => '40',
 				'maxLength' => 100,
 				'required' => true,
+			],
+			'showTitleOnPage' => [
+				'property' => 'showTitleOnPage',
+				'type' =>'checkbox',
+				'label' => 'Display Title on Page',
+				'description' => 'Whether or not to display the title on the Grapes Page',
+				'default' => 1,
 			],
 			'urlAlias' => [
 				'property' => 'urlAlias',

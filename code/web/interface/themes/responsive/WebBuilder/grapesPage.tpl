@@ -5,7 +5,9 @@
     <title>{$title|escape: 'html'}</title>
   </head>
   <body>
-    <h1>{$title|escape: 'html'}</h1>
+    {if $showTitleOnPage}
+      <h1>{$title|escape: 'html'}</h1>
+    {/if}
     <div id="content">
       {$templateContent}
     </div>

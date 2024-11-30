@@ -51,14 +51,6 @@ echo "%"
 
 export CONFIG_DIRECTORY="/usr/local/aspen-discovery/sites/$SITE_NAME"
 
-# Adjust permissions if required
-if [[ ! -z "${LOCAL_USER_ID}" && "${LOCAL_USER_ID}" != "33" ]]; then
-	echo "%   Setting www-data to UID=${LOCAL_USER_ID}"
-    usermod -o -u ${LOCAL_USER_ID} "www-data"
-    # Fix permissions due to UID change
-    chown -R "www-data" "/var/log/apache2"
-fi
-
 # Move to docker directory
 cd "/usr/local/aspen-discovery/docker/files/scripts" || exit
 

@@ -3275,6 +3275,20 @@ class User extends DataObject {
 				$searchObject->setQueryIDs(array_slice($groupedWorkIds, 0, 500));
 				$searchObject->setPage(1);
 				$searchObject->setLimit(10);
+				$genreFacet = new LibraryFacetSetting();
+				$genreFacet->facetName = 'genre_facet';
+				$genreFacet->displayName = 'genre';
+				$genreFacet->showAboveResults = false;
+				$searchObject->addFacet('genre_facet', $genreFacet);
+				$seriesFacet = new LibraryFacetSetting();
+				$seriesFacet->facetName = 'series_facet';
+				$seriesFacet->displayName = 'series';
+				$seriesFacet->showAboveResults = false;
+				$searchObject->addFacet('series_facet', $seriesFacet);
+				$authorFacet = new LibraryFacetSetting();
+				$authorFacet->facetName = 'authorStr';
+				$authorFacet->displayName = 'author';
+				$searchObject->addFacet('authorStr', $authorFacet);
 				$results = $searchObject->processSearch(true, true);
 				if ($results['facet_counts'] && $results['facet_counts']['facet_fields'] && $results['facet_counts']['facet_fields']['series_facet']) {
 					$seriesFacets = array_slice($results['facet_counts']['facet_fields']['series_facet'], 0, 2);
@@ -3295,6 +3309,7 @@ class User extends DataObject {
 				$searchObject = SearchObjectFactory::initSearchObject();
 				$searchObject->init();
 				$searchObject->disableSpelling();
+				$searchObject->disableLogging();
 				$idsToBaseSuggestionsOn = [];
 				foreach ($groupedWorkIds as $groupedWorkId) {
 					$idsToBaseSuggestionsOn[] = [

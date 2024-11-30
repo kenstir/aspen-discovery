@@ -154,6 +154,14 @@ AspenDiscovery.Record = (function(){
 					document.body.style.cursor = "default";
 					if (data.success) {
 						AspenDiscovery.showMessage(data.title, data.message, false, false);
+						var existingButton = $("#onHoldAction" + id);
+						if (existingButton.length === 0) {
+							$(data.viewHoldsAction).insertBefore('#actionButton' + id);
+							$(data.viewHoldsAction).insertBefore('#relatedRecordactionButton' + id);
+						}
+						if (!data.autologout){
+							AspenDiscovery.Account.loadMenuData();
+						}
 					} else {
 						AspenDiscovery.showMessage(data.title, data.message, false, false);
 					}
@@ -312,7 +320,7 @@ AspenDiscovery.Record = (function(){
 						document.querySelector('.fa-spinner').classList.add('hidden');
 						$('.modal-body').html(data.message);
 					}else if (data.needsIllRequest){
-						AspenDiscovery.showMessageWithButtons(data.title, data.message, data.modalButtons);
+						AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons);
 					}else{
 						AspenDiscovery.showMessage(data.title, data.message, false, data.autologout);
 						var existingButton = $("#onHoldAction" + id);

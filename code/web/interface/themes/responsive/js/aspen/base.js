@@ -366,7 +366,7 @@ var AspenDiscovery = (function(){
 			}else{
 				aspenJQ('#modalDialog').addClass('modal-dialog-large');
 			}
-			if (hideTitle === undefined || hideTitle === true) {
+			if (hideTitle !== undefined && hideTitle === true) {
 				aspenJQ('.modal-header').hide();
 			}else{
 				aspenJQ('.modal-header').show();
@@ -407,7 +407,7 @@ var AspenDiscovery = (function(){
 			}else{
 				aspenJQ('.modal-dialog').addClass('modal-dialog-large');
 			}
-			if (hideTitle === undefined || hideTitle === true) {
+			if (hideTitle !== undefined && hideTitle === true) {
 				aspenJQ('.modal-header').hide();
 			}else{
 				aspenJQ('.modal-header').show();
@@ -417,6 +417,7 @@ var AspenDiscovery = (function(){
 			}
 			aspenJQ("#myModalLabel").html(title);
 			aspenJQ(".modal-body").html(body);
+			aspenJQ('.modal-body [data-toggle="tooltip"]').tooltip();
 			aspenJQ('.modal-buttons').html(buttons);
 			if (closeDestination !== undefined) {
 				Globals.modalCloseDestination = closeDestination;

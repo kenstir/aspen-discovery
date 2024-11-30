@@ -96,7 +96,7 @@
 					<a href="{$property.helpLink}" target="_blank"><img src="/interface/themes/responsive/images/help.png" alt="Help"></a>
 				</div>
 			</div>
-		{elseif $property.type != 'section' && $property.type != 'checkbox' && $property.type != 'hidden'}
+		{elseif $property.type != 'section' && $property.type != 'checkbox' && $property.type != 'hidden' && $property.type != 'alert' }
 			{if !empty($property.renderAsHeading)}
 				{if !empty($property.required) && (empty($objectAction) || $objectAction != 'edit')}
 					<div style="margin-bottom: .5em; {if !empty($property.showBottomBorder)}border-bottom: 2px solid {$secondaryBackgroundColor}{/if}">
@@ -576,6 +576,10 @@
 						</div>
 					{/if}
 				{/foreach}
+			</div>
+		{elseif $property.type == 'alert'}
+			<div class="alert {if !empty($property.alertType)}{$property.alertType}{/if}">
+				{$propValue}
 			</div>
 		{/if}
 

@@ -5540,6 +5540,27 @@ class User extends DataObject {
 				$localIllForm->id = $homeLocation->localIllFormId;
 				if ($localIllForm->find(true)) {
 					$results = $this->getCatalogDriver()->submitLocalIllRequest($this, $localIllForm);
+					if ($results['success']) {
+						$thisUser = translate([
+							'text' => 'You',
+							'isPublicFacing' => true,
+						]);
+						if (!empty($this->parentUser)) {
+							$thisUser = $this->displayName;
+						}
+						$viewHoldsText = translate([
+							'text' => 'On Hold for %1%',
+							1 => $thisUser,
+							'isPublicFacing' => true,
+							'inAttribute' => true
+						]);
+						$recordId = $_REQUEST['catalogKey'] ?? '';
+						$results['viewHoldsAction'] = "<a id='onHoldAction$recordId' href='/MyAccount/Holds' class='btn btn-sm btn-info btn-wrap' title='$viewHoldsText'>$viewHoldsText</a>";
+
+						$this->clearCache();
+
+						$this->forceReloadOfHolds();
+					}
 				} else {
 					$results = [
 						'title' => translate([
@@ -5586,22 +5607,26 @@ class User extends DataObject {
 		if ($this->_hasYearInReview == null) {
 			$this->_hasYearInReview = false;
 			$this->_yearInReviewResults = false;
-			require_once ROOT_DIR . '/sys/YearInReview/UserYearInReview.php';
-			require_once ROOT_DIR . '/sys/YearInReview/YearInReviewSetting.php';
-			$userYearInReview = new UserYearInReview();
-			$userYearInReview->userId = $this->id;
-			$userYearInReview->wrappedActive = true;
 			$this->_yearInReviewSetting = false;
-			if ($userYearInReview->find(true)){
-				$this->_yearInReviewResults = $userYearInReview->wrappedResults;
-				$yearInReviewSetting = new YearInReviewSetting();
-				$yearInReviewSetting->id = $userYearInReview->settingId;
-				if ($yearInReviewSetting->find(true)) {
-					$this->_yearInReviewSetting = $yearInReviewSetting;
-					global $interface;
-					$interface->assign('yearInReviewName', $yearInReviewSetting->name);
-					$this->_hasYearInReview = true;
+			try {
+				require_once ROOT_DIR . '/sys/YearInReview/UserYearInReview.php';
+				require_once ROOT_DIR . '/sys/YearInReview/YearInReviewSetting.php';
+				$userYearInReview = new UserYearInReview();
+				$userYearInReview->userId = $this->id;
+				$userYearInReview->wrappedActive = true;
+				if ($userYearInReview->find(true)){
+					$this->_yearInReviewResults = $userYearInReview->wrappedResults;
+					$yearInReviewSetting = new YearInReviewSetting();
+					$yearInReviewSetting->id = $userYearInReview->settingId;
+					if ($yearInReviewSetting->find(true)) {
+						$this->_yearInReviewSetting = $yearInReviewSetting;
+						global $interface;
+						$interface->assign('yearInReviewName', $yearInReviewSetting->name);
+						$this->_hasYearInReview = true;
+					}
 				}
+			}catch (Exception $e) {
+				//We get an exception if the tables are not setup, ignore
 			}
 		}
 	}

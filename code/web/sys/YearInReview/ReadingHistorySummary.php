@@ -10,4 +10,10 @@ class ReadingHistorySummary {
 	public int $maxMonthlyCheckouts;
 	public int $averageCheckouts;
 
+	public string $topAuthor = '';
+	public array $topFormats = [];
+	public array $topSeries = [];
+	public array $topGenres = [];
+
+	public array $recommendations = [];
 }

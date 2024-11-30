@@ -3232,6 +3232,88 @@ class User extends DataObject {
 
 				$summary->totalYearlyCheckouts = $readingHistoryDB->count();
 
+				// Top author
+				$readingHistoryDB->find();
+				while ($readingHistoryDB->fetch()) {
+					$author = strtolower(preg_replace('/[.|,]/', "", $readingHistoryDB->author));
+					if (!empty($author)) {
+						$authors[] = $author;
+					}
+					// Get grouped work IDs for Solr queries for top genres, top series, and recommendations
+					$groupedWorkIds[] = $readingHistoryDB->groupedWorkPermanentId;
+				}
+				$authorTotals = array_count_values($authors);
+				arsort($authorTotals);
+				// Only choose a top author if patron checked out more than 1 book
+				if (reset($authorTotals) > 1) {
+					$authorNames = explode(" ", key($authorTotals), 2);
+					$summary->topAuthor = ucwords(join(" ", array_reverse($authorNames)));
+				}
+
+				// Top Format
+				$readingHistoryDB = new ReadingHistoryEntry();
+				$readingHistoryDB->userId = $this->id;
+				$readingHistoryDB->whereAdd('deleted = 0');
+				$yearStart = strtotime($year . '-01-01');
+				$yearEnd = strtotime(($year+1) . '-01-01');
+				$readingHistoryDB->whereAdd("checkOutDate >= $yearStart");
+				$readingHistoryDB->whereAdd("checkOutDate < $yearEnd");
+				$readingHistoryDB->groupBy('format');
+				$readingHistoryDB->orderBy('count(format) DESC');
+				$readingHistoryDB->limit(0, 3);
+
+				$formatCounts = $readingHistoryDB->fetchAll('count(format)');
+				$formatNames = $readingHistoryDB->fetchAll('format');
+				$summary->topFormats = $formatNames;
+
+				// Top series and top genres (from facets)
+				/** @var SearchObject_AbstractGroupedWorkSearcher $searchObject */
+				$searchObject = SearchObjectFactory::initSearchObject();
+				$searchObject->init();
+				$searchObject->disableSpelling();
+				$searchObject->disableLogging();
+				$searchObject->setQueryIDs(array_slice($groupedWorkIds, 0, 500));
+				$searchObject->setPage(1);
+				$searchObject->setLimit(10);
+				$results = $searchObject->processSearch(true, true);
+				if ($results['facet_counts'] && $results['facet_counts']['facet_fields'] && $results['facet_counts']['facet_fields']['series_facet']) {
+					$seriesFacets = array_slice($results['facet_counts']['facet_fields']['series_facet'], 0, 2);
+					foreach ($seriesFacets as $series) {
+						$summary->topSeries[] = $series[0];
+					}
+				}
+				if ($results['facet_counts'] && $results['facet_counts']['facet_fields'] && $results['facet_counts']['facet_fields']['genre_facet']) {
+					$genreFacets = array_slice($results['facet_counts']['facet_fields']['genre_facet'], 0, 3);
+					foreach ($genreFacets as $genres) {
+						$summary->topGenres[] = $genres[0];
+					}
+				}
+				$searchObject->close();
+
+				// Recommendations
+				/** @var SearchObject_AbstractGroupedWorkSearcher $searchObject */
+				$searchObject = SearchObjectFactory::initSearchObject();
+				$searchObject->init();
+				$searchObject->disableSpelling();
+				$idsToBaseSuggestionsOn = [];
+				foreach ($groupedWorkIds as $groupedWorkId) {
+					$idsToBaseSuggestionsOn[] = [
+						'workId' => $groupedWorkId,
+						'rating' => '5',
+					];
+				}
+				$recommendations = $searchObject->getMoreLikeThese($idsToBaseSuggestionsOn, 1, 3);
+				if ($recommendations['response'] && $recommendations['response']['docs']) {
+					foreach ($recommendations['response']['docs'] as $doc) {
+						if ($doc['author_display']) {
+							$summary->recommendations[] = $doc['title_display'] . " by " . $doc['author_display'];
+						} else {
+							$summary->recommendations[] = $doc['title_display'];
+						}
+					}
+				}
+				$searchObject->close();
+
 				//Cost Savings By Year
 				require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
 				$yearlyCostSavings = $this->getCostSavingsByYear($year);

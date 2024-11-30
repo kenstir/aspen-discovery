@@ -84,9 +84,14 @@
       "background" : "2024_4.png",
       "overlay_text" : [
         {
-          "text": "Your favorite ways to engage: {top_formats}",
-          "position": "center",
-          "color" : "black"
+          "text": "Your favorite ways to engage: {topFormats}",
+          "left": "25%",
+          "top": "325px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "1.5em",
+          "align": "center"
         }
       ]
     },
@@ -95,9 +100,14 @@
       "background" : "2024_5.png",
       "overlay_text" : [
         {
-          "text": "You dove into {top_genres} this year. Such impeccable taste!",
-          "position": "center",
-          "color" : "black"
+          "text": "You dove into {topGenres} this year. Such impeccable taste!",
+          "left": "25%",
+          "top": "325px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "1.5em",
+          "align": "center"
         }
       ]
     },
@@ -106,9 +116,14 @@
       "background" : "2024_6.png",
       "overlay_text" : [
         {
-          "text": "You checked out multiple titles by {top_author}.",
-          "position": "center",
-          "color" : "black"
+          "text": "You checked out multiple titles by {topAuthor}.",
+          "left": "25%",
+          "top": "325px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "1.5em",
+          "align": "center"
         }
       ]
     },
@@ -117,9 +132,14 @@
       "background" : "2024_7.png",
       "overlay_text" : [
         {
-          "text": "{top_series} kept you hooked in 2024!",
-          "position": "center",
-          "color" : "black"
+          "text": "{topSeries} kept you hooked in 2024!",
+          "left": "25%",
+          "top": "325px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "1.5em",
+          "align": "center"
         }
       ]
     },
@@ -128,9 +148,14 @@
       "background" : "2024_8.png",
       "overlay_text" : [
         {
-          "text": "You might like these titles based on your 2024 picks: {recommendations}",
-          "position": "center",
-          "color" : "black"
+          "text": "You might like these titles based on your 2024 picks:\n {recommendations}",
+          "left": "25%",
+          "top": "325px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "1.5em",
+          "align": "center"
         }
       ]
     },

@@ -232,3 +232,4 @@ install/unit_tests_local.ini
 intellij_project
 phpstorm_project
 code/aspen_app/updaterInternal.sh
+code/aspen_app/%ProgramData%/Microsoft/Windows/UUS/State/_active.uusver

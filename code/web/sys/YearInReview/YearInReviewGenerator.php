@@ -62,6 +62,36 @@ function generateYearInReview(User $patron) : void {
 							$slidesToShow[] = 5;
 						}
 
+						//Top formats
+						if ($readingHistorySummary->topFormats) {
+							$yearInReviewData->userData['topFormats'] = join("\n", $readingHistorySummary->topFormats);
+							$slidesToShow[] = 6;
+						}
+
+						//Top genres
+						if ($readingHistorySummary->topGenres) {
+							$yearInReviewData->userData['topGenres'] = join(" and ", $readingHistorySummary->topGenres);
+							$slidesToShow[] = 7;
+						}
+
+						//Top author
+						if (!empty($readingHistorySummary->topAuthor)) {
+							$yearInReviewData->userData['topAuthor'] = $readingHistorySummary->topAuthor;
+							$slidesToShow[] = 8;
+						}
+
+						//Top series
+						if ($readingHistorySummary->topSeries) {
+							$yearInReviewData->userData['topSeries'] = join(" and ", $readingHistorySummary->topSeries);
+							$slidesToShow[] = 9;
+						}
+
+						//Recommendations
+						if ($readingHistorySummary->recommendations) {
+							$yearInReviewData->userData['recommendations'] = join("\n", $readingHistorySummary->recommendations);
+							$slidesToShow[] = 10;
+						}
+
 						//Always show the last slide
 						$slidesToShow[] = 11;
 
@@ -73,7 +103,7 @@ function generateYearInReview(User $patron) : void {
 					$userYearInReview->wrappedActive = false;
 					$userYearInReview->wrappedResults = '';
 				}
-				$userYearInReview->wrappedViewed = false;
+				$userYearInReview->wrappedViewed = 0;
 
 				$userYearInReview->insert();
 

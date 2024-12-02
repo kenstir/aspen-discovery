@@ -5478,7 +5478,13 @@ class User extends DataObject {
 		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php';
 		$materialsRequests = new MaterialsRequest();
 		$materialsRequests->createdBy = $this->id;
-		$materialsRequests->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+		if ($homeLibrary->yearlyRequestLimitType == 0) {
+			$materialsRequests->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+		}else{
+			$currentYear = date('Y');
+			$januaryOne = strtotime("01-01-$currentYear");
+			$materialsRequests->whereAdd("dateCreated >= $januaryOne");
+		}
 
 		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestStatus.php';
 		$statusQueryNotCancelled = new MaterialsRequestStatus();

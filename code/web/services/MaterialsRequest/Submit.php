@@ -87,7 +87,13 @@ class MaterialsRequest_Submit extends Action {
 					//Check the total number of requests created this year
 					$materialsRequest = new MaterialsRequest();
 					$materialsRequest->createdBy = UserAccount::getActiveUserId();
-					$materialsRequest->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+					if ($homeLibrary->yearlyRequestLimitType == 0) {
+						$materialsRequest->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+					}else{
+						$currentYear = date('Y');
+						$januaryOne = strtotime("01-01-$currentYear");
+						$materialsRequest->whereAdd("dateCreated >= $januaryOne");
+					}
 					//To be fair, don't include any requests that were canceled by the patron
 					$statusQuery = new MaterialsRequestStatus();
 					$statusQuery->whereAdd('isPatronCancel = 0 OR ISNULL(isPatronCancel)');

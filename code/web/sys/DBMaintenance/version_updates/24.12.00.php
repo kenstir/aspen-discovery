@@ -152,6 +152,13 @@ function getUpdates24_12_00(): array {
 				'ALTER TABLE library DROP COLUMN ssoXmlUrl',
 			]
 		], //remove_old_sso_fields
+		'add_library_yearly_request_limit_type' => [
+			'title' => 'Add Library Yearly Request Limit Type',
+			'description' => 'Add Yearly Request Limit Type to Library Settings',
+			'sql' => [
+				'ALTER TABLE library ADD COLUMN yearlyRequestLimitType TINYINT DEFAULT 0',
+			]
+		], //add_library_yearly_request_limit_type
 
 		//katherine
 

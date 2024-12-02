@@ -38,7 +38,13 @@ class MaterialsRequest_MyRequests extends MyAccount {
 		if (UserAccount::isLoggedIn()) {
 			$materialsRequests = new MaterialsRequest();
 			$materialsRequests->createdBy = UserAccount::getActiveUserId();
-			$materialsRequests->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+			if ($homeLibrary->yearlyRequestLimitType == 0) {
+				$materialsRequests->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+			}else{
+				$currentYear = date('Y');
+				$januaryOne = strtotime("01-01-$currentYear");
+				$materialsRequests->whereAdd("dateCreated >= $januaryOne");
+			}
 
 			$statusQueryNotCancelled = new MaterialsRequestStatus();
 			$statusQueryNotCancelled->libraryId = $homeLibrary->libraryId;

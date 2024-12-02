@@ -258,6 +258,7 @@ class Library extends DataObject {
 	public $showAlternateLibraryOptionsInProfile;
 	public $additionalCss;
 	public $maxRequestsPerYear;
+	public $yearlyRequestLimitType;
 	public $maxActiveRequests;
 	// Contact Links //
 	public $twitterLink;
@@ -3180,6 +3181,18 @@ class Library extends DataObject {
 						'description' => 'The maximum number of requests that a user can make within a year',
 						'hideInLists' => true,
 						'default' => 60,
+					],
+					'yearlyRequestLimitType' => [
+						'property' => 'yearlyRequestLimitType',
+						'type' => 'enum',
+						'values' => [
+							0 => 'Rolling Year',
+							1 => 'Calendar Year'
+						],
+						'label' => 'Yearly Request Limit Type',
+						'description' => 'Sets the method of determining the yearly request limit',
+						'hideInLists' => true,
+						'default' => 0,
 					],
 					'maxActiveRequests' => [
 						'property' => 'maxActiveRequests',

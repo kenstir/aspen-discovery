@@ -39,7 +39,13 @@ class MaterialsRequest_Results extends Action {
 
 				$materialsRequestCounts = new MaterialsRequest();
 				$materialsRequestCounts->createdBy = UserAccount::getActiveUserId();
-				$materialsRequestCounts->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+				if ($homeLibrary->yearlyRequestLimitType == 0) {
+					$materialsRequestCounts->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+				}else{
+					$currentYear = date('Y');
+					$januaryOne = strtotime("01-01-$currentYear");
+					$materialsRequestCounts->whereAdd("dateCreated >= $januaryOne");
+				}
 				$statusQuery = new MaterialsRequestStatus();
 				$statusQuery->whereAdd('isPatronCancel = 0 OR ISNULL(isPatronCancel)');
 				$materialsRequestCounts->joinAdd($statusQuery, 'INNER', 'status', 'status', 'id');

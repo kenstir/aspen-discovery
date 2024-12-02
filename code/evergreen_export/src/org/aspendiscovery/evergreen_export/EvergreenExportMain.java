@@ -581,7 +581,7 @@ public class EvergreenExportMain {
 			long libraryId = 0;
 			try {
 				String shortName = (String) mappedOrgUnitField.get("shortname");
-				String subdomain = shortName.toLowerCase(Locale.ROOT).replaceAll("[^a-z]", "");
+				String subdomain = shortName.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
 				if (subdomain.length() > 25) {
 					subdomain = subdomain.substring(0, 25);
 				}

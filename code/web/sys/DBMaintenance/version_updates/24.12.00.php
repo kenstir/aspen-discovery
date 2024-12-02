@@ -125,7 +125,33 @@ function getUpdates24_12_00(): array {
 				'ALTER TABLE materials_request_status ADD COLUMN isActive TINYINT DEFAULT 0',
 				'UPDATE materials_request_status SET isActive = isOpen',
 			]
-		],
+		], //add_active_status_to_materials_requests
+		'remove_old_sso_fields' => [
+			'title' => 'Remove Old SSO Fields',
+			'description' => 'Remove old unused SSO fields',
+			'sql' => [
+				'ALTER TABLE library DROP COLUMN ssoAddressAttr',
+				'ALTER TABLE library DROP COLUMN ssoCategoryIdAttr',
+				'ALTER TABLE library DROP COLUMN ssoCategoryIdFallback',
+				'ALTER TABLE library DROP COLUMN ssoCityAttr',
+				'ALTER TABLE library DROP COLUMN ssoDisplayNameAttr',
+				'ALTER TABLE library DROP COLUMN ssoEmailAttr',
+				'ALTER TABLE library DROP COLUMN ssoEntityId',
+				'ALTER TABLE library DROP COLUMN ssoFirstnameAttr',
+				'ALTER TABLE library DROP COLUMN ssoIdAttr',
+				'ALTER TABLE library DROP COLUMN ssoLastnameAttr',
+				'ALTER TABLE library DROP COLUMN ssoLibraryIdAttr',
+				'ALTER TABLE library DROP COLUMN ssoLibraryIdFallback',
+				'ALTER TABLE library DROP COLUMN ssoMetadataFilename',
+				'ALTER TABLE library DROP COLUMN ssoName',
+				'ALTER TABLE library DROP COLUMN ssoPatronTypeAttr',
+				'ALTER TABLE library DROP COLUMN ssoPatronTypeFallback',
+				'ALTER TABLE library DROP COLUMN ssoPhoneAttr',
+				'ALTER TABLE library DROP COLUMN ssoUniqueAttribute',
+				'ALTER TABLE library DROP COLUMN ssoUsernameAttr',
+				'ALTER TABLE library DROP COLUMN ssoXmlUrl',
+			]
+		], //remove_old_sso_fields
 
 		//katherine
 

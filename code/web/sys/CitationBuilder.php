@@ -184,7 +184,7 @@ class CitationBuilder {
 			'year' => $this->getHarvardYear(),
 			'edition' => $this->getHarvardEdition(),
 		];
-		$interface->assign('citeDetails', $harvard);
+		$interface->assign('harvardDetails', $harvard);
 		return 'Citation/harvard.tpl';
 	}
 
@@ -390,13 +390,14 @@ class CitationBuilder {
 	 * @return string
 	 */
 	private function convertToSentenceCase($text) {
+
 		$abbreviations = [];
 	
 		//Regex pattern to match common exceptions e.g. "R&B" and "USA"
 		$pattern = '/\b[A-Z&]+\b/';
 		//Generate placeholders for abbreviations that match the pattern
 		$text = preg_replace_callback($pattern, function($matches) use (&$abbreviations) {
-			$placeholder = uniqid('abbr_', true);
+			$placeholder = '[[abbr_' . count($abbreviations) . ']]';
 			$abbreviations[$placeholder] = $matches[0];
 			//Replace abbreviation with placeholder
 			return $placeholder;
@@ -428,7 +429,6 @@ class CitationBuilder {
 		/*if (!((substr($title, -1) == '?') || (substr($title, -1) == '!'))) {
 			$title .= '.';
 		}*/
-
 		return $title;
 	}
 

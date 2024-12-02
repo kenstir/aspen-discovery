@@ -4837,67 +4837,67 @@ class Koha extends AbstractIlsDriver {
 				'message' => 'Unknown error processing materials requests.',
 			];
 
-				/** @noinspection SpellCheckingInspection */
-				$postFields = [
-					'title' => $_REQUEST['title'],
-					'author' => $_REQUEST['author'],
-					'copyright_date' => null,
-					'isbn' => $_REQUEST['isbn'],
-					'publisher_code' => $_REQUEST['publishercode'],
-					'collection_title' => $_REQUEST['collectiontitle'],
-					'publication_place' => $_REQUEST['place'],
-					'quantity' => $_REQUEST['quantity'],
-					'item_type' => $_REQUEST['itemtype'],
-					'library_id' => $_REQUEST['branchcode'],
-					'note' => $_REQUEST['note'],
-					'patron_reason' => $_REQUEST['patronreason'],
-					'suggested_by' => $user->unique_ils_id,
-					'status' => 'ASKED',
-				];
-
-				if (!empty($_REQUEST['copyrightdate'])) {
-					$postFields['copyright_date'] = $_REQUEST['copyrightdate'];
-					if (!is_numeric($_REQUEST['copyrightdate'])) {
-						return [
-							'success' => false,
-							'message' => translate([
-								'text' => 'Please enter the copyright date as a 4-digit year.',
-								'isPublicFacing' => true,
-							]),
-						];
-					}
+			/** @noinspection SpellCheckingInspection */
+			$libraryId = $_REQUEST['branchcode'] ?: $user->getHomeLocation()->code;
+			$postFields = [
+				'title' => $_REQUEST['title'],
+				'author' => $_REQUEST['author'],
+				'copyright_date' => null,
+				'isbn' => $_REQUEST['isbn'],
+				'publisher_code' => $_REQUEST['publishercode'],
+				'collection_title' => $_REQUEST['collectiontitle'],
+				'publication_place' => $_REQUEST['place'],
+				'quantity' => $_REQUEST['quantity'],
+				'item_type' => $_REQUEST['itemtype'],
+				'library_id' => $libraryId,
+				'note' => $_REQUEST['note'],
+				'patron_reason' => $_REQUEST['patronreason'],
+				'suggested_by' => $user->unique_ils_id,
+				'status' => 'ASKED',
+			];
+			if (!empty($_REQUEST['copyrightdate'])) {
+				$postFields['copyright_date'] = $_REQUEST['copyrightdate'];
+				if (!is_numeric($_REQUEST['copyrightdate'])) {
+					return [
+						'success' => false,
+						'message' => translate([
+							'text' => 'Please enter the copyright date as a 4-digit year.',
+							'isPublicFacing' => true,
+						]),
+					];
 				}
-				$extraHeaders = ['x-koha-library: ' .  $user->getHomeLocationCode()];
-				$response = $this->kohaApiUserAgent->post("/api/v1/suggestions",$postFields,"koha.processMaterialsRequestForm",[],$extraHeaders);
-				$responseCode = $response['code'];
-				$responseBody = $response['content'];
-				if ($response) {
-					if ($responseCode != 201) {
-						if (!empty($responseBody)) {
-							if (!empty($responseBody['error'])) {
-								$result['message'] = translate([
-									'text' => $responseBody['error'],
-									'isPublicFacing' => true,
-								]);
-							} elseif (!empty($responseBody['errors'])) {
-								$result['message'] = '';
-								foreach ($responseBody['errors'] as $error) {
-									$result['message'] .= translate([
-											'text' => $error->message,
-											'isPublicFacing' => true,
-										]) . '<br/>';
-								}
-							} else {
-								$result['message'] = $responseBody;
+			}
+			$extraHeaders = ['x-koha-library: ' .  $user->getHomeLocationCode()];
+			$response = $this->kohaApiUserAgent->post("/api/v1/suggestions",$postFields,"koha.processMaterialsRequestForm",[],$extraHeaders);
+			$responseCode = $response['code'];
+			$responseBody = $response['content'];
+			if ($response) {
+				if ($responseCode != 201) {
+					if (!empty($responseBody)) {
+						if (!empty($responseBody['error'])) {
+							$result['message'] = translate([
+								'text' => $responseBody['error'],
+								'isPublicFacing' => true,
+							]);
+						} elseif (!empty($responseBody['errors'])) {
+							$result['message'] = '';
+							foreach ($responseBody['errors'] as $error) {
+								$result['message'] .= translate([
+										'text' => $error->message,
+										'isPublicFacing' => true,
+									]) . '<br/>';
 							}
 						} else {
-							$result['message'] = "Error $responseCode updating your account.";
+							$result['message'] = $responseBody;
 						}
 					} else {
-						$result['success'] = true;
-						$result['message'] = 'Successfully submitted your request.';
+						$result['message'] = "Error $responseCode updating your account.";
 					}
+				} else {
+					$result['success'] = true;
+					$result['message'] = 'Successfully submitted your request.';
 				}
+			}
 				
 			return $result;
 		} else {

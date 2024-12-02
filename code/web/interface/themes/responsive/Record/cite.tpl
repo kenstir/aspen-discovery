@@ -39,7 +39,7 @@
 		{/if}
 
 		{if !empty($harvard)}
-			<b>{translate text="Harvard Citation" isPublicFacing=true}</b> {if !empty($showCitationStyleGuides)}<span class="styleGuide"><a href="https://www.citethisforme.com/harvard-referencing" target="_blank" aria-label="{translate text='style guide' isPublicFacing=true} ({translate text='opens in new window' isPublicFacing=true})">({translate text="style guide" isPublicFacing=true})</a></span>{/if}
+			<b>{translate text="Harvard Citation" isPublicFacing=true}</b> {if !empty($showCitationStyleGuides)}<span class="styleGuide"><a href="https://library-guides.ucl.ac.uk/harvard/authors" target="_blank" aria-label="{translate text='style guide' isPublicFacing=true} ({translate text='opens in new window' isPublicFacing=true})">({translate text="style guide" isPublicFacing=true})</a></span>{/if}
 			<p style="width: 95%; padding-left: 25px; text-indent: -25px;">
 				{include file=$harvard}
 			</p>

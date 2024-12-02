@@ -14,7 +14,7 @@ class MaterialsRequest_Submit extends Action {
 		global $interface;
 		global $library;
 
-		$maxActiveRequests = $library->maxOpenRequests;
+		$maxActiveRequests = $library->maxActiveRequests;
 		$maxRequestsPerYear = $library->maxRequestsPerYear;
 		$accountPageLink = '/MaterialsRequest/MyRequests';
 		$interface->assign('accountPageLink', $accountPageLink);
@@ -66,7 +66,7 @@ class MaterialsRequest_Submit extends Action {
 					$homeLibrary = $library;
 				}
 				$statusQuery->libraryId = $homeLibrary->libraryId;
-				$statusQuery->isOpen = 1;
+				$statusQuery->isActive = 1;
 				$materialsRequest->joinAdd($statusQuery, 'INNER', 'status', 'status', 'id');
 				$openRequests = $materialsRequest->count();
 
@@ -90,7 +90,7 @@ class MaterialsRequest_Submit extends Action {
 					$materialsRequest->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
 					//To be fair, don't include any requests that were canceled by the patron
 					$statusQuery = new MaterialsRequestStatus();
-					$statusQuery->isPatronCancel = 0;
+					$statusQuery->whereAdd('isPatronCancel = 0 OR ISNULL(isPatronCancel)');
 					$materialsRequest->joinAdd($statusQuery, 'INNER', 'status', 'status', 'id');
 					$requestsThisYear = $materialsRequest->count();
 					$interface->assign('requestsThisYear', $requestsThisYear);

@@ -3265,6 +3265,9 @@ class User extends DataObject {
 				$formatCounts = $readingHistoryDB->fetchAll('count(format)');
 				$formatNames = $readingHistoryDB->fetchAll('format');
 				$summary->topFormats = $formatNames;
+				$summary->topFormat1 = $formatNames[0];
+				$summary->topFormat2 = count($formatNames) > 1 ?  $formatNames[1] : '';
+				$summary->topFormat3 = count($formatNames) > 2 ?  $formatNames[1] : '';
 
 				// Top series and top genres (from facets)
 				/** @var SearchObject_AbstractGroupedWorkSearcher $searchObject */
@@ -5452,7 +5455,7 @@ class User extends DataObject {
 			$homeLibrary = $library;
 		}
 
-		return isset($homeLibrary) ? $homeLibrary->maxOpenRequests : 5;
+		return isset($homeLibrary) ? $homeLibrary->maxActiveRequests : 5;
 	}
 
 	public function getNumMaterialsRequestsMaxPerYear() {
@@ -5480,13 +5483,13 @@ class User extends DataObject {
 		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestStatus.php';
 		$statusQueryNotCancelled = new MaterialsRequestStatus();
 		$statusQueryNotCancelled->libraryId = $homeLibrary->libraryId;
-		$statusQueryNotCancelled->isPatronCancel = 0;
+		$statusQueryNotCancelled->whereAdd('isPatronCancel = 0 OR ISNULL(isPatronCancel)');
 		$materialsRequests->joinAdd($statusQueryNotCancelled, 'INNER', 'status', 'status', 'id');
 
 		return $materialsRequests->count();
 	}
 
-	public function getNumOpenMaterialsRequests() {
+	public function getNumActiveMaterialsRequests() : int {
 		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php';
 		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestStatus.php';
 		$homeLibrary = $this->getHomeLibrary();
@@ -5497,7 +5500,7 @@ class User extends DataObject {
 
 		$statusQuery = new MaterialsRequestStatus();
 		$statusQuery->libraryId = $homeLibrary->libraryId;
-		$statusQuery->isOpen = 1;
+		$statusQuery->isActive = 1;
 
 		$materialsRequests = new MaterialsRequest();
 		$materialsRequests->createdBy = UserAccount::getActiveUserId();

@@ -258,7 +258,7 @@ class Library extends DataObject {
 	public $showAlternateLibraryOptionsInProfile;
 	public $additionalCss;
 	public $maxRequestsPerYear;
-	public $maxOpenRequests;
+	public $maxActiveRequests;
 	// Contact Links //
 	public $twitterLink;
 	public $facebookLink;
@@ -3411,11 +3411,11 @@ class Library extends DataObject {
 						'hideInLists' => true,
 						'default' => 60,
 					],
-					'maxOpenRequests' => [
-						'property' => 'maxOpenRequests',
+					'maxActiveRequests' => [
+						'property' => 'maxActiveRequests',
 						'type' => 'integer',
-						'label' => 'Max Open Requests',
-						'description' => 'The maximum number of requests that a user can have open at one time',
+						'label' => 'Max Active Requests',
+						'description' => 'The maximum number of active requests that a user can have at one time',
 						'hideInLists' => true,
 						'default' => 5,
 					],

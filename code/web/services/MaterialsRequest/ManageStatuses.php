@@ -25,14 +25,6 @@ class MaterialsRequest_ManageStatuses extends ObjectEditor {
 	function getAllObjects($page, $recordsPerPage): array {
 		$object = new MaterialsRequestStatus();
 
-		$homeLibrary = Library::getPatronHomeLibrary();
-		if (is_null($homeLibrary)) {
-			//User does not have a home library, this is likely an admin account.  Use the active library
-			global $library;
-			$homeLibrary = $library;
-		}
-
-		$object->libraryId = $homeLibrary->libraryId;
 		$this->applyFilters($object);
 
 		$object->orderBy('isDefault DESC');
@@ -46,6 +38,19 @@ class MaterialsRequest_ManageStatuses extends ObjectEditor {
 			$objectList[$object->id] = clone $object;
 		}
 		return $objectList;
+	}
+
+	function applyFilters(DataObject $object) : void {
+		if ($object instanceof MaterialsRequestStatus) {
+			$homeLibrary = Library::getPatronHomeLibrary();
+			if (is_null($homeLibrary)) {
+				//User does not have a home library, this is likely an admin account.  Use the active library
+				global $library;
+				$homeLibrary = $library;
+			}
+			$object->libraryId = $homeLibrary->libraryId;
+		}
+		parent::applyFilters($object);
 	}
 
 	function getDefaultSort(): string {
@@ -80,7 +85,7 @@ class MaterialsRequest_ManageStatuses extends ObjectEditor {
 	}
 
 	/** @noinspection PhpUnused */
-	function resetToDefault() {
+	function resetToDefault() : void {
 		$homeLibrary = Library::getPatronHomeLibrary();
 		if (is_null($homeLibrary)) {
 			//User does not have a home library, this is likely an admin account.  Use the active library

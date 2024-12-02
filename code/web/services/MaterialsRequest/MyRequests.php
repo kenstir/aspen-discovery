@@ -7,7 +7,7 @@ require_once ROOT_DIR . '/services/MyAccount/MyAccount.php';
 
 class MaterialsRequest_MyRequests extends MyAccount {
 
-	function launch() {
+	function launch() : void {
 		global $interface;
 
 		$showOpen = true;
@@ -22,7 +22,7 @@ class MaterialsRequest_MyRequests extends MyAccount {
 			$homeLibrary = $library;
 		}
 
-		$maxActiveRequests = isset($homeLibrary) ? $homeLibrary->maxOpenRequests : 5;
+		$maxActiveRequests = isset($homeLibrary) ? $homeLibrary->maxActiveRequests : 5;
 		$maxRequestsPerYear = isset($homeLibrary) ? $homeLibrary->maxRequestsPerYear : 60;
 		$interface->assign('maxActiveRequests', $maxActiveRequests);
 		$interface->assign('maxRequestsPerYear', $maxRequestsPerYear);
@@ -33,7 +33,7 @@ class MaterialsRequest_MyRequests extends MyAccount {
 		$defaultStatus->find(true);
 		$interface->assign('defaultStatus', $defaultStatus->id);
 
-		//Get a list of all materials requests for the user
+		//Get a list of all material requests for the user
 		$allRequests = [];
 		if (UserAccount::isLoggedIn()) {
 			$materialsRequests = new MaterialsRequest();
@@ -42,7 +42,7 @@ class MaterialsRequest_MyRequests extends MyAccount {
 
 			$statusQueryNotCancelled = new MaterialsRequestStatus();
 			$statusQueryNotCancelled->libraryId = $homeLibrary->libraryId;
-			$statusQueryNotCancelled->isPatronCancel = 0;
+			$statusQueryNotCancelled->whereAdd('isPatronCancel = 0 OR ISNULL(isPatronCancel)');
 			$materialsRequests->joinAdd($statusQueryNotCancelled, 'INNER', 'status', 'status', 'id');
 
 			$requestsThisYear = $materialsRequests->count();
@@ -50,7 +50,7 @@ class MaterialsRequest_MyRequests extends MyAccount {
 
 			$statusQuery = new MaterialsRequestStatus();
 			$statusQuery->libraryId = $homeLibrary->libraryId;
-			$statusQuery->isOpen = 1;
+			$statusQuery->isActive = 1;
 
 			$materialsRequests = new MaterialsRequest();
 			$materialsRequests->createdBy = UserAccount::getActiveUserId();
@@ -67,7 +67,7 @@ class MaterialsRequest_MyRequests extends MyAccount {
 			$statusQuery = new MaterialsRequestStatus();
 			if ($showOpen) {
 				$statusQuery->libraryId = $homeLibrary->libraryId;
-				$statusQuery->isOpen = 1;
+				$statusQuery->whereAdd('(isOpen = 1 OR isActive = 1)');
 			}
 			$materialsRequests->joinAdd($statusQuery, 'INNER', 'status', 'status', 'id');
 			$materialsRequests->selectAdd();

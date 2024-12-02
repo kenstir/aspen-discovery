@@ -373,9 +373,11 @@ class UInterface extends Smarty {
 				}
 				$tmpTheme = new Theme();
 				$tmpTheme->whereAddIn('id', $allIds, false);
-				$themeNames = $tmpTheme->fetchAll('id', 'displayName');
-				foreach ($allIds as $id) {
-					$allActiveThemes[$id] = $themeNames[$id];
+				if (count($allIds) > 0) {
+					$themeNames = $tmpTheme->fetchAll('id', 'displayName');
+					foreach ($allIds as $id) {
+						$allActiveThemes[$id] = $themeNames[$id];
+					}
 				}
 			}
 			if (UserAccount::isLoggedIn()) {

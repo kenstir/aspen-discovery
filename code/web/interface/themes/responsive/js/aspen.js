@@ -9312,7 +9312,7 @@ AspenDiscovery.Admin = (function () {
 			if (materialRequestType === "0" || materialRequestType === "2") {
 				$("#propertyRowexternalMaterialsRequestUrl").hide();
 				$("#propertyRowmaxRequestsPerYear").hide();
-				$("#propertyRowmaxOpenRequests").hide();
+				$("#propertyRowmaxActiveRequests").hide();
 				$("#propertyRowmaterialsRequestDaysToPreserve").hide();
 				$("#propertyRowmaterialsRequestFieldsToDisplay").hide();
 				$("#propertyRowmaterialsRequestFormats").hide();
@@ -9323,7 +9323,7 @@ AspenDiscovery.Admin = (function () {
 			} else if (materialRequestType === "1") {
 				$("#propertyRowexternalMaterialsRequestUrl").hide();
 				$("#propertyRowmaxRequestsPerYear").show();
-				$("#propertyRowmaxOpenRequests").show();
+				$("#propertyRowmaxActiveRequests").show();
 				$("#propertyRowmaterialsRequestDaysToPreserve").show();
 				$("#propertyRowmaterialsRequestFieldsToDisplay").show();
 				$("#propertyRowmaterialsRequestFormats").show();
@@ -9331,7 +9331,7 @@ AspenDiscovery.Admin = (function () {
 			} else if (materialRequestType === "3") {
 				$("#propertyRowexternalMaterialsRequestUrl").show();
 				$("#propertyRowmaxRequestsPerYear").hide();
-				$("#propertyRowmaxOpenRequests").hide();
+				$("#propertyRowmaxActiveRequests").hide();
 				$("#propertyRowmaterialsRequestDaysToPreserve").hide();
 				$("#propertyRowmaterialsRequestFieldsToDisplay").hide();
 				$("#propertyRowmaterialsRequestFormats").hide();

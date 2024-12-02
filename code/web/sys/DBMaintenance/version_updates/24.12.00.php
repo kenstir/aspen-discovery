@@ -116,6 +116,16 @@ function getUpdates24_12_00(): array {
 				'ALTER TABLE year_in_review_settings ADD COLUMN endDate int',
 			]
 		], //add_end_date_to_year_in_review_settings
+		'add_active_status_to_materials_requests' => [
+			'title' => 'Add Active Status to Materials Requests',
+			'description' => 'Add active status to Materials requests so they can be distinguished from open requests',
+			'continueOnError' => true,
+			'sql' => [
+				'ALTER TABLE library CHANGE COLUMN maxOpenRequests maxActiveRequests INT(11) DEFAULT 5',
+				'ALTER TABLE materials_request_status ADD COLUMN isActive TINYINT DEFAULT 0',
+				'UPDATE materials_request_status SET isActive = isOpen',
+			]
+		],
 
 		//katherine
 

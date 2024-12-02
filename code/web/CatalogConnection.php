@@ -247,7 +247,7 @@ class CatalogConnection {
 				$materialsRequest = new MaterialsRequest();
 				$materialsRequest->createdBy = $user->id;
 				$statusQuery = new MaterialsRequestStatus();
-				$statusQuery->isOpen = 1;
+				$statusQuery->whereAdd('(isOpen = 1 OR isActive = 1)');
 				$statusQuery->libraryId = $homeLibrary->libraryId;
 				$materialsRequest->joinAdd($statusQuery, 'INNER', 'status', 'status', 'id');
 				$materialsRequest->find();

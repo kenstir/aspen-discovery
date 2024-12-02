@@ -6148,7 +6148,7 @@ class UserAPI extends AbstractAPI {
 				'maxActiveRequests' => $user->getNumMaterialsRequestsMaxActive(),
 				'maxRequestsPerYear' => $user->getNumMaterialsRequestsMaxPerYear(),
 				'requestsThisYear' => $user->getNumMaterialsRequestsRequestsForYear(),
-				'openRequests' => $user->getNumOpenMaterialsRequests()
+				'openRequests' => $user->getNumActiveMaterialsRequests()
 			];
 		}
 
@@ -6193,6 +6193,7 @@ class UserAPI extends AbstractAPI {
 		];
 	}
 
+	/** @noinspection PhpUnused */
 	function createMaterialsRequest(): array {
 		if(empty($_REQUEST['format'])) {
 			return [
@@ -6205,7 +6206,7 @@ class UserAPI extends AbstractAPI {
 		$user = $this->getUserForApiCall();
 		if ($user && !($user instanceof AspenError)) {
 			global $library;
-			$openRequests = $user->getNumOpenMaterialsRequests();
+			$numActiveRequests = $user->getNumActiveMaterialsRequests();
 			$maxActiveRequests = $user->getNumMaterialsRequestsMaxActive();
 			$maxRequestsPerYear = $user->getNumMaterialsRequestsMaxPerYear();
 			require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php';
@@ -6213,6 +6214,7 @@ class UserAPI extends AbstractAPI {
 			$materialsRequest = new MaterialsRequest();
 			$materialsRequest->createdBy = $user->id;
 			$statusQuery = new MaterialsRequestStatus();
+			$statusQuery->isActive = 1;
 			$homeLibrary = $user->getHomeLibrary();
 			if (is_null($homeLibrary)) {
 				$homeLibrary = $library;
@@ -6224,7 +6226,7 @@ class UserAPI extends AbstractAPI {
 					'success' => false,
 					'title' => translate(['text' => 'Unable to complete request', 'isPublicFacing' => true]),
 					'message' => translate([
-						'text' => "You've already reached your maximum limit of %1% materials requests open at one time. Once we've processed your existing materials requests, you'll be able to submit again.",
+						'text' => "You've already reached your maximum limit of %1% materials requests that are active at one time. Once we've processed your existing materials requests, you'll be able to submit again.",
 						1 => $maxActiveRequests,
 						'isPublicFacing' => true,
 					]),
@@ -6328,7 +6330,7 @@ class UserAPI extends AbstractAPI {
 						1 => $requestsThisYear,
 						2 => $maxRequestsPerYear,
 						3 => $maxActiveRequests,
-						4 => $openRequests,
+						4 => $numActiveRequests,
 						'isPublicFacing' => true])
 				];
 			}

@@ -155,6 +155,7 @@ class LibraryLink extends DataObject {
 				'label' => 'Display only for',
 				'description' => 'Define what patron types should see the menu link',
 				'values' => $patronTypeList,
+				'hideInLists' => true,
 			],
 			'showLinkOn' => [
 				'property' => 'showLinkOn',

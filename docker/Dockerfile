@@ -30,6 +30,7 @@ RUN apt -y update \
 	  netcat-openbsd \
 	  inetutils-ping \
 	  rsync \
+	  man \
 	&& rm -rf /var/cache/apt/archives/* \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& rm -rf /etc/cron.*/*

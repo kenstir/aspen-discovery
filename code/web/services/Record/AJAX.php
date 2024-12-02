@@ -1963,10 +1963,18 @@ class Record_AJAX extends Action {
 				if ($item->itemId == $itemId) {
 					$relatedUrls = $item->getRelatedUrls();
 					foreach ($relatedUrls as $relatedUrl) {
-						return [
-							'success' => true,
-							'url' => $relatedUrl['url']
-						];
+						$libKeyLink = $this->getLibKeyUrl($relatedUrl['url']);
+						if (!empty($libKeyLink)) {
+							return [
+								'success' => true,
+								'url' => $libKeyLink
+							];
+						} else {
+							return [
+								'success' => true,
+								'url' => $relatedUrl['url']
+							];
+						}
 					}
 				}
 			}
@@ -1984,4 +1992,11 @@ class Record_AJAX extends Action {
 			'modalButtons' => "",
 		];
 	}
+
+	private function getLibKeyUrl($doiUrl) {
+		require_once ROOT_DIR . "/Drivers/LibKeyDriver.php";
+		$libKeyDriver = new LibKeyDriver();
+		return $libKeyDriver->getLibKeyLink($doiUrl);
+	}
 }
+

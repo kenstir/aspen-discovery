@@ -10,6 +10,7 @@ class HooplaRecordDriver extends GroupedWorkSubDriver {
 	private $hooplaExtract;
 	private $hooplaRawMetadata;
 	private $valid;
+	private $dateFirstDetected;
 
 	/**
 	 * Constructor.  We build the object using data from the Hoopla records stored on disk.
@@ -27,6 +28,7 @@ class HooplaRecordDriver extends GroupedWorkSubDriver {
 		if ($this->hooplaExtract->find(true)) {
 			$this->valid = true;
 			$this->hooplaRawMetadata = json_decode($this->hooplaExtract->rawResponse);
+			$this->dateFirstDetected = $this->hooplaExtract->dateFirstDetected;
 		} else {
 			$this->valid = false;
 			$this->hooplaExtract = null;
@@ -87,6 +89,8 @@ class HooplaRecordDriver extends GroupedWorkSubDriver {
 		$interface->assign('readerName', $readerName);
 
 		$interface->assign('bookcoverInfo', $this->getBookcoverInfo());
+
+		$interface->assign('dateFirstDetected', $this->dateFirstDetected);
 
 		$interface->assign('hooplaExtract', $this->hooplaRawMetadata);
 		return 'RecordDrivers/Hoopla/staff-view.tpl';

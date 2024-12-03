@@ -38,13 +38,19 @@
 			</p>
 		{/if}
 
+		{if !empty($harvard)}
+			<b>{translate text="Harvard Citation" isPublicFacing=true}</b> {if !empty($showCitationStyleGuides)}<span class="styleGuide"><a href="https://library-guides.ucl.ac.uk/harvard/a-z" target="_blank" aria-label="{translate text='style guide' isPublicFacing=true} ({translate text='opens in new window' isPublicFacing=true})">({translate text="style guide" isPublicFacing=true})</a></span>{/if}
+			<p style="width: 95%; padding-left: 25px; text-indent: -25px;">
+				{include file=$harvard}
+			</p>
+		{/if}
+
 		{if !empty($mla)}
 			<b>{translate text="MLA Citation, 9th Edition" isPublicFacing=true}</b> {if !empty($showCitationStyleGuides)}<span class="styleGuide"><a href="https://owl.purdue.edu/owl/research_and_citation/mla_style/mla_formatting_and_style_guide/mla_general_format.html" target="_blank" aria-label="{translate text='style guide' isPublicFacing=true} ({translate text='opens in new window' isPublicFacing=true})">({translate text="style guide" isPublicFacing=true})</a></span>{/if}
 			<p style="width: 95%; padding-left: 25px; text-indent: -25px;">
 				{include file=$mla}
 			</p>
 		{/if}
-
 	</div>
 	<div class="alert alert-warning">
 		<strong>{translate text="Note!" isPublicFacing=true}</strong> {translate text="Citations contain only title, author, edition, publisher, and year published. Citations should be used as a guideline and should be double checked for accuracy. Citation formats are based on standards as of August 2021." isPublicFacing=true}

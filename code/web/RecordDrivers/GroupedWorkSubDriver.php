@@ -129,6 +129,8 @@ abstract class GroupedWorkSubDriver extends RecordInterface {
 				return $citation->getChicagoHumanities();
 			case 'MLA':
 				return $citation->getMLA();
+			case 'Harvard':
+				return $citation->getHarvard();
 		}
 		return '';
 	}
@@ -147,6 +149,7 @@ abstract class GroupedWorkSubDriver extends RecordInterface {
 			'ChicagoHumanities',
 			'ChicagoAuthDate',
 			'MLA',
+			'Harvard',
 		];
 	}
 

@@ -43,6 +43,7 @@ class CitationBuilder {
 			'APA' => 'APA',
 			'ChicagoHumanities' => 'Chicago/Turabian - Humanities',
 			'ChicagoAuthDate' => 'Chicago/Turabian - Author Date',
+			'Harvard' => 'Harvard',
 			'MLA' => 'MLA',
 		];
 	}
@@ -165,6 +166,26 @@ class CitationBuilder {
 		];
 		$interface->assign('citeDetails', $citeDetails);
 		return 'Citation/chicago-humanities.tpl';
+	}
+
+	/**
+	 * This function assigns all the necessary variables and then returns a template
+	 * name to display a Harvard citation.
+	 * 
+	 * @access public
+	 * @return string
+	 */
+	public function getHarvard() {
+		global $interface;
+		$harvard = [
+			'title' => $this->getHarvardTitle(),
+			'authors' => $this->getHarvardAuthors(),
+			'publisher' => $this->getPublisher(),
+			'year' => $this->getHarvardYear(),
+			'edition' => $this->getHarvardEdition(),
+		];
+		$interface->assign('harvardDetails', $harvard);
+		return 'Citation/harvard.tpl';
 	}
 
 	/**
@@ -362,6 +383,36 @@ class CitationBuilder {
 	}
 
 	/**
+	 * Convert a string to sentence case
+	 * 
+	 * @access private
+	 * @param string $text
+	 * @return string
+	 */
+	private function convertToSentenceCase($text) {
+
+		$abbreviations = [];
+	
+		//Regex pattern to match common exceptions e.g. "R&B" and "USA"
+		$pattern = '/\b[A-Z&]+\b/';
+		//Generate placeholders for abbreviations that match the pattern
+		$text = preg_replace_callback($pattern, function($matches) use (&$abbreviations) {
+			$placeholder = '[[abbr_' . count($abbreviations) . ']]';
+			$abbreviations[$placeholder] = $matches[0];
+			//Replace abbreviation with placeholder
+			return $placeholder;
+		}, $text);
+
+		$text = strtolower($text);
+		$text = ucfirst($text);
+		//Replace placeholders with their original abbreviations - unchanged by strtolower		
+		foreach ($abbreviations as $placeholder => $abbr) {
+			$text = str_replace($placeholder, $abbr, $text);
+		}
+		return $text;
+	}
+
+	/**
 	 * Get the full title for an APA citation.
 	 *
 	 * @access  private
@@ -378,9 +429,31 @@ class CitationBuilder {
 		/*if (!((substr($title, -1) == '?') || (substr($title, -1) == '!'))) {
 			$title .= '.';
 		}*/
-
 		return $title;
 	}
+
+	/**
+	 * Get the full citation for a Harvard Title
+	 * 
+	 * @access private
+	 * @return string
+	 * 
+	 */
+	private function getHarvardTitle() {
+		$title = $this->convertToSentenceCase($this->stripPunctuation($this->details['title']));
+
+		if (isset($this->details['subtitle']) && strlen($this->details['subtitle']) > 0){
+			$subtitle = $this->convertToSentenceCase($this->stripPunctuation($this->details['subtitle']));
+			$subtitle = strtolower(substr($subtitle, 0, 1)) . substr($subtitle, 1);
+			$title .= ': ' . $subtitle;
+		}
+
+		if (!((substr($title, -1) == '?') || (substr($title, -1) == '!'))) {
+			$title .= '.';
+		}
+		return $title;
+	}
+
 
 	/**
 	 * Get an array of authors for an APA citation.
@@ -466,6 +539,40 @@ class CitationBuilder {
 		return (empty($authorStr) ? false : $authorStr);
 	}
 
+	/**
+	 * Get a string of authors for a Harvard citation
+	 * 
+	 * @access private
+	 * @return string
+	 * 
+	 */
+	private function getHarvardAuthors() {
+		$authorStr = ' ';
+		if (isset($this->details['authors']) && is_array($this->details['authors'])) {
+			$i = 0;
+			$numAuthors = count($this->details['authors']);
+			foreach($this->details['authors'] as $author) {
+				$author = $this->abbreviateName($author);
+				//After listing 8 authors, stop listing and add 'et al.'
+				if ($i == 7) {
+					$authorStr .= ' et al';
+					break;
+				}
+
+				//Add "and" for last author
+				if (($i +1 == $numAuthors || $i == 6) && ($i > 0)) {
+					$authorStr .= ' and ' . $this->stripPunctuation($author) . '.';
+				} elseif ($i > 0) {
+					$authorStr .= ', ' . $this->stripPunctuation($author) . '.';
+				} else {
+					$authorStr .= $this->stripPunctuation($author) . '.';
+				}
+				$i++;
+			}
+		}	
+		return (empty($authorStr) ? false: $authorStr);
+	}
+
 
 	/**
 	 * Get edition statement for inclusion in a citation.  Shared by APA and
@@ -489,7 +596,32 @@ class CitationBuilder {
 				}
 			}
 		}
+		// No edition statement found:
+		return false;
+	}
 
+	/**
+	 * Get edition statement for inclusion in a citation. Used for Harvard functionality.
+	 * 
+	 * @access private
+	 * @return string
+	 */
+	private function getHarvardEdition() {
+		if (isset($this->details['edition'])) {
+			if (is_array($this->details['edition'])) {
+				foreach ($this->details['edition'] as $edition) {
+					if ($edition !== '1st ed.'){
+						$edition =preg_replace('/\bedition\b/i', 'edn', $edition);
+						return $edition;
+					}
+				}
+			} else {
+				if ($this->details['edition'] !== '1st ed.') {
+					$edition = preg_replace('/\bedition\b/i', 'edn', $this->details['edition']);
+					return $edition;
+				}
+			}
+		}
 		// No edition statement found:
 		return false;
 	}
@@ -545,8 +677,8 @@ class CitationBuilder {
 	 */
 	private function getPublisher() {
 		$parts = [];
-		if (isset($this->details['pubPlace']) && !empty($this->details['pubPlace'])) {
-			$parts[] = $this->stripPunctuation($this->details['pubPlace']);
+		if (isset($this->details['placeOfPublication']) && !empty($this->details['placeOfPublication'])) {
+			$parts[] = $this->stripPunctuation($this->details['placeOfPublication']);
 		}
 		if (isset($this->details['pubName']) && !empty($this->details['pubName'])) {
 			$parts[] = $this->details['pubName'];
@@ -586,6 +718,24 @@ class CitationBuilder {
 		}
 		return false;
 	}
+
+	/**
+	 * Get the uear of publication for inclusion in a Harvard citation
+	 * 
+	 * @access private
+	 * @return string
+	 */
+
+	 private function getHarvardYear() {
+		if (isset($this->details['pubDate'])) {
+			$year = preg_replace('/[^0-9]/', '', $this->details['pubDate']);
+			if (strlen($year) === 4) {
+				return $year;
+			}
+		}
+		//Return "n.d." for missing or invalid dates
+		return 'n.d.';
+	 }
 }
 
 ?>

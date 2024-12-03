@@ -3193,7 +3193,193 @@ class User extends DataObject {
 		return $obj->count();
 	}
 
-	function getReadingHistorySize() {
+	function getReadingHistorySizeForYear($year) : int {
+		if ($this->isReadingHistoryEnabled()) {
+			$catalogDriver = $this->getCatalogDriver();
+			if ($this->trackReadingHistory && $this->initialReadingHistoryLoaded) {
+				require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+				$readingHistoryDB = new ReadingHistoryEntry();
+				$readingHistoryDB->userId = $this->id;
+				$readingHistoryDB->whereAdd('deleted = 0');
+				$yearStart = strtotime($year . '-01-01');
+				$yearEnd = strtotime(($year+1) . '-01-01');
+				$readingHistoryDB->whereAdd("checkOutDate >= $yearStart");
+				$readingHistoryDB->whereAdd("checkOutDate < $yearEnd");
+				$readingHistoryDB->groupBy('groupedWorkPermanentId, title, author');
+				return $readingHistoryDB->count();
+			}
+		}
+		return 0;
+	}
+
+	public function getReadingHistorySummaryForYear($year) : ?ReadingHistorySummary {
+		if ($this->isReadingHistoryEnabled()) {
+			$catalogDriver = $this->getCatalogDriver();
+			if ($this->trackReadingHistory && $this->initialReadingHistoryLoaded) {
+				require_once ROOT_DIR . '/sys/YearInReview/ReadingHistorySummary.php';
+				$summary = new ReadingHistorySummary();
+
+				//Generate Yearly checkouts
+				require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+				$readingHistoryDB = new ReadingHistoryEntry();
+				$readingHistoryDB->userId = $this->id;
+				$readingHistoryDB->whereAdd('deleted = 0');
+				$yearStart = strtotime($year . '-01-01');
+				$yearEnd = strtotime(($year+1) . '-01-01');
+				$readingHistoryDB->whereAdd("checkOutDate >= $yearStart");
+				$readingHistoryDB->whereAdd("checkOutDate < $yearEnd");
+				$readingHistoryDB->groupBy('groupedWorkPermanentId, title, author');
+
+				$summary->totalYearlyCheckouts = $readingHistoryDB->count();
+
+				// Top author
+				$readingHistoryDB->find();
+				while ($readingHistoryDB->fetch()) {
+					$author = strtolower(preg_replace('/[.|,]/', "", $readingHistoryDB->author));
+					if (!empty($author)) {
+						$authors[] = $author;
+					}
+					// Get grouped work IDs for Solr queries for top genres, top series, and recommendations
+					$groupedWorkIds[] = $readingHistoryDB->groupedWorkPermanentId;
+				}
+				$authorTotals = array_count_values($authors);
+				arsort($authorTotals);
+				// Only choose a top author if patron checked out more than 1 book
+				if (reset($authorTotals) > 1) {
+					$authorNames = explode(" ", key($authorTotals), 2);
+					$summary->topAuthor = ucwords(join(" ", array_reverse($authorNames)));
+				}
+
+				// Top Format
+				$readingHistoryDB = new ReadingHistoryEntry();
+				$readingHistoryDB->userId = $this->id;
+				$readingHistoryDB->whereAdd('deleted = 0');
+				$yearStart = strtotime($year . '-01-01');
+				$yearEnd = strtotime(($year+1) . '-01-01');
+				$readingHistoryDB->whereAdd("checkOutDate >= $yearStart");
+				$readingHistoryDB->whereAdd("checkOutDate < $yearEnd");
+				$readingHistoryDB->groupBy('format');
+				$readingHistoryDB->orderBy('count(format) DESC');
+				$readingHistoryDB->limit(0, 3);
+
+				$formatCounts = $readingHistoryDB->fetchAll('count(format)');
+				$formatNames = $readingHistoryDB->fetchAll('format');
+				$summary->topFormats = $formatNames;
+				$summary->topFormat1 = $formatNames[0];
+				$summary->topFormat2 = count($formatNames) > 1 ?  $formatNames[1] : '';
+				$summary->topFormat3 = count($formatNames) > 2 ?  $formatNames[1] : '';
+
+				// Top series and top genres (from facets)
+				/** @var SearchObject_AbstractGroupedWorkSearcher $searchObject */
+				$searchObject = SearchObjectFactory::initSearchObject();
+				$searchObject->init();
+				$searchObject->disableSpelling();
+				$searchObject->disableLogging();
+				$searchObject->setQueryIDs(array_slice($groupedWorkIds, 0, 500));
+				$searchObject->setPage(1);
+				$searchObject->setLimit(10);
+				$genreFacet = new LibraryFacetSetting();
+				$genreFacet->facetName = 'genre_facet';
+				$genreFacet->displayName = 'genre';
+				$genreFacet->showAboveResults = false;
+				$searchObject->addFacet('genre_facet', $genreFacet);
+				$seriesFacet = new LibraryFacetSetting();
+				$seriesFacet->facetName = 'series_facet';
+				$seriesFacet->displayName = 'series';
+				$seriesFacet->showAboveResults = false;
+				$searchObject->addFacet('series_facet', $seriesFacet);
+				$authorFacet = new LibraryFacetSetting();
+				$authorFacet->facetName = 'authorStr';
+				$authorFacet->displayName = 'author';
+				$searchObject->addFacet('authorStr', $authorFacet);
+				$results = $searchObject->processSearch(true, true);
+				if ($results['facet_counts'] && $results['facet_counts']['facet_fields'] && $results['facet_counts']['facet_fields']['series_facet']) {
+					$seriesFacets = array_slice($results['facet_counts']['facet_fields']['series_facet'], 0, 2);
+					foreach ($seriesFacets as $series) {
+						$summary->topSeries[] = $series[0];
+					}
+				}
+				if ($results['facet_counts'] && $results['facet_counts']['facet_fields'] && $results['facet_counts']['facet_fields']['genre_facet']) {
+					$genreFacets = array_slice($results['facet_counts']['facet_fields']['genre_facet'], 0, 3);
+					foreach ($genreFacets as $genres) {
+						$summary->topGenres[] = $genres[0];
+					}
+				}
+				$searchObject->close();
+
+				// Recommendations
+				/** @var SearchObject_AbstractGroupedWorkSearcher $searchObject */
+				$searchObject = SearchObjectFactory::initSearchObject();
+				$searchObject->init();
+				$searchObject->disableSpelling();
+				$searchObject->disableLogging();
+				$idsToBaseSuggestionsOn = [];
+				foreach ($groupedWorkIds as $groupedWorkId) {
+					$idsToBaseSuggestionsOn[] = [
+						'workId' => $groupedWorkId,
+						'rating' => '5',
+					];
+				}
+				$recommendations = $searchObject->getMoreLikeThese($idsToBaseSuggestionsOn, 1, 3);
+				if ($recommendations['response'] && $recommendations['response']['docs']) {
+					foreach ($recommendations['response']['docs'] as $doc) {
+						if ($doc['author_display']) {
+							$summary->recommendations[] = $doc['title_display'] . " by " . $doc['author_display'];
+						} else {
+							$summary->recommendations[] = $doc['title_display'];
+						}
+					}
+				}
+				$searchObject->close();
+
+				//Cost Savings By Year
+				require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
+				$yearlyCostSavings = $this->getCostSavingsByYear($year);
+				if ($yearlyCostSavings > 0) {
+					$summary->yearlyCostSavings = StringUtils::formatCurrency($yearlyCostSavings);
+				}
+
+				$minCheckouts = 10000;
+				$minCheckoutMonth = 0;
+				$maxCheckouts = 0;
+				$maxCheckoutMonth = 0;
+				for ($month = 1; $month <= 12; $month++) {
+					$readingHistoryDB = new ReadingHistoryEntry();
+					$readingHistoryDB->userId = $this->id;
+					$readingHistoryDB->whereAdd('deleted = 0');
+					$monthStart = strtotime("$year-$month-01");
+					$monthEnd = strtotime(($year+1) . "-$month-01");
+					$readingHistoryDB->whereAdd("checkOutDate >= $monthStart");
+					$readingHistoryDB->whereAdd("checkOutDate < $monthEnd");
+					$readingHistoryDB->groupBy('groupedWorkPermanentId, title, author');
+
+					$numMonthlyCheckouts = $readingHistoryDB->count();
+					if ($numMonthlyCheckouts < $minCheckouts) {
+						$minCheckouts = $numMonthlyCheckouts;
+						$minCheckoutMonth = $month;
+					}
+					if ($numMonthlyCheckouts > $maxCheckouts) {
+						$maxCheckouts = $numMonthlyCheckouts;
+						$maxCheckoutMonth = $month;
+					}
+					$summary->monthlyCheckouts[$month] = $numMonthlyCheckouts;
+				}
+
+				$summary->topMonth = $maxCheckoutMonth;
+				$summary->maxMonthlyCheckouts = $maxCheckouts;
+				$summary->averageCheckouts = ceil($summary->totalYearlyCheckouts / 12);
+
+
+				return $summary;
+			}else{
+				return null;
+			}
+		}else{
+			return null;
+		}
+	}
+
+	function getReadingHistorySize() : int {
 		if ($this->_readingHistorySize == null) {
 			if ($this->isReadingHistoryEnabled()) {
 				$catalogDriver = $this->getCatalogDriver();
@@ -4725,16 +4911,20 @@ class User extends DataObject {
 	}
 
 	public function getCostSavingsByYear($year) : float{
-		$startTimeStamp = strtotime($year . '-01-01');
-		$endTimeStamp = strtotime(($year + 1) . '-01-01');
+		if ($this->enableCostSavings) {
+			$startTimeStamp = strtotime($year . '-01-01');
+			$endTimeStamp = strtotime(($year + 1) . '-01-01');
 
-		require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
-		$readingHistoryEntry = new ReadingHistoryEntry();
-		$readingHistoryEntry->userId = $this->id;
-		$readingHistoryEntry->whereAdd("checkOutDate >= $startTimeStamp AND checkOutDate < $endTimeStamp", 'AND');
-		$readingHistoryEntry->selectAdd('SUM(costSavings) as costSavings');
-		if ($readingHistoryEntry->find(true)) {
-			return (float)$readingHistoryEntry->costSavings;
+			require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+			$readingHistoryEntry = new ReadingHistoryEntry();
+			$readingHistoryEntry->userId = $this->id;
+			$readingHistoryEntry->whereAdd("checkOutDate >= $startTimeStamp AND checkOutDate < $endTimeStamp", 'AND');
+			$readingHistoryEntry->selectAdd('SUM(costSavings) as costSavings');
+			if ($readingHistoryEntry->find(true)) {
+				return (float)$readingHistoryEntry->costSavings;
+			} else {
+				return 0;
+			}
 		}else{
 			return 0;
 		}
@@ -5265,7 +5455,7 @@ class User extends DataObject {
 			$homeLibrary = $library;
 		}
 
-		return isset($homeLibrary) ? $homeLibrary->maxOpenRequests : 5;
+		return isset($homeLibrary) ? $homeLibrary->maxActiveRequests : 5;
 	}
 
 	public function getNumMaterialsRequestsMaxPerYear() {
@@ -5288,18 +5478,24 @@ class User extends DataObject {
 		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php';
 		$materialsRequests = new MaterialsRequest();
 		$materialsRequests->createdBy = $this->id;
-		$materialsRequests->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+		if ($homeLibrary->yearlyRequestLimitType == 0) {
+			$materialsRequests->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+		}else{
+			$currentYear = date('Y');
+			$januaryOne = strtotime("01-01-$currentYear");
+			$materialsRequests->whereAdd("dateCreated >= $januaryOne");
+		}
 
 		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestStatus.php';
 		$statusQueryNotCancelled = new MaterialsRequestStatus();
 		$statusQueryNotCancelled->libraryId = $homeLibrary->libraryId;
-		$statusQueryNotCancelled->isPatronCancel = 0;
+		$statusQueryNotCancelled->whereAdd('isPatronCancel = 0 OR ISNULL(isPatronCancel)');
 		$materialsRequests->joinAdd($statusQueryNotCancelled, 'INNER', 'status', 'status', 'id');
 
 		return $materialsRequests->count();
 	}
 
-	public function getNumOpenMaterialsRequests() {
+	public function getNumActiveMaterialsRequests() : int {
 		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequest.php';
 		require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestStatus.php';
 		$homeLibrary = $this->getHomeLibrary();
@@ -5310,7 +5506,7 @@ class User extends DataObject {
 
 		$statusQuery = new MaterialsRequestStatus();
 		$statusQuery->libraryId = $homeLibrary->libraryId;
-		$statusQuery->isOpen = 1;
+		$statusQuery->isActive = 1;
 
 		$materialsRequests = new MaterialsRequest();
 		$materialsRequests->createdBy = UserAccount::getActiveUserId();
@@ -5368,6 +5564,27 @@ class User extends DataObject {
 				$localIllForm->id = $homeLocation->localIllFormId;
 				if ($localIllForm->find(true)) {
 					$results = $this->getCatalogDriver()->submitLocalIllRequest($this, $localIllForm);
+					if ($results['success']) {
+						$thisUser = translate([
+							'text' => 'You',
+							'isPublicFacing' => true,
+						]);
+						if (!empty($this->parentUser)) {
+							$thisUser = $this->displayName;
+						}
+						$viewHoldsText = translate([
+							'text' => 'On Hold for %1%',
+							1 => $thisUser,
+							'isPublicFacing' => true,
+							'inAttribute' => true
+						]);
+						$recordId = $_REQUEST['catalogKey'] ?? '';
+						$results['viewHoldsAction'] = "<a id='onHoldAction$recordId' href='/MyAccount/Holds' class='btn btn-sm btn-info btn-wrap' title='$viewHoldsText'>$viewHoldsText</a>";
+
+						$this->clearCache();
+
+						$this->forceReloadOfHolds();
+					}
 				} else {
 					$results = [
 						'title' => translate([
@@ -5409,9 +5626,60 @@ class User extends DataObject {
 			];
 		}
 	}
+
+	private function loadYearInReviewInfo() : void {
+		if ($this->_hasYearInReview == null) {
+			$this->_hasYearInReview = false;
+			$this->_yearInReviewResults = false;
+			$this->_yearInReviewSetting = false;
+			try {
+				require_once ROOT_DIR . '/sys/YearInReview/UserYearInReview.php';
+				require_once ROOT_DIR . '/sys/YearInReview/YearInReviewSetting.php';
+				$userYearInReview = new UserYearInReview();
+				$userYearInReview->userId = $this->id;
+				$userYearInReview->wrappedActive = true;
+				if ($userYearInReview->find(true)){
+					$this->_yearInReviewResults = $userYearInReview->wrappedResults;
+					$yearInReviewSetting = new YearInReviewSetting();
+					$yearInReviewSetting->id = $userYearInReview->settingId;
+					if ($yearInReviewSetting->find(true)) {
+						$this->_yearInReviewSetting = $yearInReviewSetting;
+						global $interface;
+						$interface->assign('yearInReviewName', $yearInReviewSetting->name);
+						$this->_hasYearInReview = true;
+					}
+				}
+			}catch (Exception $e) {
+				//We get an exception if the tables are not setup, ignore
+			}
+		}
+	}
+
+	private $_hasYearInReview;
+	private $_yearInReviewSetting;
+	private $_yearInReviewResults;
+	public function hasYearInReview() : bool {
+		$this->loadYearInReviewInfo();
+		return $this->_hasYearInReview;
+	}
+
+	public function getYearInReviewSetting() : YearInReviewSetting|false {
+		//Use the side effect of has Year
+		$this->loadYearInReviewInfo();
+		return $this->_yearInReviewSetting;
+	}
+
+	public function getYearInReviewResults() : ?stdClass {
+		$this->loadYearInReviewInfo();
+		if (empty($this->_yearInReviewResults)){
+			return null;
+		}else{
+			return json_decode($this->_yearInReviewResults);
+		}
+	}
 }
 
-function modifiedEmpty($var) {
+function modifiedEmpty($var) : bool {
 	// specified values of zero will not be considered empty
 	return empty($var) && $var !== 0 && $var !== '0';
 }

@@ -5027,7 +5027,18 @@ var AspenDiscovery = (function(){
 			});
 		},
 
-		showMessage: function(title, body, autoClose, refreshAfterClose){
+		showMessage: function(title, body, autoClose, refreshAfterClose, largeModal, hideTitle){
+			if (largeModal === undefined || largeModal === false) {
+				aspenJQ('#modalDialog').removeClass('modal-dialog-large');
+			}else{
+				aspenJQ('#modalDialog').addClass('modal-dialog-large');
+			}
+			if (hideTitle !== undefined && hideTitle === true) {
+				aspenJQ('.modal-header').hide();
+			}else{
+				aspenJQ('.modal-header').show();
+			}
+
 			//	 autoclose is treated as an on/off switch. Default timeout interval of 3 seconds.
 			// if refreshAfterClose is set but not autoClose, the page will reload when the box is closed by the user.
 			if (autoClose === undefined){
@@ -5057,12 +5068,23 @@ var AspenDiscovery = (function(){
 			}
 		},
 
-		showMessageWithButtons: function(title, body, buttons, refreshAfterClose, closeDestination){
+		showMessageWithButtons: function(title, body, buttons, refreshAfterClose, closeDestination, largeModal, hideTitle){
+			if (largeModal === undefined || largeModal === false) {
+				aspenJQ('.modal-dialog').removeClass('modal-dialog-large');
+			}else{
+				aspenJQ('.modal-dialog').addClass('modal-dialog-large');
+			}
+			if (hideTitle !== undefined && hideTitle === true) {
+				aspenJQ('.modal-header').hide();
+			}else{
+				aspenJQ('.modal-header').show();
+			}
 			if (refreshAfterClose === undefined){
 				refreshAfterClose = false;
 			}
 			aspenJQ("#myModalLabel").html(title);
 			aspenJQ(".modal-body").html(body);
+			aspenJQ('.modal-body [data-toggle="tooltip"]').tooltip();
 			aspenJQ('.modal-buttons').html(buttons);
 			if (closeDestination !== undefined) {
 				Globals.modalCloseDestination = closeDestination;
@@ -8271,6 +8293,19 @@ AspenDiscovery.Account = (function () {
 					return AspenDiscovery.Account.markILSMessageAsUnread(id);
 				}, false);
 			}
+		},
+		viewYearInReview: function(slideNumber) {
+			if (slideNumber === undefined) {
+				slideNumber = 1;
+			}
+			$.getJSON(Globals.path + "/MyAccount/AJAX?method=getYearInReviewSlide&slide=" + slideNumber, function(data){
+				if (data.success) {
+					AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons, false, '', true, true);
+				} else{
+					AspenDiscovery.showMessage(data.title, data.message);
+				}
+			}).fail(AspenDiscovery.ajaxFail);
+			return false;
 		}
 	};
 }(AspenDiscovery.Account || {}));
@@ -9277,7 +9312,7 @@ AspenDiscovery.Admin = (function () {
 			if (materialRequestType === "0" || materialRequestType === "2") {
 				$("#propertyRowexternalMaterialsRequestUrl").hide();
 				$("#propertyRowmaxRequestsPerYear").hide();
-				$("#propertyRowmaxOpenRequests").hide();
+				$("#propertyRowmaxActiveRequests").hide();
 				$("#propertyRowmaterialsRequestDaysToPreserve").hide();
 				$("#propertyRowmaterialsRequestFieldsToDisplay").hide();
 				$("#propertyRowmaterialsRequestFormats").hide();
@@ -9288,7 +9323,7 @@ AspenDiscovery.Admin = (function () {
 			} else if (materialRequestType === "1") {
 				$("#propertyRowexternalMaterialsRequestUrl").hide();
 				$("#propertyRowmaxRequestsPerYear").show();
-				$("#propertyRowmaxOpenRequests").show();
+				$("#propertyRowmaxActiveRequests").show();
 				$("#propertyRowmaterialsRequestDaysToPreserve").show();
 				$("#propertyRowmaterialsRequestFieldsToDisplay").show();
 				$("#propertyRowmaterialsRequestFormats").show();
@@ -9296,7 +9331,7 @@ AspenDiscovery.Admin = (function () {
 			} else if (materialRequestType === "3") {
 				$("#propertyRowexternalMaterialsRequestUrl").show();
 				$("#propertyRowmaxRequestsPerYear").hide();
-				$("#propertyRowmaxOpenRequests").hide();
+				$("#propertyRowmaxActiveRequests").hide();
 				$("#propertyRowmaterialsRequestDaysToPreserve").hide();
 				$("#propertyRowmaterialsRequestFieldsToDisplay").hide();
 				$("#propertyRowmaterialsRequestFormats").hide();
@@ -14125,6 +14160,14 @@ AspenDiscovery.Record = (function(){
 					document.body.style.cursor = "default";
 					if (data.success) {
 						AspenDiscovery.showMessage(data.title, data.message, false, false);
+						var existingButton = $("#onHoldAction" + id);
+						if (existingButton.length === 0) {
+							$(data.viewHoldsAction).insertBefore('#actionButton' + id);
+							$(data.viewHoldsAction).insertBefore('#relatedRecordactionButton' + id);
+						}
+						if (!data.autologout){
+							AspenDiscovery.Account.loadMenuData();
+						}
 					} else {
 						AspenDiscovery.showMessage(data.title, data.message, false, false);
 					}
@@ -14283,7 +14326,7 @@ AspenDiscovery.Record = (function(){
 						document.querySelector('.fa-spinner').classList.add('hidden');
 						$('.modal-body').html(data.message);
 					}else if (data.needsIllRequest){
-						AspenDiscovery.showMessageWithButtons(data.title, data.message, data.modalButtons);
+						AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons);
 					}else{
 						AspenDiscovery.showMessage(data.title, data.message, false, data.autologout);
 						var existingButton = $("#onHoldAction" + id);

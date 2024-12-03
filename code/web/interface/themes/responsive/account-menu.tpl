@@ -30,11 +30,11 @@
 						<a href="/MyAccount/PaymentHistory">{translate text='Payment History' isPublicFacing=true}</a>
 					</div>
 				{/if}
-                {if !empty($enableNotificationHistory)}
+				 {if !empty($enableNotificationHistory)}
 					<div class="header-menu-option">
 						<a href="/MyAccount/NotificationHistory">{translate text='Notification History' isPublicFacing=true}</a>
 					</div>
-                {/if}
+				{/if}
 			{/if}
 			{if $user->canSuggestMaterials()}
 				{if $materialRequestType == 1 && $enableAspenMaterialsRequest && $displayMaterialsRequest}
@@ -76,6 +76,13 @@
 				<div class="header-menu-option" >
 					<a href="/MyAccount/ReadingHistory">
 						{translate text="Reading History" isPublicFacing=true}
+					</a>
+				</div>
+			{/if}
+			{if !empty($userHasCatalogConnection) && $hasYearInReview}
+				<div class="header-menu-option" >
+					<a onclick="return AspenDiscovery.Account.viewYearInReview(1);">
+						{translate text=$yearInReviewName isPublicFacing=true}
 					</a>
 				</div>
 			{/if}

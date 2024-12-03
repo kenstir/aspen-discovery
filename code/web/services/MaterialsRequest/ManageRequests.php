@@ -12,7 +12,7 @@ class MaterialsRequest_ManageRequests extends Admin_Admin {
 
 		//Load status information
 		$materialsRequestStatus = new MaterialsRequestStatus();
-		$materialsRequestStatus->orderBy('isDefault DESC, isOpen DESC, description ASC');
+		$materialsRequestStatus->orderBy('isDefault DESC, isOpen DESC, isActive DESC, description ASC');
 		$homeLibrary = Library::getPatronHomeLibrary();
 		$user = UserAccount::getLoggedInUser();
 		if (is_null($homeLibrary)) {
@@ -28,7 +28,7 @@ class MaterialsRequest_ManageRequests extends Admin_Admin {
 		$defaultStatusesToShow = [];
 		while ($materialsRequestStatus->fetch()) {
 			$availableStatuses[$materialsRequestStatus->id] = $materialsRequestStatus->description;
-			if ($materialsRequestStatus->isOpen == 1 || $materialsRequestStatus->isDefault == 1) {
+			if ($materialsRequestStatus->isOpen == 1 || $materialsRequestStatus->isActive == 1 || $materialsRequestStatus->isDefault == 1) {
 				$defaultStatusesToShow[] = $materialsRequestStatus->id;
 			}
 		}

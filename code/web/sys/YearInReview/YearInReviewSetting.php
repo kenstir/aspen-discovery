@@ -6,9 +6,14 @@ class YearInReviewSetting extends DataObject {
 	public $id;
 	public $name;
 	public $year;
+	/** @noinspection PhpUnused */
 	public $staffStartDate;
+	/** @noinspection PhpUnused */
 	public $patronStartDate;
+	public $endDate;
 
+	/** @noinspection PhpUnused */
+	protected $_promoMessage;
 	protected $_libraries;
 
 	public function getNumericColumnNames(): array {
@@ -44,6 +49,14 @@ class YearInReviewSetting extends DataObject {
 				],
 				'description' => 'The year for the Year in review',
 			],
+			'promoMessage' => [
+				'property' => 'promoMessage',
+				'type' => 'translatableTextBlock',
+				'label' => 'Promo Message To Display to the patron',
+				'description' => 'Provide information about the Year In Review so patrons know the functionality exists.',
+				'defaultTextFile' => 'YearInReview_promoMessage.MD',
+				'hideInLists' => true,
+			],
 			'staffStartDate' => [
 				'property' => 'staffStartDate',
 				'type' => 'timestamp',
@@ -60,6 +73,14 @@ class YearInReviewSetting extends DataObject {
 				'required' => true,
 				'unsetLabel' => 'No end date',
 			],
+			'endDate' => [
+				'property' => 'endDate',
+				'type' => 'timestamp',
+				'label' => 'End Date to Show',
+				'description' => 'The last date to show year in review',
+				'readOnly' => true,
+				'unsetLabel' => 'No end date',
+			],
 			'libraries' => [
 				'property' => 'libraries',
 				'type' => 'multiSelect',
@@ -67,7 +88,6 @@ class YearInReviewSetting extends DataObject {
 				'label' => 'Libraries',
 				'description' => 'Define libraries that see this system message',
 				'values' => $libraryList,
-				'hideInLists' => true,
 			],
 		];
 	}
@@ -107,17 +127,21 @@ class YearInReviewSetting extends DataObject {
 	 * @see DB/DB_DataObject::update()
 	 */
 	public function update($context = '') {
+		$this->__set('endDate', strtotime($this->year + 1  . '-02-01'));
 		$ret = parent::update();
 		if ($ret !== FALSE) {
 			$this->saveLibraries();
+			$this->saveTextBlockTranslations('promoMessage');
 		}
 		return $ret;
 	}
 
 	public function insert($context = '') {
+		$this->__set('endDate', strtotime($this->year + 1  . '-02-01'));
 		$ret = parent::insert();
 		if ($ret !== FALSE) {
 			$this->saveLibraries();
+			$this->saveTextBlockTranslations('promoMessage');
 		}
 		return $ret;
 	}
@@ -150,5 +174,190 @@ class YearInReviewSetting extends DataObject {
 				}
 			}
 		}
+	}
+
+	public function getSlide(User $patron, int|string $slideNumber) : array {
+		$result = [
+			'success' => false,
+			'title' => translate([
+				'text' => 'Error',
+				'isPublicFacing' => true,
+			]),
+			'message' => translate([
+				'text' => 'Unknown error loading year in review slide.',
+				'isPublicFacing' => true,
+			]),
+		];
+
+		//Load slide configuration for the year
+		$configurationFile = ROOT_DIR . "/year_in_review/$this->year.json";
+		if (file_exists($configurationFile)) {
+			$slideConfiguration = json_decode(file_get_contents($configurationFile));
+			$userYearInResults = $patron->getYearInReviewResults();
+			if ($userYearInResults !== false) {
+				if ($slideNumber > 0 && $slideNumber <= $userYearInResults->numSlidesToShow) {
+					$slideIndex = $userYearInResults->slidesToShow[$slideNumber - 1];
+					$slideInfo = $slideConfiguration->slides[$slideIndex - 1];
+					$result['success'] = true;
+					$result['title'] = translate([
+						'text' => $slideInfo->title,
+						'isPublicFacing' => true,
+					]);
+
+					foreach ($slideInfo->overlay_text as $overlayText) {
+						foreach ($userYearInResults->userData as $field => $value) {
+							$overlayText->text = str_replace("{" . $field . "}", $value, $overlayText->text);
+						}
+					}
+
+					$result['slideConfiguration'] = $slideInfo;
+					$result['modalBody'] = $this->formatSlide($slideInfo, $patron, $slideNumber, $this->year);
+
+					$modalButtons = '';
+					if ($slideNumber > 1) {
+						$modalButtons .= '<button type="button" class="btn btn-default" onclick="return AspenDiscovery.Account.viewYearInReview(' . $slideNumber - 1 . ')">' . translate([
+								'text' => 'Previous',
+								'isPublicFacing' => true,
+								'inAttribute' => true,
+							]) . '</button>';
+					}
+					if ($slideNumber < $userYearInResults->numSlidesToShow) {
+						$modalButtons .= '<button type="button" class="btn btn-primary" onclick="return AspenDiscovery.Account.viewYearInReview(' . $slideNumber + 1 . ')">' . translate([
+								'text' => 'Next',
+								'isPublicFacing' => true,
+								'inAttribute' => true,
+							]) . '</button>';
+					}
+					$result['modalButtons'] = $modalButtons;
+				} else {
+					$result['message'] = translate([
+						'text' => 'Invalid slide number',
+						'isPublicFacing' => true,
+					]);
+				}
+			}else{
+				$result['message'] = translate([
+					'text' => 'Unable to find year in review data',
+					'isPublicFacing' => true,
+				]);
+			}
+		}else{
+			$result['message'] = translate([
+				'text' => 'Unable to find year in review configuration file',
+				'isPublicFacing' => true,
+			]);
+		}
+
+		return $result;
+	}
+
+	private function formatSlide(stdClass $slideInfo, User $patron, int $slideNumber, string|int $year) : string {
+		global $interface;
+		$interface->assign('slideNumber', $slideNumber);
+		$interface->assign('slideInfo', $slideInfo);
+		return $interface->fetch('YearInReview/slide.tpl');
+	}
+
+	public function getSlideImage(User $patron, int|string $slideNumber) : bool {
+		//Load slide configuration for the year
+		$gotImage = true;
+		$configurationFile = ROOT_DIR . "/year_in_review/$this->year.json";
+		if (file_exists($configurationFile)) {
+			$slideConfiguration = json_decode(file_get_contents($configurationFile));
+			$userYearInResults = $patron->getYearInReviewResults();
+			if ($userYearInResults !== false) {
+				if ($slideNumber > 0 && $slideNumber <= $userYearInResults->numSlidesToShow) {
+					$slideIndex = $userYearInResults->slidesToShow[$slideNumber - 1];
+					$slideInfo = $slideConfiguration->slides[$slideIndex - 1];
+
+					foreach ($slideInfo->overlay_text as $overlayText) {
+						foreach ($userYearInResults->userData as $field => $value) {
+							$overlayText->text = str_replace("{" . $field . "}", $value, $overlayText->text);
+						}
+					}
+
+					$gotImage = $this->createSlideImage($slideInfo);
+				}
+			}
+		}
+
+		return $gotImage;
+	}
+
+	private function createSlideImage(stdClass $slideInfo) : ?string {
+		$gotImage = false;
+		if (count($slideInfo->overlay_text) == 0) {
+			//This slide is not dynamic, we just return the static contents
+		}else{
+			require_once ROOT_DIR . '/sys/Covers/CoverImageUtils.php';
+			global $configArray;
+			//Get the background image for the slide
+			$backgroundImageFile = ROOT_DIR . '/year_in_review/images/' . $slideInfo->background;
+			$backgroundImageFile = realpath($backgroundImageFile);
+			$backgroundImage = imagecreatefrompng($backgroundImageFile);
+			$backgroundImageInfo = getimagesize($backgroundImageFile);
+			$backgroundWidth = $backgroundImageInfo[0];
+			$backgroundHeight = $backgroundImageInfo[1];
+			//Create a canvas for the slide
+			$slideCanvas = imagecreatetruecolor($backgroundWidth, $backgroundHeight);
+			//Display the background to the slide
+			imagecopy($slideCanvas, $backgroundImage, 0, 0, 0, 0, $backgroundWidth, $backgroundHeight);
+
+			$font = ROOT_DIR . '/fonts/JosefinSans-Bold.ttf';
+			$white = imagecolorallocate($slideCanvas, 255, 255, 255);
+			$black = imagecolorallocate($slideCanvas, 0, 0, 0);
+
+			//Add overlay text to the image
+			foreach ($slideInfo->overlay_text as $overlayText) {
+				$overlayWidth = $overlayText->width;
+				if (str_ends_with($overlayWidth,'%')) {
+					$percent = str_replace('%', '', $overlayWidth) / 100;
+					$textWidth = $backgroundWidth * $percent;
+				}else{
+					$textWidth = $overlayWidth;
+				}
+				$fontSize = $overlayText->font_size;
+				if (str_ends_with($fontSize,'em')) {
+					$fontSize = str_replace('em', '', $fontSize) * 16;
+				}
+				$left = $overlayText->left;
+				if (str_ends_with($left,'%')) {
+					$percent = str_replace('%', '', $left) / 100;
+					$left = $backgroundWidth * $percent;
+				}elseif (str_ends_with($left,'px')) {
+					$left = str_replace('px', '', $left);
+				}
+				$top = $overlayText->top;
+				if (str_ends_with($top,'%')) {
+					$percent = str_replace('%', '', $top) / 100;
+					$top = $backgroundWidth * $percent;
+				}elseif (str_ends_with($top,'px')) {
+					$top = str_replace('px', '', $top);
+				}
+
+				if ($overlayText == 'white') {
+					$color = $white;
+				}else{
+					$color = $black;
+				}
+
+				[
+					$totalHeight,
+					$lines,
+				] = wrapTextForDisplay($font, $overlayText->text, $fontSize, $fontSize * .1, $textWidth);
+				if ($overlayText->align == 'center') {
+					addCenteredWrappedTextToImage($slideCanvas, $font, $lines, $fontSize, $fontSize * .1, $left, $top, $textWidth, $color);
+				}else{
+					addWrappedTextToImage($slideCanvas, $font, $lines, $fontSize, $fontSize * .1, $left, $top, $color);
+				}
+			}
+
+			//Output the image to the browser
+			imagepng($slideCanvas);
+			imagedestroy($slideCanvas);
+			$gotImage = true;
+		}
+
+		return $gotImage;
 	}
 }

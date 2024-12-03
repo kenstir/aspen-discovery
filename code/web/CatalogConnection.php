@@ -247,7 +247,7 @@ class CatalogConnection {
 				$materialsRequest = new MaterialsRequest();
 				$materialsRequest->createdBy = $user->id;
 				$statusQuery = new MaterialsRequestStatus();
-				$statusQuery->isOpen = 1;
+				$statusQuery->whereAdd('(isOpen = 1 OR isActive = 1)');
 				$statusQuery->libraryId = $homeLibrary->libraryId;
 				$materialsRequest->joinAdd($statusQuery, 'INNER', 'status', 'status', 'id');
 				$materialsRequest->find();
@@ -868,7 +868,7 @@ class CatalogConnection {
 	 * @return array        Array of the patron's holds
 	 * @access public
 	 */
-	public function getHolds($user): array {
+	public function getHolds(User $user): array {
 		return $this->driver->getHolds($user);
 	}
 

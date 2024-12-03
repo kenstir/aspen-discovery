@@ -95,7 +95,7 @@
 											</a>
 										</li>
 									{/if}
-									{if $user->hasInterlibraryLoan()}
+                                    {if $user->getInterlibraryLoanType() == 'vdx'}
 										<li class="myAccountLink">
 											&nbsp;&nbsp;&raquo;&nbsp;
 											<a href="/MyAccount/Holds?tab=interlibrary_loan" id="holdsInterlibraryLoan" title="View Interlibrary Loan Requests">
@@ -179,7 +179,7 @@
 							{/if}
 
 							{if empty($offline)}
-								{if $showRatings || $enableSavedSearches || (($enableReadingHistory && $enableCostSavings) && $userHasCatalogConnection) || $showFavorites}
+								{if $showRatings || $enableSavedSearches || (($enableReadingHistory || $enableCostSavings) && $userHasCatalogConnection) || $showFavorites}
 									<hr class="menu">
 								{/if}
 								{if !empty($showRatings)}
@@ -207,6 +207,11 @@
 											{translate text="Reading History" isPublicFacing=true} {if empty($offline)}<span class="badge"><span class="readingHistory-placeholder">??</span></span>{/if}
 										</a>
 									</div>
+									{if $hasYearInReview}
+										<ul class="account-submenu">
+											<li class="myAccountLink">&nbsp;&nbsp;&raquo;&nbsp;<a onclick="return AspenDiscovery.Account.viewYearInReview(1);">{translate text=$yearInReviewName isPublicFacing=true} <span class="badge"><span>{translate text="View Now" isPublicFacing=true}</span></span></a></li>
+										</ul>
+									{/if}
 								{/if}
 								{if !empty($enableCostSavings) && $userHasCatalogConnection}
 									<div class="myAccountLink">

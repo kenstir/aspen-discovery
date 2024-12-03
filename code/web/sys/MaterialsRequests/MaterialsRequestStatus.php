@@ -11,6 +11,7 @@ class MaterialsRequestStatus extends DataObject {
 	public $sendEmailToPatron;
 	public $emailTemplate;
 	public $isOpen;
+	public $isActive;
 	public $isPatronCancel;
 	public $checkForHolds;
 	public $holdPlacedSuccessfully;
@@ -32,6 +33,7 @@ class MaterialsRequestStatus extends DataObject {
 			'isDefault',
 			'sendEmailToPatron',
 			'isOpen',
+			'isActive',
 			'isPatronCancel',
 			'checkForHolds',
 			'holdPlacedSuccessfully',
@@ -88,7 +90,13 @@ class MaterialsRequestStatus extends DataObject {
 				'property' => 'isOpen',
 				'type' => 'checkbox',
 				'label' => 'Open Status?',
-				'description' => 'Whether this status needs further processing',
+				'description' => 'Whether this status needs further processing and is shown by default to patrons and staff',
+			],
+			'isActive' => [
+				'property' => 'isActive',
+				'type' => 'checkbox',
+				'label' => 'Active Status?',
+				'description' => "Whether requests with this status count against the patron's maximum active requests",
 			],
 			'checkForHolds' => [
 				'property' => 'checkForHolds',

@@ -258,7 +258,8 @@ class Library extends DataObject {
 	public $showAlternateLibraryOptionsInProfile;
 	public $additionalCss;
 	public $maxRequestsPerYear;
-	public $maxOpenRequests;
+	public $yearlyRequestLimitType;
+	public $maxActiveRequests;
 	// Contact Links //
 	public $twitterLink;
 	public $facebookLink;
@@ -378,48 +379,6 @@ class Library extends DataObject {
 	//Summon Settings
 	public $summonSettingsId;
 	public $showAvailableCoversInSummon;
-
-	//SSO
-	public /** @noinspection PhpUnused */
-		$ssoName;
-	public /** @noinspection PhpUnused */
-		$ssoXmlUrl;
-	public /** @noinspection PhpUnused */
-		$ssoMetadataFilename;
-	public /** @noinspection PhpUnused */
-		$ssoEntityId;
-	public /** @noinspection PhpUnused */
-		$ssoUniqueAttribute;
-	public /** @noinspection PhpUnused */
-		$ssoIdAttr;
-	public /** @noinspection PhpUnused */
-		$ssoUsernameAttr;
-	public /** @noinspection PhpUnused */
-		$ssoFirstnameAttr;
-	public /** @noinspection PhpUnused */
-		$ssoLastnameAttr;
-	public /** @noinspection PhpUnused */
-		$ssoEmailAttr;
-	public /** @noinspection PhpUnused */
-		$ssoDisplayNameAttr;
-	public /** @noinspection PhpUnused */
-		$ssoPhoneAttr;
-	public /** @noinspection PhpUnused */
-		$ssoPatronTypeAttr;
-	public /** @noinspection PhpUnused */
-		$ssoPatronTypeFallback;
-	public /** @noinspection PhpUnused */
-		$ssoAddressAttr;
-	public /** @noinspection PhpUnused */
-		$ssoCityAttr;
-	public /** @noinspection PhpUnused */
-		$ssoLibraryIdAttr;
-	public /** @noinspection PhpUnused */
-		$ssoLibraryIdFallback;
-	public /** @noinspection PhpUnused */
-		$ssoCategoryIdAttr;
-	public /** @noinspection PhpUnused */
-		$ssoCategoryIdFallback;
 
 	//Combined Results (Bento Box)
 	public /** @noinspection PhpUnused */
@@ -1215,194 +1174,6 @@ class Library extends DataObject {
 					],
 				],
 			],
-			/*'ssoSection' => [
-				'property' => 'ssoSection',
-				'type' => 'section',
-				'label' => 'Single Sign-on',
-				'hideInLists' => true,
-				'properties' => [
-					'ssoName' => [
-						'property' => 'ssoName',
-						'type' => 'text',
-						'label' => 'Name of service',
-						'description' => 'The name to be displayed when referring to the authentication service',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoXmlUrl' => [
-						'property' => 'ssoXmlUrl',
-						'type' => 'text',
-						'label' => 'URL of service metadata XML',
-						'description' => 'The URL at which the metadata XML document for this identity provider can be obtained',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoMetadataFilename' => [
-						'path' => "/data/aspen-discovery/$serverName/sso_metadata/",
-						'property' => 'ssoMetadataFilename',
-						'type' => 'file',
-						'label' => 'XML metadata file',
-						'description' => 'The XML metadata file if no URL is available',
-						'readOnly' => true,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoEntityId' => [
-						'property' => 'ssoEntityId',
-						'type' => 'text',
-						'label' => 'Entity ID of SSO provider',
-						'description' => 'The entity ID of the SSO IdP. This can be found in the IdP\'s metadata',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoUniqueAttribute' => [
-						'property' => 'ssoUniqueAttribute',
-						'type' => 'text',
-						'label' => 'Name of the identity provider attribute that uniquely identifies a user',
-						'description' => 'This should be unique to each user',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoIdAttr' => [
-						'property' => 'ssoIdAttr',
-						'type' => 'text',
-						'label' => 'Name of the identity provider attribute that contains the user ID',
-						'description' => 'This should be unique to each user',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoUsernameAttr' => [
-						'property' => 'ssoUsernameAttr',
-						'type' => 'text',
-						'label' => 'Name of the identity provider attribute that contains the user\'s username',
-						'description' => 'The user\'s username',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoFirstnameAttr' => [
-						'property' => 'ssoFirstnameAttr',
-						'type' => 'text',
-						'label' => 'Name of the identity provider attribute that contains the user\'s first name',
-						'description' => 'The user\'s first name',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoLastnameAttr' => [
-						'property' => 'ssoLastnameAttr',
-						'type' => 'text',
-						'label' => 'Name of the identity provider attribute that contains the user\'s last name',
-						'description' => 'The user\'s last name',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoEmailAttr' => [
-						'property' => 'ssoEmailAttr',
-						'type' => 'text',
-						'label' => 'Name of the identity provider attribute that contains the user\'s email address',
-						'description' => 'The user\'s email address',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoDisplayNameAttr' => [
-						'property' => 'ssoDisplayNameAttr',
-						'type' => 'text',
-						'label' => 'Name of the identity provider attribute that contains the user\'s display name',
-						'description' => 'The user\'s display name, if one is not supplied, a name for display will be assembled from first and last names',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoPhoneAttr' => [
-						'property' => 'ssoPhoneAttr',
-						'type' => 'text',
-						'label' => 'Name of the identity provider attribute that contains the user\'s phone number',
-						'description' => 'The user\'s phone number',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoAddressAttr' => [
-						'property' => 'ssoAddressAttr',
-						'type' => 'text',
-						'label' => 'Name of the identity provider attribute that contains the user\'s address',
-						'description' => 'The user\'s address',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoCityAttr' => [
-						'property' => 'ssoCityAttr',
-						'type' => 'text',
-						'label' => 'Name of the identity provider attribute that contains the user\'s city',
-						'description' => 'The user\'s city',
-						'size' => '512',
-						'hideInLists' => false,
-						'permissions' => ['Library ILS Connection'],
-					],
-					'ssoPatronTypeSection' => [
-						'property' => 'ssoPatronTypeSection',
-						'type' => 'section',
-						'label' => 'Patron type',
-						'hideInLists' => true,
-						'permissions' => ['Library ILS Options'],
-						'properties' => [
-							'ssoPatronTypeFallback' => [
-								'property' => 'ssoPatronTypeFallback',
-								'type' => 'text',
-								'label' => 'A fallback value for patron type',
-								'description' => 'A value to be used in the event the identity provider does not supply a patron type attribute, this should be a value that is recognised by Aspen.',
-								'size' => '512',
-								'hideInLists' => false,
-								'permissions' => ['Library ILS Connection'],
-							],
-						],
-					],
-					'ssoLibraryIdSection' => [
-						'property' => 'ssoLibraryIdSection',
-						'type' => 'section',
-						'label' => 'Library ID',
-						'hideInLists' => true,
-						'permissions' => ['Library ILS Options'],
-						'properties' => [
-							/'ssoLibraryIdFallback' => [
-								'property' => 'ssoLibraryIdFallback',
-								'type' => 'text',
-								'label' => 'A fallback value for library ID',
-								'description' => 'A value to be used in the event the identity provider does not supply a library ID attribute, this should be an ID that is recognised by your LMS',
-								'size' => '512',
-								'hideInLists' => false,
-								'permissions' => ['Library ILS Connection'],
-							],
-						],
-					],
-					'ssoCategoryIdSection' => [
-						'property' => 'ssoCategoryIdSection',
-						'type' => 'section',
-						'label' => 'Patron category ID',
-						'hideInLists' => true,
-						'permissions' => ['Library ILS Options'],
-						'properties' => [
-							'ssoCategoryIdFallback' => [
-								'property' => 'ssoCategoryIdFallback',
-								'type' => 'text',
-								'label' => 'A fallback value for category ID',
-								'description' => 'A value to be used in the event the identity provider does not supply a category ID attribute, this should be an ID that is recognised by your LMS',
-								'size' => '512',
-								'hideInLists' => false,
-								'permissions' => ['Library ILS Connection'],
-							],
-						],
-					],
-				],
-			],*/
 
 			// ILS/Account Integration //
 			'ilsSection' => [
@@ -2157,7 +1928,7 @@ class Library extends DataObject {
 								'description' => 'Whether or not the user can cancel available holds.',
 								'hideInLists' => true,
 								'default' => 0,
-								'note' => 'Applies to Polaris Only',
+								'note' => 'Applies to Polaris and Symphony Only',
 								'permissions' => ['Library ILS Connection'],
 							],
 							'allowCancellingInTransitHolds' => [
@@ -3411,11 +3182,23 @@ class Library extends DataObject {
 						'hideInLists' => true,
 						'default' => 60,
 					],
-					'maxOpenRequests' => [
-						'property' => 'maxOpenRequests',
+					'yearlyRequestLimitType' => [
+						'property' => 'yearlyRequestLimitType',
+						'type' => 'enum',
+						'values' => [
+							0 => 'Rolling Year',
+							1 => 'Calendar Year'
+						],
+						'label' => 'Yearly Request Limit Type',
+						'description' => 'Sets the method of determining the yearly request limit',
+						'hideInLists' => true,
+						'default' => 0,
+					],
+					'maxActiveRequests' => [
+						'property' => 'maxActiveRequests',
 						'type' => 'integer',
-						'label' => 'Max Open Requests',
-						'description' => 'The maximum number of requests that a user can have open at one time',
+						'label' => 'Max Active Requests',
+						'description' => 'The maximum number of active requests that a user can have at one time',
 						'hideInLists' => true,
 						'default' => 5,
 					],
@@ -5251,7 +5034,11 @@ class Library extends DataObject {
 					$overdriveScopeIds[] = $libraryOverDriveScope->scopeId;
 				}
 				$overdriveScope->whereAddIn('id', $overdriveScopeIds, false);
-				$this->_overdriveScopes = $overdriveScope->fetchAll(null, null, false, true);
+				if (empty($overdriveScopeIds)) {
+					$this->_overdriveScopes = [];
+				}else{
+					$this->_overdriveScopes = $overdriveScope->fetchAll(null, null, false, true);
+				}
 			}
 		}
 		return $this->_overdriveScopes;

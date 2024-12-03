@@ -1,0 +1,168 @@
+{
+  "slides": [
+    {
+      "title": "Your 2024 Shelved",
+      "background" : "2024_1.png",
+      "overlay_text" : []
+    },
+    {
+      "title": "Your Borrower Experience Points",
+      "background" : "2024_2a.png",
+      "overlay_text" : [
+        {
+          "text": "You checked out {totalCheckouts} titles in 2024.",
+          "left": "525px",
+          "top": "325px",
+          "width": "40%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "2em",
+          "align": "center"
+        },
+        {
+          "text": "And saved {yearlyCostSavings}!",
+          "left": "525px",
+          "top": "450px",
+          "width": "40%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "2em",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "title": "Your Borrower Experience Points",
+      "background" : "2024_2b.png",
+      "overlay_text" : [
+        {
+          "text": "You checked out <strong>{totalCheckouts}</strong> titles in 2024.",
+          "left": "43%",
+          "top": "45%",
+          "width": "40%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "2em",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "title": "Your Hot Month",
+      "background" : "2024_3a.png",
+      "overlay_text" : [
+        {
+          "text": "In {topMonth}, you borrowed the most from the library.",
+          "left": "225px",
+          "top": "200px",
+          "width": "40%",
+          "height": "20%",
+          "color" : "white",
+          "font_size": "2.5em",
+          "align": "left"
+        }
+      ]
+    },
+    {
+      "title": "Every Month was Your Busy Month",
+      "background" : "2024_3b.png",
+      "overlay_text" : [
+        {
+          "text": "You were a steady user of the library this year with a checkout average of {averageCheckouts} per month. What kept you coming back for more?",
+          "left": "20%",
+          "top": "35%",
+          "width": "40%",
+          "height": "20%",
+          "color" : "white",
+          "font_size": "2em",
+          "align": "left"
+        }
+      ]
+    },
+    {
+      "title": "Top Formats",
+      "background" : "2024_4.png",
+      "overlay_text" : [
+        {
+          "text": "Your favorite ways to engage: {topFormats}",
+          "left": "25%",
+          "top": "325px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "1.5em",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "title": "Favorite Genres",
+      "background" : "2024_5.png",
+      "overlay_text" : [
+        {
+          "text": "You dove into {topGenres} this year. Such impeccable taste!",
+          "left": "25%",
+          "top": "325px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "1.5em",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "title": "Author You Couldn't Put Down",
+      "background" : "2024_6.png",
+      "overlay_text" : [
+        {
+          "text": "You checked out multiple titles by {topAuthor}.",
+          "left": "25%",
+          "top": "325px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "1.5em",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "title": "Top Series",
+      "background" : "2024_7.png",
+      "overlay_text" : [
+        {
+          "text": "{topSeries} kept you hooked in 2024!",
+          "left": "25%",
+          "top": "325px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "1.5em",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "title": "Your 2025 Forecast",
+      "background" : "2024_8.png",
+      "overlay_text" : [
+        {
+          "text": "You might like these titles based on your 2024 picks:\n {recommendations}",
+          "left": "25%",
+          "top": "325px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "1.5em",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "title": "Thank you for using the library!",
+      "background" : "2024_9.png",
+      "overlay_text" : []
+    }
+  ]
+}

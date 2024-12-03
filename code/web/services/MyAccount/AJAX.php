@@ -8696,4 +8696,81 @@ class MyAccount_AJAX extends JSON_Action {
 
 		return $result;
 	}
+
+	function getYearInReviewSlide() : array {
+		$result = [
+			'success' => false,
+			'title' => translate([
+				'text' => 'Error',
+				'isPublicFacing' => true,
+			]),
+			'message' => translate([
+				'text' => 'Unknown error loading year in review slide.',
+				'isPublicFacing' => true,
+			]),
+		];
+
+		if (UserAccount::isLoggedIn()) {
+			$patron = UserAccount::getActiveUserObj();
+
+			//TODO: Take this out, the data should already be generated at this point
+			require_once ROOT_DIR . '/sys/YearInReview/YearInReviewGenerator.php';
+			generateYearInReview($patron);
+
+			if ($patron->hasYearInReview()) {
+				$slideNumber = $_REQUEST['slide'] ?? 1;
+				if (is_numeric($slideNumber)){
+					$yearInReviewSettings = $patron->getYearInReviewSetting();
+					$result = $yearInReviewSettings->getSlide($patron, (int)$slideNumber);
+				}else{
+					$result['message'] = translate([
+						'text' => "Invalid Slide Number.",
+						'isPublicFacing' => true,
+					]);
+				}
+			}else{
+				$result['message'] = translate([
+					'text' => "Year in Review is not active for your account.",
+					'isPublicFacing' => true,
+				]);
+			}
+		}else{
+			$result['message'] = translate([
+				'text' => "You must be logged in.  Please close this dialog and login to view your Year in Review.",
+				'isPublicFacing' => true,
+			]);
+		}
+
+		return $result;
+	}
+
+	function getYearInReviewSlideImage() {
+		$gotImage = false;
+		//This returns an image to the browser
+		if (UserAccount::isLoggedIn()) {
+			$patron = UserAccount::getActiveUserObj();
+
+			//TODO: Take this out, the data should already be generated at this point
+			require_once ROOT_DIR . '/sys/YearInReview/YearInReviewGenerator.php';
+			generateYearInReview($patron);
+
+			if ($patron->hasYearInReview()) {
+				$slideNumber = $_REQUEST['slide'] ?? 1;
+				if (is_numeric($slideNumber)) {
+					$yearInReviewSettings = $patron->getYearInReviewSetting();
+					$gotImage = $yearInReviewSettings->getSlideImage($patron, (int)$slideNumber);
+				}
+			}
+		}
+		if (!$gotImage) {
+			global $interface;
+			$interface->assign('module', 'Error');
+			$interface->assign('action', 'Handle404');
+			$module = 'Error';
+			$action = 'Handle404';
+			require_once ROOT_DIR . "/services/Error/Handle404.php";
+		}
+		//Since this returns an image, don't return
+		die();
+	}
 }

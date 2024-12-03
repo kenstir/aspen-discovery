@@ -707,7 +707,7 @@ public class GroupedWorkIndexer {
 
 	public void commitChangesWithWait(){
 		try {
-			updateServer.commit(true, false, true);
+			updateServer.commit(false, false, true);
 		}catch (Exception e) {
 			logEntry.incErrors("Error committing changes ", e);
 		}
@@ -796,7 +796,7 @@ public class GroupedWorkIndexer {
 		if (fullReindex) {
 			try {
 				logEntry.addNote("Calling final commit");
-				updateServer.commit(true, true, false);
+				updateServer.commit(false, false, true);
 			} catch (Exception e) {
 				logEntry.incErrors("Error calling final commit", e);
 			}

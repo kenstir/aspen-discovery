@@ -478,6 +478,8 @@ class EbscoRecordDriver extends RecordInterface {
 				return $citation->getChicagoHumanities();
 			case 'MLA':
 				return $citation->getMLA();
+			case 'Harvard':
+				return $citation->getHarvard();
 		}
 		return '';
 	}

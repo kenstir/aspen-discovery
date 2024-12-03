@@ -10,11 +10,11 @@ require_once ROOT_DIR . '/sys/MaterialsRequests/MaterialsRequestStatus.php';
  */
 class MaterialsRequest_Results extends Action {
 
-	function launch() {
+	function launch() : void {
 		global $interface;
 		global $library;
 
-		$maxActiveRequests = $library->maxOpenRequests;
+		$maxActiveRequests = $library->maxActiveRequests;
 		$maxRequestsPerYear = $library->maxRequestsPerYear;
 		$accountPageLink = '/MaterialsRequest/MyRequests';
 		$interface->assign('accountPageLink', $accountPageLink);
@@ -33,15 +33,21 @@ class MaterialsRequest_Results extends Action {
 					$homeLibrary = $library;
 				}
 				$statusQuery->libraryId = $homeLibrary->libraryId;
-				$statusQuery->isOpen = 1;
+				$statusQuery->isActive = 1;
 				$materialsRequestCounts->joinAdd($statusQuery, 'INNER', 'status', 'status', 'id');
 				$openRequests = $materialsRequestCounts->count();
 
 				$materialsRequestCounts = new MaterialsRequest();
 				$materialsRequestCounts->createdBy = UserAccount::getActiveUserId();
-				$materialsRequestCounts->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+				if ($homeLibrary->yearlyRequestLimitType == 0) {
+					$materialsRequestCounts->whereAdd('dateCreated >= unix_timestamp(now() - interval 1 year)');
+				}else{
+					$currentYear = date('Y');
+					$januaryOne = strtotime("01-01-$currentYear");
+					$materialsRequestCounts->whereAdd("dateCreated >= $januaryOne");
+				}
 				$statusQuery = new MaterialsRequestStatus();
-				$statusQuery->isPatronCancel = 0;
+				$statusQuery->whereAdd('isPatronCancel = 0 OR ISNULL(isPatronCancel)');
 				$materialsRequestCounts->joinAdd($statusQuery, 'INNER', 'status', 'status', 'id');
 				$requestsThisYear = $materialsRequestCounts->count();
 

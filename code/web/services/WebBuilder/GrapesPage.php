@@ -40,6 +40,7 @@ class WebBuilder_GrapesPage extends Action {
 		global $interface;
 
 		$title = $this->grapesPage->title;
+		$showTitleOnPage = $this->grapesPage->showTitleOnPage;
 		$interface->assign('id', $this->grapesPage->id);
 		$interface->assign('contents', $this->grapesPage->getFormattedContents());
 		$canEdit = UserAccount::userHasPermission(	'Administer All Grapes Pages',
@@ -56,6 +57,7 @@ class WebBuilder_GrapesPage extends Action {
 		}
 		$interface->assign('templateContent', $templateContent);
 		$interface->assign('title', $title);
+		$interface->assign('showTitleOnPage', $showTitleOnPage);
 
 		$this->display('grapesPage.tpl', $title, '', false);
 	}

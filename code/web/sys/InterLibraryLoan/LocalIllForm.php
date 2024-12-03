@@ -9,6 +9,7 @@ class LocalIllForm extends DataObject {
 	//We always show title
 	public $showAcceptFee;
 	public $requireAcceptFee;
+	public $defaultMaxFee;
 	public $showMaximumFee;
 	public $feeInformationText;
 	//We always show the Note field.
@@ -58,6 +59,13 @@ class LocalIllForm extends DataObject {
 				'type' => 'checkbox',
 				'label' => 'Show Maximum Fee?',
 				'description' => 'Whether or not the user should be prompted for the maximum fee they will pay',
+			],
+			'defaultMaxFee' => [
+				'property' => 'defaultMaxFee',
+				'type' => 'text',
+				'label' => 'Default Maximum Fee',
+				'description' => 'The Default Maximum Fee to show to the patron.',
+				'default' => 0
 			],
 			'feeInformationText' => [
 				'property' => 'feeInformationText',
@@ -166,15 +174,17 @@ class LocalIllForm extends DataObject {
 		if ($this->introText) {
 			$fields['introText'] = [
 				'property' => 'introText',
-				'type' => 'label',
-				'label' => $this->introText,
+				'type' => 'alert',
+				'alertType' => 'alert-info',
+				'label' => 'Introductory Text',
+				'default' => $this->introText,
 				'description' => '',
 			];
 		}
 		require_once ROOT_DIR . '/sys/Utils/StringUtils.php';
 		$fields['title'] = [
 			'property' => 'title',
-			'type' => 'text',
+			'type' => 'label',
 			'label' => 'Title',
 			'description' => 'The title of the title to be requested',
 			'maxLength' => 255,
@@ -198,7 +208,7 @@ class LocalIllForm extends DataObject {
 					'type' => 'currency',
 					'label' => 'Maximum Fee ',
 					'description' => 'The maximum fee you are willing to pay to have this title transferred to the library.',
-					'default' => 0,
+					'default' => $this->defaultMaxFee ?? 0,
 					'displayFormat' => '%0.2f',
 				];
 				$fields['acceptFee'] = [
@@ -241,11 +251,12 @@ class LocalIllForm extends DataObject {
 		];
 		$fields['note'] = [
 			'property' => 'note',
-			'type' => 'textarea',
+			'type' => 'text',
 			'label' => 'Note',
 			'description' => 'Any additional information you want us to have about this request',
 			'required' => false,
 			'default' => ($volumeInfo == null) ? '' : $volumeInfo,
+			'maxLength' => 40
 		];
 		$fields['catalogKey'] = [
 			'property' => 'catalogKey',
@@ -324,7 +335,8 @@ class LocalIllForm extends DataObject {
 				'isPublicFacing' => true,
 			]),
 			'required' => false,
-			'maxLength' => 255,
+			'maxLength' => 10,
+			'default' => $this->defaultMaxFee ?? 0
 		];
 
 		$fields['acceptFee'] = [
@@ -340,7 +352,7 @@ class LocalIllForm extends DataObject {
 		];
 
 		$fields['note'] = [
-			'type' => 'textarea',
+			'type' => 'text',
 			'property' => 'note',
 			'display' => 'show',
 			'label' => translate([
@@ -352,7 +364,7 @@ class LocalIllForm extends DataObject {
 				'isPublicFacing' => true,
 			]),
 			'required' => false,
-			'maxLength' => 255,
+			'maxLength' => 40,
 		];
 
 		$fields['catalogKey'] = [

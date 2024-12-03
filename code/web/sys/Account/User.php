@@ -5679,7 +5679,7 @@ class User extends DataObject {
 	}
 }
 
-function modifiedEmpty($var) {
+function modifiedEmpty($var) : bool {
 	// specified values of zero will not be considered empty
 	return empty($var) && $var !== 0 && $var !== '0';
 }

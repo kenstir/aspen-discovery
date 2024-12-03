@@ -899,6 +899,7 @@ abstract class AbstractIlsDriver extends AbstractDriver {
 	public function submitLocalIllRequest(User $patron, LocalIllForm $localIllForm) : array {
 		return [
 			'success' => false,
+			'title' => 'An error occurred',
 			'message' => 'This functionality has not been implemented for this ILS',
 		];
 	}

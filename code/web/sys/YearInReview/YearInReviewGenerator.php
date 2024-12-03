@@ -63,14 +63,33 @@ function generateYearInReview(User $patron) : void {
 						}
 
 						//Top formats
-						if ($readingHistorySummary->topFormats) {
+						if (!empty($readingHistorySummary->topFormats)) {
 							$yearInReviewData->userData['topFormats'] = join("\n", $readingHistorySummary->topFormats);
+							$formatNames = array_values($readingHistorySummary->topFormats);
+							$yearInReviewData->userData['topFormat1'] = $formatNames[0];
+							$yearInReviewData->userData['topFormat2'] = count($formatNames) > 1 ?  $formatNames[1] : '';
+							$yearInReviewData->userData['topFormat3'] = count($formatNames) > 2 ?  $formatNames[2] : '';
 							$slidesToShow[] = 6;
 						}
 
 						//Top genres
-						if ($readingHistorySummary->topGenres) {
-							$yearInReviewData->userData['topGenres'] = join(" and ", $readingHistorySummary->topGenres);
+						if (!empty($readingHistorySummary->topGenres)) {
+							if (count($readingHistorySummary->topGenres) == 1){
+								$yearInReviewData->userData['topGenres'] = $readingHistorySummary->topGenres[0];
+							}elseif (count($readingHistorySummary->topGenres) == 2){
+								$yearInReviewData->userData['topGenres'] = join("\n", [
+									$readingHistorySummary->topGenres[0],
+									'and',
+									$readingHistorySummary->topGenres[1]
+								]);
+							}elseif(count($readingHistorySummary->topGenres) == 3){
+								$yearInReviewData->userData['topGenres'] = join("\n", [
+									$readingHistorySummary->topGenres[0],
+									$readingHistorySummary->topGenres[1],
+									'and',
+									$readingHistorySummary->topGenres[2]
+								]);
+							}
 							$slidesToShow[] = 7;
 						}
 
@@ -88,7 +107,7 @@ function generateYearInReview(User $patron) : void {
 
 						//Recommendations
 						if ($readingHistorySummary->recommendations) {
-							$yearInReviewData->userData['recommendations'] = join("\n", $readingHistorySummary->recommendations);
+							$yearInReviewData->userData['recommendations'] = join("\n\n", $readingHistorySummary->recommendations);
 							$slidesToShow[] = 10;
 						}
 

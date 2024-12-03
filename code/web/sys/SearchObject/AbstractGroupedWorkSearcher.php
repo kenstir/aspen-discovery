@@ -366,6 +366,7 @@ abstract class SearchObject_AbstractGroupedWorkSearcher extends SearchObject_Sol
 	 * @param array $ids Record IDs to load
 	 */
 	public function setQueryIDs($ids) {
+		$this->searchType = 'basic';
 		$this->query = 'id:(' . implode(' OR ', $ids) . ')';
 	}
 

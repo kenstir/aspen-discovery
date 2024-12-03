@@ -3265,9 +3265,6 @@ class User extends DataObject {
 				$formatCounts = $readingHistoryDB->fetchAll('count(format)');
 				$formatNames = $readingHistoryDB->fetchAll('format');
 				$summary->topFormats = $formatNames;
-				$summary->topFormat1 = $formatNames[0];
-				$summary->topFormat2 = count($formatNames) > 1 ?  $formatNames[1] : '';
-				$summary->topFormat3 = count($formatNames) > 2 ?  $formatNames[1] : '';
 
 				// Top series and top genres (from facets)
 				/** @var SearchObject_AbstractGroupedWorkSearcher $searchObject */

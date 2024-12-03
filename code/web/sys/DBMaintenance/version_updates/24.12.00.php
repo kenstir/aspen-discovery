@@ -53,6 +53,13 @@ function getUpdates24_12_00(): array {
 				"INSERT INTO role_permissions(roleId, permissionId) VALUES ((SELECT roleId from roles where name='opacAdmin'), (SELECT id from permissions where name='Administer All Local ILL Forms'))",
 			],
 		], //local_ill_forms
+		'local_ill_form_default_max_fee' => [
+			'title' => 'Local ILL Form - Default Max Fee',
+			'description' => 'Local ILL Form - Default Max Fee',
+			'sql' => [
+				'ALTER TABLE local_ill_form ADD COLUMN defaultMaxFee VARCHAR(10) DEFAULT 0.00'
+			]
+		], //local_ill_form_default_max_fee
 		'copyVDXFormsToLocalIllForms' => [
 			'title' => 'Copy VDX Forms to Local ILL Forms',
 			'description' => 'Copy VDX Forms to Local ILL Forms',

@@ -1097,6 +1097,7 @@ class SirsiDynixROA extends HorizonAPI {
 	 */
 	public function getHolds($patron): array {
 		require_once ROOT_DIR . '/sys/User/Hold.php';
+		global $library;
 		$availableHolds = [];
 		$unavailableHolds = [];
 		$holds = [
@@ -1110,6 +1111,22 @@ class SirsiDynixROA extends HorizonAPI {
 			return $holds;
 		}
 
+		require_once ROOT_DIR . '/sys/InterLibraryLoan/HoldGroup.php';
+		require_once ROOT_DIR . '/sys/InterLibraryLoan/HoldGroupLocation.php';
+
+		$homeLocation = $patron->getHomeLocation();
+		$holdGroupsForLocation = new HoldGroupLocation();
+		$holdGroupsForLocation->locationId = $homeLocation->locationId;
+		$holdGroupIds = $holdGroupsForLocation->fetchAll('holdGroupId');
+		$holdGroups = [];
+		foreach ($holdGroupIds as $holdGroupId) {
+			$holdGroup = new HoldGroup();
+			$holdGroup->id = $holdGroupId;
+			if ($holdGroup->find(true)) {
+				$holdGroups[] = clone $holdGroup;
+			}
+		}
+
 		//Now that we have the session token, get holds information
 		$webServiceURL = $this->getWebServiceURL();
 
@@ -1121,7 +1138,7 @@ class SirsiDynixROA extends HorizonAPI {
 
 		//Get a list of holds for the user
 		// (Call now includes Item information for when the hold is an item level hold.)
-		$includeFields = urlencode("holdRecordList{*,bib{title,author},selectedItem{call{*},itemType{*},barcode,currentLocation}}");
+		$includeFields = urlencode("holdRecordList{*,bib{title,author},selectedItem{call{*},itemType{*},barcode,currentLocation,currentLibrary}}");
 		$patronHolds = $this->getWebServiceResponse('getHolds', $webServiceURL . '/user/patron/key/' . $patron->unique_ils_id . '?includeFields=' . $includeFields, null, $sessionToken);
 		if ($patronHolds && isset($patronHolds->fields)) {
 			require_once ROOT_DIR . '/RecordDrivers/MarcRecordDriver.php';
@@ -1188,6 +1205,7 @@ class SirsiDynixROA extends HorizonAPI {
 				$curHold->automaticCancellationDate = strtotime($fillByDate);
 				$curHold->reactivateDate = strtotime($reactivateDate);
 				$curHold->cancelable = strcasecmp($curHold->status, 'Suspended') != 0 && strcasecmp($curHold->status, 'Expired') != 0 && strcasecmp($curHold->status, 'INSHIPPING') != 0 && strcasecmp($curHold->status, 'ILL WYLD') != 0;
+
 				$curHold->frozen = strcasecmp($curHold->status, 'Suspended') == 0;
 				$curHold->canFreeze = true;
 				$curHold->locationUpdateable = true;
@@ -1230,6 +1248,20 @@ class SirsiDynixROA extends HorizonAPI {
 					$curHold->available = true;
 					$curHold->canFreeze = false;
 					$curHold->locationUpdateable = false;
+					if (!$library->allowCancellingAvailableHolds) {
+						$curHold->cancelable = false;
+					}
+					//Do not allow holds that are outside the active hold group from being canceled.
+					$inHoldGroup = false;
+					foreach ($holdGroups as $holdGroup){
+						if (in_array($hold->fields->selectedItem->fields->currentLibrary->key, $holdGroup->getLocationCodes())){
+							$inHoldGroup = true;
+							break;
+						}
+					}
+					if (!$inHoldGroup) {
+						$curHold->cancelable = false;
+					}
 					$holds['available'][] = $curHold;
 				}
 			}
@@ -1429,14 +1461,29 @@ class SirsiDynixROA extends HorizonAPI {
 				$workingLibraryId = $pickupBranch;
 			}
 
+			//Check to see if there is a maximum fee
+			if (!empty($_REQUEST['maximumFeeAmount'])) {
+				$maximumFeeNote = 'Max Fee ' . $_REQUEST['maximumFeeAmount'];
+				if (empty($holdData['comment'])) {
+					$holdData['comment'] = $maximumFeeNote;
+				}else{
+					/** @noinspection PhpArrayToStringConversionInspection */
+					$holdData['comment'] = $holdData['comment'] . "; " . $maximumFeeNote;
+				}
+			}
+
 			//Check to see if there is a note
-			if (isset($_REQUEST['note'])) {
+			if (!empty($_REQUEST['note'])) {
 				if (empty($holdData['comment'])) {
 					$holdData['comment'] = $_REQUEST['note'];
 				}else{
-					$holdData['comment'] .= "\n" . $_REQUEST['note'];
+					/** @noinspection PhpArrayToStringConversionInspection */
+					$holdData['comment'] = $holdData['comment'] . "; " . $_REQUEST['note'];
 				}
+			}
 
+			if (!empty($holdData['comment']) && strlen($holdData['comment']) > 50) {
+				$holdData['comment'] = substr($holdData['comment'], 0, 50);
 			}
 
 			$createHoldResponse = $this->getWebServiceResponse('placeHold', $webServiceURL . "/circulation/holdRecord/placeHold", $holdData, $sessionToken, null, null, [], $workingLibraryId);
@@ -4057,6 +4104,7 @@ class SirsiDynixROA extends HorizonAPI {
 	public function submitLocalIllRequest(User $patron, LocalIllForm $localIllForm) : array {
 		$result = [
 			'success' => false,
+			'title' => translate(['text' => 'An error occurred', 'isPublicFacing' => true]),
 			'message' => translate(['text' => 'There was an unknown error placing your request', 'isPublicFacing' => true]),
 		];
 		$userHomeLocation = $patron->getHomeLocation();
@@ -4084,7 +4132,10 @@ class SirsiDynixROA extends HorizonAPI {
 				$holdResult = $this->placeSirsiHold($patron, $catalogKey, '', '', $pickupLocation, 'request', null, false, true);
 				if ($holdResult['success']) {
 					$result['success'] = true;
+					$result['title'] = translate(['text' => 'Success', 'isPublicFacing' => true]);
 					$result['message'] = translate(['text' => 'Your request was placed successfully.', 'isPublicFacing' => true]);
+				}else{
+					$result = $holdResult;
 				}
 			}
 		}else{

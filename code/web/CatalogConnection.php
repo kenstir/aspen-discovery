@@ -868,7 +868,7 @@ class CatalogConnection {
 	 * @return array        Array of the patron's holds
 	 * @access public
 	 */
-	public function getHolds($user): array {
+	public function getHolds(User $user): array {
 		return $this->driver->getHolds($user);
 	}
 

@@ -1928,7 +1928,7 @@ class Library extends DataObject {
 								'description' => 'Whether or not the user can cancel available holds.',
 								'hideInLists' => true,
 								'default' => 0,
-								'note' => 'Applies to Polaris Only',
+								'note' => 'Applies to Polaris and Symphony Only',
 								'permissions' => ['Library ILS Connection'],
 							],
 							'allowCancellingInTransitHolds' => [

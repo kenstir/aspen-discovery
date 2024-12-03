@@ -20,9 +20,9 @@ $foundConfig = false;
 $variables = [];
 $siteOnWindows = false;
 $siteOnMac = false;
-$apacheGroup = null;
 $sitename = null;
 $cleanSitename = null;
+$macUser = 'root';
 
 if (count($_SERVER['argv']) > 1){
 	//Read the file
@@ -57,6 +57,7 @@ if (count($_SERVER['argv']) > 1){
 			'ils' => $configArray['Site']['ils'],
 			'ilsUrl' => $configArray['ILS']['ilsUrl'],
 			'ilsStaffUrl' => $configArray['ILS']['ilsStaffUrl'],
+			'apacheGroup' => $configArray['Site']['apacheGroup'],
 		];
 		if ($variables['ils'] == 'Koha') {
 			$variables['ilsDriver'] = 'Koha';
@@ -77,8 +78,9 @@ if (count($_SERVER['argv']) > 1){
 			$variables['ilsDriver'] = $configArray['ILS']['ilsDriver'];
 		}
 		$siteOnWindows = $configArray['Site']['siteOnWindows'] == 'Y' || $configArray['Site']['siteOnWindows'] == 'y';
+		$siteOnMac = $configArray['Site']['siteOnMac'] == 'Y' || $configArray['Site']['siteOnMac'] == 'y';
 
-		if (!$siteOnWindows){
+		if (!$siteOnWindows && !$siteOnMac){
 			$linuxOS = $configArray['Site']['operatingSystem'];
 		}
 		$operatingSystem = $configArray['Site']['operatingSystem'];
@@ -136,9 +138,9 @@ if (!$foundConfig) {
 	}
 
 	if ($siteOnMac) {
-		$apacheGroup = readline("Enter the name of the group Apache belongs to (default _www, but this may sometimes be admin). ");
+		$variables['apacheGroup'] = readline("Enter the name of the group Apache belongs to (default _www, but this may sometimes be admin). ");
 		if (empty($apacheGroup)) {
-			$apacheGroup = "_www";
+			$variables['apacheGroup'] = "_www";
 		}
 	}
 
@@ -296,7 +298,10 @@ $variables['servername'] = preg_replace('~https?://~', '', $variables['url']);
 //Create the basic sites directory
 if ($siteOnWindows){
 	recursive_copy($installDir . '/sites/template.windows', $siteDir);
-}else{
+} else if ($siteOnMac) {
+	recursive_copy($installDir . '/sites/template.mac', $siteDir);
+}
+else{
 	recursive_copy($installDir . '/sites/template.linux', $siteDir);
 }
 
@@ -321,7 +326,9 @@ replaceVariables($siteDir . "/conf/config.pwd.ini", $variables);
 
 if (!$siteOnWindows){
 	replaceVariables($siteDir . "/conf/crontab_settings.txt", $variables);
-	exec('sudo timedatectl set-timezone "'. $variables['timezone'] . '"');
+	if (!$siteOnMac) {
+		exec('sudo timedatectl set-timezone "' . $variables['timezone'] . '"');
+	}
 }
 
 if (!$siteOnWindows) {
@@ -383,21 +390,35 @@ $dataDirBase = '/data/aspen-discovery';
 if ($siteOnMac) {
 	$dataDirBase = '/usr/local/data/aspen-discovery';
 	$macUser = exec('whoami') ?? 'root';
+	//Make sure the data directory exists
+	if (!file_exists('/usr/local/data/aspen-discovery')) {
+		exec('sudo mkdir -p /usr/local/data/aspen-discovery');
+		exec('sudo chmod 775 /usr/local/data/aspen-discovery');
+		exec('sudo chown -R ' . $macUser . ':' . $variables['apacheGroup'] . ' /usr/local/data/aspen-discovery');
+	}
 }
 $dataDir = $dataDirBase . '/' . $sitename;
 if (!file_exists($dataDir)){
 	mkdir($dataDir, 0775, true);
-	chgrp($dataDir, 'aspen_apache');
+	if (!$siteOnMac) {
+		chgrp($dataDir, 'aspen_apache');
+	} else {
+		chgrp($dataDir, $variables['apacheGroup']);
+	}
 	chmod($dataDir, 0775);
 }
 if (!file_exists($dataDirBase . '/accelerated_reader')){
 	mkdir($dataDirBase . '/accelerated_reader', 0775, true);
-	chgrp($dataDirBase . '/accelerated_reader', 'aspen_apache');
+	if (!$siteOnMac) {
+		chgrp($dataDirBase . '/accelerated_reader', 'aspen_apache');
+	} else {
+		chgrp($dataDirBase . '/accelerated_reader', $variables['apacheGroup']);
+	}
 	chmod($dataDirBase . '/accelerated_reader', 0775);
 }
 recursive_copy($installDir . '/data_dir_setup', $dataDir);
 if ($siteOnMac) {
-	exec('chown -R ' . $macUser . ':' . $apacheGroup . ' ' . $dataDir);
+	exec('chown -R ' . $macUser . ':' . $variables['apacheGroup'] . ' ' . $dataDir);
 }
 elseif (!$runningOnWindows){
 	exec('chown -R ' . $$linuxOS['wwwUser'] . ':aspen_apache ' . $dataDir);
@@ -406,7 +427,7 @@ elseif (!$runningOnWindows){
 //Make files directory writeable
 if ($siteOnMac) {
 	exec('chmod -R 755 ' . $installDir . '/code/web/files');
-	exec('chown -R ' . $macUser . ':' . $apacheGroup . ' ' . $installDir . '/code/web/fonts');
+	exec('sudo chown -R ' . $macUser . ':' . $variables['apacheGroup'] . ' ' . $installDir . '/code/web/fonts');
 }
 elseif (!$runningOnWindows){
 	exec('chmod -R 755 ' . $installDir . '/code/web/files');
@@ -421,6 +442,13 @@ if (!$runningOnWindows && !$siteOnMac) {
 //update marc_recs directory permissions
 if (!$runningOnWindows && !$siteOnMac) {
 	exec('chown -R aspen:aspen_apache ' . $dataDir . '/ils/');
+}
+
+//Make sure the log directory exists
+if ($siteOnMac && !file_exists('/var/log/aspen-discovery')) {
+	exec('sudo mkdir /var/log/aspen-discovery');
+	exec('sudo chmod 775 /var/log/aspen-discovery');
+	exec('sudo chown -R ' . $macUser . ':' . $variables['apacheGroup'] . ' /var/log/aspen-discovery');
 }
 
 //Make log directories
@@ -453,6 +481,10 @@ if (!$siteOnWindows && !$siteOnMac) {
 if (!$siteOnWindows && !$siteOnMac) {
 	exec('chown -R solr:solr ' . $installDir . '/sites/default/solr-8.11.2');
 	exec('chown -R solr:solr ' . $dataDir . '/solr7');
+}
+
+if ($siteOnMac) {
+	exec('chmod +x ' . $siteDir . "/$sitename.sh");
 }
 
 if (!$siteOnWindows && !$siteOnMac) {

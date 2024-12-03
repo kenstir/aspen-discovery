@@ -422,6 +422,7 @@ export const DrawerContent = () => {
                               <UserLists />
                               <SavedSearches />
                               <ReadingHistory />
+							  <YearInReview />
                               <Fines />
                               <NotificationHistory />
                               <Events />
@@ -958,6 +959,41 @@ const Events = () => {
      }
 
      return null;
+};
+
+const YearInReview = () => {
+	const { user } = React.useContext(UserContext);
+	const { library } = React.useContext(LibrarySystemContext);
+	const { language } = React.useContext(LanguageContext);
+	const version = formatDiscoveryVersion(library.discoveryVersion);
+	const backgroundColor = useToken('colors', useColorModeValue('warmGray.200', 'coolGray.900'));
+	const textColor = useToken('colors', useColorModeValue('gray.800', 'coolGray.200'));
+
+	let shouldShowYearInReview = false;
+	if (typeof user.hasYearInReview !== 'undefined') {
+		shouldShowYearInReview = user.hasYearInReview;
+	}
+
+	if (version >= '24.12.00' && shouldShowYearInReview) {
+		return (
+			<Pressable px="2" py="3" rounded="md" onPress={async () => await passUserToDiscovery(library.baseUrl, 'YearInReview', user.id, backgroundColor, textColor)}>
+				<HStack space="1" alignItems="center">
+					<Icon as={MaterialIcons} name="chevron-right" size="7" />
+					<VStack w="100%">
+						<Text fontWeight="500">{user.yearInReviewName ?? getTermFromDictionary(language, 'year_in_review')}</Text>
+					</VStack>
+				</HStack>
+
+				<Container>
+					<Badge colorScheme="info" ml={10} rounded="4px" _text={{ fontSize: 'xs' }}>
+						{getTermFromDictionary(language, 'view_now')}
+					</Badge>
+				</Container>
+			</Pressable>
+		);
+	}
+
+	return null;
 };
 
 async function getStoredNotifications() {

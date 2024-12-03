@@ -1,14 +1,13 @@
 <?php
 
 class LibKeyDriver {
-
 	public function getLibKeyLink(string $doiUrl): string | null {
 		require_once ROOT_DIR . '/sys/LibKey/LibKeySetting.php';
 		$activeLibrary = Library::getActiveLibrary();
 		$settings = new LibKeySetting();
 		$settings->whereAdd("id=$activeLibrary->libKeySettingId");
-		if ($settings->find(true)) {
-			$settings->fetch();
+		if (!$settings->find(true)) {
+			return null;
 		}
 		$curlWrapper = new CurlWrapper;
 		$response = $curlWrapper->curlGetPage("https://public-api.thirdiron.com/public/v1/libraries/" . $settings->libraryId  . "/articles/doi/" . $this->extractDoi($doiUrl) . "?access_token=" . $settings->apiKey);

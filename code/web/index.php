@@ -1579,7 +1579,9 @@ function trackSpammyRequest() {
 				$ipAddress->calcIpRange();
 				$ipAddress->insert();
 			} else if (!$ipAddress->isOpac && $ipAddress->locationid == -1) {
-				$ipAddress->blockedForSpam = 1;
+				if (!SystemVariables::getSystemVariables()->disableIpSpammyControl) {
+					$ipAddress->blockedForSpam = 1;
+				}
 				$ipAddress->update();
 			}
 		}

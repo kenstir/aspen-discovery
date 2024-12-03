@@ -181,6 +181,17 @@ function getUpdates24_12_00(): array {
 
 		//James Staub - Nashville Public Library
 
+		//Lucas Montoya - Theke Solutions
+		'disable_ip_spammy_control' => [
+			 'title' => 'Disable Ips Spammy Control',
+			 'description' => 'Prevent Aspen from internally checking and blocking spam IP addresses',
+			 'continueOnError' => false,
+			 'sql' => [
+				 "ALTER TABLE system_variables ADD COLUMN disableIpSpammyControl TINYINT(1) DEFAULT 0 ",
+			 ]
+		 ], //disable_ip_spammy_control
+
+
 
 		//other
 

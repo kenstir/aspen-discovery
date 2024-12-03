@@ -7390,7 +7390,7 @@ body > .container {
   height: 98%;
 }
 .modal-dialog-large .modal-body {
-  max-height: 70svh;
+  max-height: 75svh;
 }
 .modal-buttons {
   margin-left: 3px;

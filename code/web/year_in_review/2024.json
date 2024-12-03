@@ -84,14 +84,34 @@
       "background" : "2024_4.png",
       "overlay_text" : [
         {
-          "text": "Your favorite ways to engage: {topFormats}",
+          "text": "{topFormat1}",
           "left": "25%",
-          "top": "325px",
+          "top": "265px",
           "width": "30%",
           "height": "20%",
           "color" : "black",
-          "font_size": "1.5em",
-          "align": "center"
+          "font_size": "2em",
+          "align": "left"
+        },
+        {
+          "text": "{topFormat2}",
+          "left": "25%",
+          "top": "415px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "2em",
+          "align": "left"
+        },
+        {
+          "text": "{topFormat3}",
+          "left": "25%",
+          "top": "565px",
+          "width": "30%",
+          "height": "20%",
+          "color" : "black",
+          "font_size": "2em",
+          "align": "left"
         }
       ]
     },
@@ -100,13 +120,13 @@
       "background" : "2024_5.png",
       "overlay_text" : [
         {
-          "text": "You dove into {topGenres} this year. Such impeccable taste!",
+          "text": "{topGenres}",
           "left": "25%",
-          "top": "325px",
-          "width": "30%",
-          "height": "20%",
+          "top": "315px",
+          "width": "50%",
+          "height": "30%",
           "color" : "black",
-          "font_size": "1.5em",
+          "font_size": "2em",
           "align": "center"
         }
       ]
@@ -116,7 +136,7 @@
       "background" : "2024_6.png",
       "overlay_text" : [
         {
-          "text": "You checked out multiple titles by {topAuthor}.",
+          "text": "{topAuthor}.",
           "left": "25%",
           "top": "325px",
           "width": "30%",
@@ -132,7 +152,7 @@
       "background" : "2024_7.png",
       "overlay_text" : [
         {
-          "text": "{topSeries} kept you hooked in 2024!",
+          "text": "{topSeries}",
           "left": "25%",
           "top": "325px",
           "width": "30%",
@@ -148,13 +168,13 @@
       "background" : "2024_8.png",
       "overlay_text" : [
         {
-          "text": "You might like these titles based on your 2024 picks:\n {recommendations}",
+          "text": "{recommendations}",
           "left": "25%",
           "top": "325px",
-          "width": "30%",
-          "height": "20%",
+          "width": "20%",
+          "height": "40%",
           "color" : "black",
-          "font_size": "1.5em",
+          "font_size": "1.75em",
           "align": "center"
         }
       ]

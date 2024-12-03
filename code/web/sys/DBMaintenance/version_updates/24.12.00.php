@@ -132,6 +132,13 @@ function getUpdates24_12_00(): array {
 				"ALTER TABLE indexing_profiles ADD COLUMN treatItemsAsEcontent VARCHAR(512) DEFAULT 'ebook|ebk|eaudio|evideo|online|oneclick|eaudiobook|download|eresource|electronic resource'",
 			],
 		], //add_treatItemsAsEcontent_field
+		'optional_show_title_on_grapes_pages' => [
+			'title' => 'Optional Show Title on Grapes Pages',
+			'description' => 'Make displaying a given title on a grapes pae optional',
+			'sql' => [
+				'ALTER TABLE grapes_web_builder ADD COLUMN showTitleOnPage TINYINT NOT NULL DEFAULT 1'
+			],
+		], //optional_show_title_on_grapes_pages
 
 		//chloe - PTFS-Europe
 

@@ -211,6 +211,7 @@ class YearInReviewSetting extends DataObject {
 					}
 
 					$result['slideConfiguration'] = $slideInfo;
+					$result['numSlidesToShow'] = $userYearInResults->numSlidesToShow;
 					$result['modalBody'] = $this->formatSlide($slideInfo, $patron, $slideNumber, $this->year);
 
 					$modalButtons = '';

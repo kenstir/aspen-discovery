@@ -1007,6 +1007,15 @@ class UserAPI extends AbstractAPI {
 
 			$userData->isStaff = $user->isStaff();
 
+			$userData->hasYearInReview = $user->hasYearInReview();
+
+			$userData->yearInReviewName = null;
+			$yearInReviewSetting = $user->getYearInReviewSetting();
+			if($yearInReviewSetting) {
+				$yearInReviewName = $yearInReviewSetting->name;
+				$userData->yearInReviewName = translate(['text' => $yearInReviewName, 'isPublicFacing' => true]);
+			}
+
 			return [
 				'success' => true,
 				'profile' => $userData,

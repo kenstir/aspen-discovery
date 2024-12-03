@@ -66,8 +66,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
 <style>
 .avery5160 {
 	/* Avery 5160 labels */
-	width: 2.625in !important; 
-	height: 1in !important; 
+	width: 2.625in !important;
+	height: 1in !important;
 	margin: 0in .125in 0in 0in !important;
 	padding: .212in 0 0 .475in !important;
 	float: left;
@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
 @media print {
 	.avery5160 {
 		break-inside: avoid-page !important;
-		outline: 0px; 
+		outline: 0px;
 	}
 	#footer-container
 	, #header-wrapper
@@ -125,6 +125,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
 @page {
 	size: letter !important;
+	margin: 0.5in; /* Adjust the margin to fit content within the page */
 }
 </style>
 {/literal}

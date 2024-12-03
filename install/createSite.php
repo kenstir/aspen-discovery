@@ -19,6 +19,8 @@ $linuxArray = ['centos', 'debian'];
 $foundConfig = false;
 $variables = [];
 $siteOnWindows = false;
+$siteOnMac = false;
+$apacheGroup = null;
 $sitename = null;
 $cleanSitename = null;
 
@@ -126,7 +128,21 @@ if (!$foundConfig) {
 		$siteOnWindows = true;
 	}
 
-	if (!$siteOnWindows) {
+	$siteOnMac = readline("Will Aspen run on a Mac (y/N)? ");
+	if (empty($siteOnMac) || ($siteOnMac != 'Y' && $siteOnMac != 'y')){
+		$siteOnMac = false;
+	}else{
+		$siteOnMac = true;
+	}
+
+	if ($siteOnMac) {
+		$apacheGroup = readline("Enter the name of the group Apache belongs to (default _www, but this may sometimes be admin). ");
+		if (empty($apacheGroup)) {
+			$apacheGroup = "_www";
+		}
+	}
+
+	if (!$siteOnWindows && !$siteOnMac) {
 		$linuxOS = '';
 		while (empty($linuxOS) || !in_array($linuxOS, $linuxArray)) {
 			$linuxOS = readline("Enter the name of your Linux OS (e.g., ".implode (" / ", $linuxArray)." ) > ");
@@ -363,36 +379,48 @@ $aspen_db = null;
 
 //Make data directories
 echo("Setting up data and log directories\r\n");
-$dataDir = '/data/aspen-discovery/' . $sitename;
+$dataDirBase = '/data/aspen-discovery';
+if ($siteOnMac) {
+	$dataDirBase = '/usr/local/data/aspen-discovery';
+	$macUser = exec('whoami') ?? 'root';
+}
+$dataDir = $dataDirBase . '/' . $sitename;
 if (!file_exists($dataDir)){
 	mkdir($dataDir, 0775, true);
 	chgrp($dataDir, 'aspen_apache');
 	chmod($dataDir, 0775);
 }
-if (!file_exists('/data/aspen-discovery/accelerated_reader')){
-	mkdir('/data/aspen-discovery/accelerated_reader', 0775, true);
-	chgrp('/data/aspen-discovery/accelerated_reader', 'aspen_apache');
-	chmod('/data/aspen-discovery/accelerated_reader', 0775);
+if (!file_exists($dataDirBase . '/accelerated_reader')){
+	mkdir($dataDirBase . '/accelerated_reader', 0775, true);
+	chgrp($dataDirBase . '/accelerated_reader', 'aspen_apache');
+	chmod($dataDirBase . '/accelerated_reader', 0775);
 }
 recursive_copy($installDir . '/data_dir_setup', $dataDir);
-if (!$runningOnWindows){
+if ($siteOnMac) {
+	exec('chown -R ' . $macUser . ':' . $apacheGroup . ' ' . $dataDir);
+}
+elseif (!$runningOnWindows){
 	exec('chown -R ' . $$linuxOS['wwwUser'] . ':aspen_apache ' . $dataDir);
 }
 
 //Make files directory writeable
-if (!$runningOnWindows){
+if ($siteOnMac) {
+	exec('chmod -R 755 ' . $installDir . '/code/web/files');
+	exec('chown -R ' . $macUser . ':' . $apacheGroup . ' ' . $installDir . '/code/web/fonts');
+}
+elseif (!$runningOnWindows){
 	exec('chmod -R 755 ' . $installDir . '/code/web/files');
 	exec('chown -R ' . $$linuxOS['wwwUser'] . ':aspen_apache ' . $installDir . '/code/web/fonts');
 }
 
 //update conf directory permissions
-if (!$runningOnWindows) {
+if (!$runningOnWindows && !$siteOnMac) {
 	exec('chown aspen:aspen_apache /usr/local/aspen-discovery/sites/' . $sitename . '/conf');
 }
 
 //update marc_recs directory permissions
-if (!$runningOnWindows) {
-	exec('chown -R aspen:aspen_apache /data/aspen-discovery/' . $sitename . '/ils/');
+if (!$runningOnWindows && !$siteOnMac) {
+	exec('chown -R aspen:aspen_apache ' . $dataDir . '/ils/');
 }
 
 //Make log directories
@@ -406,12 +434,12 @@ if (!file_exists($logDir2)){
 }
 
 //Update file permissions
-if (!$runningOnWindows){
+if (!$runningOnWindows && !$siteOnMac) {
 	exec('./'.$$linuxOS['permissions'] . ' ' . $sitename);
 }
 
 //Link the httpd conf file
-if (!$siteOnWindows){
+if (!$siteOnWindows && !$siteOnMac) {
 	symlink($siteDir . "/httpd-$sitename.conf", $$linuxOS['apacheDir'] . "/httpd-$sitename.conf");
 	if ($linuxOS == 'debian') {
 		/** @noinspection SpellCheckingInspection */
@@ -422,12 +450,12 @@ if (!$siteOnWindows){
 }
 
 //Setup solr
-if (!$siteOnWindows){
+if (!$siteOnWindows && !$siteOnMac) {
 	exec('chown -R solr:solr ' . $installDir . '/sites/default/solr-8.11.2');
 	exec('chown -R solr:solr ' . $dataDir . '/solr7');
 }
 
-if (!$siteOnWindows){
+if (!$siteOnWindows && !$siteOnMac) {
 	//Start solr
 	exec('chmod +x ' . $siteDir . "/$sitename.sh");
 	execInBackground($siteDir . "/$sitename.sh start");
@@ -436,7 +464,7 @@ if (!$siteOnWindows){
 }
 
 //Update my.cnf for backups
-if (!$siteOnWindows){
+if (!$siteOnWindows && !$siteOnMac) {
 	replaceVariables($$linuxOS['mysqlConf'], $variables);
 }
 
@@ -445,7 +473,7 @@ echo("\r\n");
 echo("-------------------------------------------------------------------------\r\n");
 echo("Next Steps\r\n");
 $step = 1;
-if ($siteOnWindows) {
+if ($siteOnWindows || $siteOnMac) {
 	echo($step++ . ") Add Include \"$siteDir/httpd-$sitename.conf\" to the httpd.conf file\r\n");
 	echo($step++ . ") Add {$variables['servername']} to the hosts file\r\n");
 	echo($step++ . ") Restart apache\r\n");

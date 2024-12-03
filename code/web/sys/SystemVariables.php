@@ -35,6 +35,7 @@ class SystemVariables extends DataObject {
 	public $supportingCompany;
 	public $googleBucket;
 	public $trackIpAddresses;
+	public $disableIpSpammyControl;
 	public $allowScheduledUpdates;
 	public $doQuickUpdates;
 	public $monitorAntivirus;
@@ -334,12 +335,28 @@ class SystemVariables extends DataObject {
 				'description' => 'Sets supporting company name in footer',
 				'default' => '',
 			],
-			'trackIpAddresses' => [
-				'property' => 'trackIpAddresses',
-				'type' => 'checkbox',
-				'label' => 'Track IP Addresses',
-				'description' => 'Determine if IP Addresses should be tracked for each page view',
-				'default' => false,
+			'ipAddressesSection' => [
+				'property' => 'ipAddressesSection',
+				'type' => 'section',
+				'label' => 'Ip Addresses Section',
+				'hideInLists' => true,
+				'expandByDefault' => true,
+				'properties' => [
+					'trackIpAddresses' => [
+						'property' => 'trackIpAddresses',
+						'type' => 'checkbox',
+						'label' => 'Track IP Addresses',
+						'description' => 'Determine if IP Addresses should be tracked for each page view',
+						'default' => false,
+					],
+					'disableIpSpammyControl' => [
+						'property' => 'disableIpSpammyControl',
+						'type' => 'checkbox',
+						'label' => 'Disable IPs Spammy Control',
+						'description' => "Prevent Aspen from internally checking and blocking spam IP addresses",
+						'default' => false,
+					]
+				],
 			],
 			'monitorAntivirus' => [
 				'property' => 'monitorAntivirus',

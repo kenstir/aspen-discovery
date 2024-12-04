@@ -1683,7 +1683,7 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 			$interface->assign('periodicalIssues', $issues);
 		}
 		$links = $this->getLinks();
-		if (Library::getActiveLibrary()->libKeySettingId != -1  && !empty($relatedUrls[0]['url'])) {
+		if (Library::getActiveLibrary()->libKeySettingId != -1  && !empty($links[0]['url'])) {
 			$libKeyLink = $this->getLibKeyUrl($links[0]['url']);
 			if (!empty($libKeyLink)) {
 				$links[] = ['title' => $libKeyLink, 'url' => $libKeyLink];

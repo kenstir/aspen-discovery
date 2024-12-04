@@ -72,7 +72,7 @@ function generateYearInReview(User $patron) : void {
 						}
 
 						//Top formats
-						if (!empty($readingHistorySummary->topFormats)) {
+						if (!empty($readingHistorySummary->topFormats) && count($readingHistorySummary->topFormats) >= 3) {
 							$yearInReviewData->userData['topFormats'] = join("\n", $readingHistorySummary->topFormats);
 							$formatNames = array_values($readingHistorySummary->topFormats);
 							$yearInReviewData->userData['topFormat1'] = $formatNames[0];

@@ -136,13 +136,13 @@
       "background" : "2024_6.png",
       "overlay_text" : [
         {
-          "text": "{topAuthor}.",
-          "left": "25%",
-          "top": "325px",
-          "width": "30%",
-          "height": "20%",
+          "text": "You checked out multiple titles by {topAuthor}.",
+          "left": "50px",
+          "top": "500px",
+          "width": "40%",
+          "height": "30%",
           "color" : "black",
-          "font_size": "1.5em",
+          "font_size": "2em",
           "align": "center"
         }
       ]
@@ -153,12 +153,12 @@
       "overlay_text" : [
         {
           "text": "{topSeries}",
-          "left": "25%",
-          "top": "325px",
-          "width": "30%",
-          "height": "20%",
+          "left": "50px",
+          "top": "300px",
+          "width": "45%",
+          "height": "30%",
           "color" : "black",
-          "font_size": "1.5em",
+          "font_size": "2em",
           "align": "center"
         }
       ]

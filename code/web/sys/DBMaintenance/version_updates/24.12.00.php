@@ -166,6 +166,15 @@ function getUpdates24_12_00(): array {
 				'ALTER TABLE library ADD COLUMN yearlyRequestLimitType TINYINT DEFAULT 0',
 			]
 		], //add_library_yearly_request_limit_type
+		'enable_add_to_reading_history' => [
+			'title' => 'Enable Add to Reading History',
+			'description' => 'Add the ability to enable adding titles to reading history from results',
+			'continueOnError' => true,
+			'sql' => [
+				'ALTER TABLE library ADD COLUMN enableAddToReadingHistory TINYINT DEFAULT 1',
+				'ALTER TABLE user_reading_history_work ADD COLUMN isManuallyAdded TINYINT DEFAULT 0'
+			]
+		],
 
 		//katherine
 

@@ -345,6 +345,7 @@ class Library extends DataObject {
 	public $allowReadingHistoryDisplayInMasqueradeMode;
 	public $allowMasqueradeWithUsername;
 	public $enableReadingHistory;
+	public $enableAddToReadingHistory;
 	public $optInToReadingHistoryUpdatesILS;
 	public $optOutOfReadingHistoryUpdatesILS;
 	public $enableCostSavings;
@@ -1325,6 +1326,15 @@ class Library extends DataObject {
 						'type' => 'checkbox',
 						'label' => 'Enable Reading History',
 						'description' => 'Whether or not users reading history is shown within Aspen.',
+						'hideInLists' => true,
+						'default' => 1,
+						'permissions' => ['Library ILS Options'],
+					],
+					'enableAddToReadingHistory' => [
+						'property' => 'enableReadingHistory',
+						'type' => 'checkbox',
+						'label' => 'Enable Add To Reading History',
+						'description' => 'Whether or not users can add titles to their reading history within Aspen.',
 						'hideInLists' => true,
 						'default' => 1,
 						'permissions' => ['Library ILS Options'],

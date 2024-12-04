@@ -62,7 +62,9 @@ function generateYearInReview(User $patron) : void {
 
 						//Hot Month / Busy Months
 						if ($readingHistorySummary->maxMonthlyCheckouts - $readingHistorySummary->averageCheckouts > 2) {
-							$yearInReviewData->userData['topMonth'] = date("F", strtotime($readingHistorySummary->topMonth));
+							$dateObj   = DateTime::createFromFormat('!m', $readingHistorySummary->topMonth);
+							$monthName = $dateObj->format('F');
+							$yearInReviewData->userData['topMonth'] = $monthName;
 							$slidesToShow[] = $yearInReviewSetting->style == 0 ? 4 : 5;
 						}else{
 							$yearInReviewData->userData['averageCheckouts'] = $readingHistorySummary->averageCheckouts;

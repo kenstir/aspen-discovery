@@ -3258,6 +3258,7 @@ class User extends DataObject {
 				$yearEnd = strtotime(($year+1) . '-01-01');
 				$readingHistoryDB->whereAdd("checkOutDate >= $yearStart");
 				$readingHistoryDB->whereAdd("checkOutDate < $yearEnd");
+				$readingHistoryDB->whereAdd("format IS NOT NULL AND format <> ''");
 				$readingHistoryDB->groupBy('format');
 				$readingHistoryDB->orderBy('count(format) DESC');
 				$readingHistoryDB->limit(0, 3);
@@ -3343,8 +3344,8 @@ class User extends DataObject {
 					$readingHistoryDB = new ReadingHistoryEntry();
 					$readingHistoryDB->userId = $this->id;
 					$readingHistoryDB->whereAdd('deleted = 0');
-					$monthStart = strtotime("$year-$month-01");
-					$monthEnd = strtotime(($year+1) . "-$month-01");
+					$monthStart = mktime(0, 0, 0, $month, 1, $year);
+					$monthEnd = mktime(0, 0, 0, $month + 1, 1, $year);
 					$readingHistoryDB->whereAdd("checkOutDate >= $monthStart");
 					$readingHistoryDB->whereAdd("checkOutDate < $monthEnd");
 					$readingHistoryDB->groupBy('groupedWorkPermanentId, title, author');

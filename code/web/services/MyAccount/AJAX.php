@@ -7315,7 +7315,7 @@ class MyAccount_AJAX extends JSON_Action {
 						$readingHistoryEntry->author = substr($groupedWorkDriver->getPrimaryAuthor(), 0, 75);
 						//Leave the format blank
 						$readingHistoryEntry->format = '';
-						$checkoutDate = strtotime( "01-$month-$year");
+						$checkoutDate = mktime(0, 0, 0, $month, 1, $year);
 						$readingHistoryEntry->checkOutDate = $checkoutDate;
 						$readingHistoryEntry->checkInDate = $checkoutDate;
 						$readingHistoryEntry->isIll = 0;

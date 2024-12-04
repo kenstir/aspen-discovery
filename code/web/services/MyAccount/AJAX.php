@@ -7035,16 +7035,47 @@ class MyAccount_AJAX extends JSON_Action {
 
 		$interface->assign('enableListDescriptions', $library->enableListDescriptions);
 
-		return [
-			'title' => translate([
+		$enableAddToReadingHistory = false;
+		if ($source == 'GroupedWork') {
+			if (UserAccount::isLoggedIn()) {
+				$user = UserAccount::getActiveUserObj();
+				if ($user->isReadingHistoryEnabled()) {
+					if ($library->enableAddToReadingHistory) {
+						$enableAddToReadingHistory = true;
+					}
+				}
+			}
+		}
+		$interface->assign('enableAddToReadingHistory', $enableAddToReadingHistory);
+		$interface->assign('curYear', date('Y'));
+		$interface->assign('curMonth', date('m'));
+
+		if ($enableAddToReadingHistory) {
+			$title = translate([
+				'text' => 'Add To',
+				'isPublicFacing' => true,
+			]);
+		}else{
+			$title = translate([
 				'text' => 'Add To List',
 				'isPublicFacing' => true,
-			]),
-			'modalBody' => $interface->fetch("MyAccount/saveToList.tpl"),
-			'modalButtons' => "<button class='tool btn btn-primary' onclick='AspenDiscovery.Account.saveToList(); return false;'>" . translate([
-					'text' => "Save To List",
+			]);
+		}
+		$modalButtons = "<button class='tool btn btn-primary' id='saveToListButton' onclick='AspenDiscovery.Account.saveToList(); return false;'>" . translate([
+				'text' => "Save To List",
+				'isPublicFacing' => true,
+			]) . "</button>";
+		if ($enableAddToReadingHistory) {
+			$modalButtons .= "<button class='tool btn btn-primary' id='saveToReadingHistoryButton' style='display: none' onclick='AspenDiscovery.Account.saveToReadingHistory(); return false;'>" . translate([
+					'text' => "Save To Reading History",
 					'isPublicFacing' => true,
-				]) . "</button>",
+				]) . "</button>";
+		}
+
+		return [
+			'title' => $title,
+			'modalBody' => $interface->fetch("MyAccount/saveToList.tpl"),
+			'modalButtons' => $modalButtons,
 		];
 	}
 
@@ -7234,6 +7265,94 @@ class MyAccount_AJAX extends JSON_Action {
 				}
 			}
 
+		}
+
+		return $result;
+	}
+
+	/** @noinspection PhpUnused */
+	function saveToReadingHistory() : array {
+		$result = [];
+
+		if (!UserAccount::isLoggedIn()) {
+			$result['success'] = false;
+			$result['message'] = translate([
+				'text' => 'Please login before adding a title to your reading history.',
+				'isPublicFacing' => true,
+			]);
+		} else {
+			require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
+			$sourceId = $_REQUEST['sourceId'];
+			$source = $_REQUEST['source'];
+			$year = $_REQUEST['year'];
+			$month = $_REQUEST['month'];
+
+			$user = UserAccount::getActiveUserObj();
+
+			$readingHistoryEntry = new ReadingHistoryEntry();
+			$readingHistoryEntry->userId = $user->id;
+
+			if (empty($sourceId) || empty($source)) {
+				$result['success'] = false;
+				$result['message'] = translate([
+					'text' => 'Unable to add that to reading history, not correctly specified.',
+					'isPublicFacing' => true,
+				]);
+			} else {
+				if ($source == 'GroupedWork') {
+					$readingHistoryEntry->source = $source;
+					$readingHistoryEntry->groupedWorkPermanentId = $sourceId;
+					$readingHistoryEntry->sourceId = $sourceId;
+
+					require_once ROOT_DIR . '/sys/Grouping/GroupedWork.php';
+					require_once ROOT_DIR . '/RecordDrivers/GroupedWorkDriver.php';
+
+					$groupedWork = new GroupedWork();
+					$groupedWork->permanent_id = $sourceId;
+					if ($groupedWork->find(true)) {
+						$groupedWorkDriver = new GroupedWorkDriver($sourceId);
+						$readingHistoryEntry->title = substr($groupedWorkDriver->getTitle(), 0, 150);
+						$readingHistoryEntry->author = substr($groupedWorkDriver->getPrimaryAuthor(), 0, 75);
+						//Leave the format blank
+						$readingHistoryEntry->format = '';
+						$checkoutDate = strtotime( "01-$month-$year");
+						$readingHistoryEntry->checkOutDate = $checkoutDate;
+						$readingHistoryEntry->checkInDate = $checkoutDate;
+						$readingHistoryEntry->isIll = 0;
+						$readingHistoryEntry->isManuallyAdded = 1;
+						//No cost savings updates since this is outside the library
+						if ($readingHistoryEntry->find(true)) {
+							$existingEntry = true;
+						}else{
+							$existingEntry = false;
+						}
+						if ($existingEntry) {
+							$readingHistoryEntry->deleted = 0;
+							$readingHistoryEntry->update();
+						} else {
+							$readingHistoryEntry->insert();
+						}
+
+						$result['success'] = true;
+						$result['message'] = translate([
+							'text' => 'This title was saved to your reading history successfully.',
+							'isPublicFacing' => true,
+						]);
+					}else{
+						$result['success'] = false;
+						$result['message'] = translate([
+							'text' => 'Could not find that title in the catalog.',
+							'isPublicFacing' => true,
+						]);
+					}
+				} else {
+					$result['success'] = false;
+					$result['message'] = translate([
+						'text' => 'Only catalog titles may be added to your reading history.',
+						'isPublicFacing' => true,
+					]);
+				}
+			}
 		}
 
 		return $result;

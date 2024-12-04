@@ -2226,6 +2226,28 @@ AspenDiscovery.Account = (function () {
 			}
 			return false;
 		},
+		saveToReadingHistory: function () {
+			if (Globals.loggedIn) {
+				var url = Globals.path + "/MyAccount/AJAX";
+				var params = {
+					'method': 'saveToReadingHistory',
+					'month': $('#addToReadingHistory-month option:selected').val(),
+					'year': $('#addToReadingHistory-year').val(),
+					'source': $('#source').val(),
+					'sourceId': $('#sourceId').val()
+				};
+				// noinspection JSUnresolvedFunction
+				$.getJSON(url, params, function (data) {
+					if (data.success) {
+						AspenDiscovery.showMessage("Added Successfully", data.message, 2000); // auto-close after 2 seconds.
+						AspenDiscovery.Account.loadListData();
+					} else {
+						AspenDiscovery.showMessage("Error", data.message);
+					}
+				}).fail(AspenDiscovery.ajaxFail);
+			}
+			return false;
+		},
 		deleteAll: function (id) {
 			if (confirm("Are you sure you want to delete all items in this list?")) {
 				var url = Globals.path + '/MyAccount/AJAX?method=deleteListItems&id=' + id;

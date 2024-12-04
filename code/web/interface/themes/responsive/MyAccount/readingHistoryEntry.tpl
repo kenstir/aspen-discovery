@@ -50,18 +50,20 @@
 					</div>
 				{/if}
 
-				<div class="row">
-					<div class="result-label col-tn-3">{translate text='Format' isPublicFacing=true}</div>
-					<div class="result-value col-tn-9">
-						{if is_array($record.format)}
-							{implode subject=$record.format glue=", " translate=true isPublicFacing=true}
-						{else}
-							{if !empty($record.format)}
-								{translate text=$record.format isPublicFacing=true}
+				{if !empty($record.format)}
+					<div class="row">
+						<div class="result-label col-tn-3">{translate text='Format' isPublicFacing=true}</div>
+						<div class="result-value col-tn-9">
+							{if is_array($record.format)}
+								{implode subject=$record.format glue=", " translate=true isPublicFacing=true}
+							{else}
+								{if !empty($record.format)}
+									{translate text=$record.format isPublicFacing=true}
+								{/if}
 							{/if}
-						{/if}
+						</div>
 					</div>
-				</div>
+				{/if}
 
 				<div class="row">
 					<div class="result-label col-tn-3">{translate text='Last Used' isPublicFacing=true}</div>

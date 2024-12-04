@@ -338,7 +338,7 @@ class SystemVariables extends DataObject {
 			'ipAddressesSection' => [
 				'property' => 'ipAddressesSection',
 				'type' => 'section',
-				'label' => 'Ip Addresses Section',
+				'label' => 'IP Addresses',
 				'hideInLists' => true,
 				'expandByDefault' => true,
 				'properties' => [

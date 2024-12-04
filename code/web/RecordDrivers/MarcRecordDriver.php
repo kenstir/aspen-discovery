@@ -1328,7 +1328,7 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 				'id' => "accessOnline_{$this->getId()}",
 				'target' => '_blank',
 			];
-		} elseif (count($relatedUrls)  == 1) {	
+		} elseif (count($relatedUrls)  == 1) {
 
 			if (Library::getActiveLibrary()->libKeySettingId != -1 && !empty($relatedUrls[0]['url'])) {
 				$libKeyLink = $this->getLibKeyUrl($relatedUrls[0]['url']);
@@ -1338,7 +1338,7 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 				]);
 				$actions[] = [
 					'title' => $title,
-					'url' => $libKeyLink ? $libKeyLink : '',
+					'url' => $libKeyLink ? $libKeyLink : $relatedUrls[0]['url'],
 					'requireLogin' => false,
 					'type' => 'access_online',
 					'id' => "accessOnline_{$this->getId()}",

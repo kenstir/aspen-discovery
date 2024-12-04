@@ -24,6 +24,6 @@ class LibKeyDriver {
 		return $doi;
 	}
 	public function containsDoi(string $url): bool {
-		return preg_match('/10.\d{4,9}\/[-._;()\/:A-Z0-9]/', $url);
+		return preg_match('/10.\d{4,9}\/[-._;()\/:A-Za-z0-9]/', $url);
 	}
 }

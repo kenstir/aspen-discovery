@@ -6,6 +6,7 @@ class YearInReviewSetting extends DataObject {
 	public $id;
 	public $name;
 	public $year;
+	public $style;
 	/** @noinspection PhpUnused */
 	public $staffStartDate;
 	/** @noinspection PhpUnused */
@@ -48,6 +49,17 @@ class YearInReviewSetting extends DataObject {
 					2024 => '2024'
 				],
 				'description' => 'The year for the Year in review',
+			],
+			//TODO: Next year, these should load dynamically based on the available styles for the year
+			'style' => [
+				'property' => 'style',
+				'type' => 'enum',
+				'label' => 'Style',
+				'values' => [
+					'0' => 'Modern',
+					'1' => 'Festive'
+				],
+				'description' => 'The style for the Year in review',
 			],
 			'promoMessage' => [
 				'property' => 'promoMessage',
@@ -190,7 +202,7 @@ class YearInReviewSetting extends DataObject {
 		];
 
 		//Load slide configuration for the year
-		$configurationFile = ROOT_DIR . "/year_in_review/$this->year.json";
+		$configurationFile = ROOT_DIR . "/year_in_review/{$this->year}_$this->style.json";
 		if (file_exists($configurationFile)) {
 			$slideConfiguration = json_decode(file_get_contents($configurationFile));
 			$userYearInResults = $patron->getYearInReviewResults();
@@ -262,7 +274,7 @@ class YearInReviewSetting extends DataObject {
 	public function getSlideImage(User $patron, int|string $slideNumber) : bool {
 		//Load slide configuration for the year
 		$gotImage = true;
-		$configurationFile = ROOT_DIR . "/year_in_review/$this->year.json";
+		$configurationFile = ROOT_DIR . "/year_in_review/{$this->year}_$this->style.json";
 		if (file_exists($configurationFile)) {
 			$slideConfiguration = json_decode(file_get_contents($configurationFile));
 			$userYearInResults = $patron->getYearInReviewResults();
@@ -291,7 +303,7 @@ class YearInReviewSetting extends DataObject {
 			//This slide is not dynamic, we just return the static contents
 		}else{
 			require_once ROOT_DIR . '/sys/Covers/CoverImageUtils.php';
-			global $configArray;
+
 			//Get the background image for the slide
 			$backgroundImageFile = ROOT_DIR . '/year_in_review/images/' . $slideInfo->background;
 			$backgroundImageFile = realpath($backgroundImageFile);
@@ -304,7 +316,12 @@ class YearInReviewSetting extends DataObject {
 			//Display the background to the slide
 			imagecopy($slideCanvas, $backgroundImage, 0, 0, 0, 0, $backgroundWidth, $backgroundHeight);
 
-			$font = ROOT_DIR . '/fonts/JosefinSans-Bold.ttf';
+			if (empty($overlayText->font)) {
+				$font = ROOT_DIR . '/fonts/JosefinSans-Bold.ttf';
+			}else{
+				$font = ROOT_DIR . "/fonts/$overlayText->font.ttf";
+			}
+
 			$white = imagecolorallocate($slideCanvas, 255, 255, 255);
 			$black = imagecolorallocate($slideCanvas, 0, 0, 0);
 
@@ -336,20 +353,24 @@ class YearInReviewSetting extends DataObject {
 					$top = str_replace('px', '', $top);
 				}
 
-				if ($overlayText == 'white') {
+				if ($overlayText->color == 'white') {
 					$color = $white;
 				}else{
 					$color = $black;
 				}
 
+				if (!empty($overlayText->allCaps)) {
+					$overlayText->text = strtoupper($overlayText->text);
+				}
+
 				[
 					$totalHeight,
 					$lines,
-				] = wrapTextForDisplay($font, $overlayText->text, $fontSize, $fontSize * .1, $textWidth);
+				] = wrapTextForDisplay($font, $overlayText->text, $fontSize, $fontSize * .2, $textWidth);
 				if ($overlayText->align == 'center') {
-					addCenteredWrappedTextToImage($slideCanvas, $font, $lines, $fontSize, $fontSize * .1, $left, $top, $textWidth, $color);
+					addCenteredWrappedTextToImage($slideCanvas, $font, $lines, $fontSize, $fontSize * .2, $left, $top, $textWidth, $color);
 				}else{
-					addWrappedTextToImage($slideCanvas, $font, $lines, $fontSize, $fontSize * .1, $left, $top, $color);
+					addWrappedTextToImage($slideCanvas, $font, $lines, $fontSize, $fontSize * .2, $left, $top, $color);
 				}
 			}
 

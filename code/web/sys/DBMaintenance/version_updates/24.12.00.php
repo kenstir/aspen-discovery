@@ -123,6 +123,13 @@ function getUpdates24_12_00(): array {
 				'ALTER TABLE year_in_review_settings ADD COLUMN endDate int',
 			]
 		], //add_end_date_to_year_in_review_settings
+		'add_style_to_year_in_review_settings' => [
+			'title' => 'Add Style to Year In Review Settings',
+			'description' => 'Add style for Year In Review functionality',
+			'sql' => [
+				'ALTER TABLE year_in_review_settings ADD COLUMN style TINYINT DEFAULT 0',
+			]
+		], //add_end_date_to_year_in_review_settings
 		'add_active_status_to_materials_requests' => [
 			'title' => 'Add Active Status to Materials Requests',
 			'description' => 'Add active status to Materials requests so they can be distinguished from open requests',

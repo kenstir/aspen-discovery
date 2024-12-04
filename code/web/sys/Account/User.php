@@ -3337,7 +3337,6 @@ class User extends DataObject {
 				}
 
 				$minCheckouts = 10000;
-				$minCheckoutMonth = 0;
 				$maxCheckouts = 0;
 				$maxCheckoutMonth = 0;
 				for ($month = 1; $month <= 12; $month++) {
@@ -3353,7 +3352,6 @@ class User extends DataObject {
 					$numMonthlyCheckouts = $readingHistoryDB->count();
 					if ($numMonthlyCheckouts < $minCheckouts) {
 						$minCheckouts = $numMonthlyCheckouts;
-						$minCheckoutMonth = $month;
 					}
 					if ($numMonthlyCheckouts > $maxCheckouts) {
 						$maxCheckouts = $numMonthlyCheckouts;

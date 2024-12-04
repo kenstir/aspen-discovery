@@ -1963,17 +1963,24 @@ class Record_AJAX extends Action {
 				if ($item->itemId == $itemId) {
 					$relatedUrls = $item->getRelatedUrls();
 					foreach ($relatedUrls as $relatedUrl) {
-						$libKeyLink = $this->getLibKeyUrl($relatedUrl['url']);
-						if (!empty($libKeyLink)) {
-							return [
-								'success' => true,
-								'url' => $libKeyLink
-							];
+						if (Library::getActiveLibrary()->libKeySettingId != -1 && !empty($relatedUrl['url'])) {
+							$libKeyLink = $this->getLibKeyUrl($relatedUrl['url']);
+							if (!empty($libKeyLink)) {
+								return [
+									'success' => true,
+									'url' => $libKeyLink
+								];
+							} else {
+								return [
+									'success' => true,
+									'url' => $relatedUrl['url']
+								];
+							} 
 						} else {
 							return [
 								'success' => true,
 								'url' => $relatedUrl['url']
-							];
+							];	
 						}
 					}
 				}

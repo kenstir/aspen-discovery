@@ -1314,14 +1314,7 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 		$i = 0;
 		if (count($relatedUrls) > 1) {
 			//We will show a popup to let people choose the URL they want
-			foreach($relatedUrls as $relatedUrl) {
-				$libKeyLink = $this->getLibKeyUrl($relatedUrl['url']);
-				if (!empty($libKeyLink)) {
-					$libKeyRelatedUrl = $relatedUrl;
-					$libKeyrelatedUrl['url'] = $libKeyLink;
-					$relatedUrls[] = $libKeyRelatedUrl;
-				}
-			}
+
 			$title = translate([
 				'text' => 'Access Online',
 				'isPublicFacing' => true,
@@ -1337,15 +1330,15 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 			];
 		} elseif (count($relatedUrls)  == 1) {
 
-			$libKeyLink = $this->getLibKeyUrl($relatedUrls[0]['url']);
-			if (!empty($libKeyLink)) {
+			if (Library::getActiveLibrary()->libKeySettingId != -1 && !empty($relatedUrls[0]['url'])) {
+				$libKeyLink = $this->getLibKeyUrl($relatedUrls[0]['url']);
 				$title = translate([
 					'text' => 'Access Online',
 					'isPublicFacing' => true,
 				]);
 				$actions[] = [
 					'title' => $title,
-					'url' => $libKeyLink,
+					'url' => $libKeyLink ? $libKeyLink : $relatedUrls[0]['url'],
 					'requireLogin' => false,
 					'type' => 'access_online',
 					'id' => "accessOnline_{$this->getId()}",
@@ -1690,9 +1683,11 @@ class MarcRecordDriver extends GroupedWorkSubDriver {
 			$interface->assign('periodicalIssues', $issues);
 		}
 		$links = $this->getLinks();
-		$libKeyLink = $this->getLibKeyUrl($links[0]['url']);
-		if (!empty($libKeyLink)) {
-			$links[] = ['title' => $libKeyLink, 'url' => $libKeyLink];
+		if (Library::getActiveLibrary()->libKeySettingId != -1  && !empty($links[0]['url'])) {
+			$libKeyLink = $this->getLibKeyUrl($links[0]['url']);
+			if (!empty($libKeyLink)) {
+				$links[] = ['title' => $libKeyLink, 'url' => $libKeyLink];
+			}
 		}
 		$interface->assign('links', $links);
 		$interface->assign('show856LinksAsTab', $library->getGroupedWorkDisplaySettings()->show856LinksAsTab);

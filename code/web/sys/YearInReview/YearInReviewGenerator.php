@@ -136,6 +136,16 @@ function generateYearInReview(User $patron) : void {
 				if ($userYearInReview->wrappedActive) {
 					//Create a user message for the user
 					require_once ROOT_DIR . '/sys/Account/UserMessage.php';
+					//First check for and dismiss existing Year in Review messages
+					$userMessage = new UserMessage();
+					$userMessage->userId = UserAccount::getActiveUserId();
+					$userMessage->messageType = 'yearInReview';
+					$userMessage->isDismissed = 0;
+					$userMessage->find();
+					while ($userMessage->fetch()) {
+						$userMessage->isDismissed = 1;
+						$userMessage->update();
+					}
 					$userMessage = new UserMessage();
 					$userMessage->userId = UserAccount::getActiveUserId();
 					$userMessage->message = $yearInReviewSetting->getTextBlockTranslation('promoMessage', $patron->interfaceLanguage);

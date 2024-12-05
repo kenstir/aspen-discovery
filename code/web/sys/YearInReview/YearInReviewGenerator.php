@@ -26,7 +26,14 @@ function generateYearInReview(User $patron) : void {
 			$userYearInReview = new UserYearInReview();
 			$userYearInReview->userId = $patron->id;
 			$userYearInReview->settingId = $yearInReviewSetting->id;
+			$reloadData = false;
 			if (!$userYearInReview->find(true)) {
+				$reloadData = true;
+			}
+			if (isset($_REQUEST['reload'])) {
+				$reloadData = true;
+			}
+			if ($reloadData) {
 				//We have not created year in review data for the user
 				$readingHistorySize = $patron->getReadingHistorySizeForYear($yearInReviewSetting->year);
 

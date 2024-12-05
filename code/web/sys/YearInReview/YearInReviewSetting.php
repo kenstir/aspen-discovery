@@ -202,11 +202,13 @@ class YearInReviewSetting extends DataObject {
 		];
 
 		//Load slide configuration for the year
-		$configurationFile = ROOT_DIR . "/year_in_review/{$this->year}_$this->style.json";
-		if (file_exists($configurationFile)) {
-			$slideConfiguration = json_decode(file_get_contents($configurationFile));
-			$userYearInResults = $patron->getYearInReviewResults();
-			if ($userYearInResults !== false) {
+		$userYearInResults = $patron->getYearInReviewResults();
+		if ($userYearInResults !== false) {
+			$style = (isset($userYearInResults->activeStyle) && is_numeric($userYearInResults->activeStyle)) ? $userYearInResults->activeStyle : $this->style;
+			$configurationFile = ROOT_DIR . "/year_in_review/{$this->year}_$style.json";
+			if (file_exists($configurationFile)) {
+				$slideConfiguration = json_decode(file_get_contents($configurationFile));
+
 				if ($slideNumber > 0 && $slideNumber <= $userYearInResults->numSlidesToShow) {
 					$slideIndex = $userYearInResults->slidesToShow[$slideNumber - 1];
 					$slideInfo = $slideConfiguration->slides[$slideIndex - 1];
@@ -224,7 +226,7 @@ class YearInReviewSetting extends DataObject {
 
 					$result['slideConfiguration'] = $slideInfo;
 					$result['numSlidesToShow'] = $userYearInResults->numSlidesToShow;
-					$result['modalBody'] = $this->formatSlide($slideInfo, $patron, $slideNumber, $this->year);
+					$result['modalBody'] = $this->formatSlide($slideInfo, $slideNumber);
 
 					$modalButtons = '';
 					if ($slideNumber > 1) {
@@ -250,13 +252,13 @@ class YearInReviewSetting extends DataObject {
 				}
 			}else{
 				$result['message'] = translate([
-					'text' => 'Unable to find year in review data',
+					'text' => 'Unable to find year in review configuration file',
 					'isPublicFacing' => true,
 				]);
 			}
 		}else{
 			$result['message'] = translate([
-				'text' => 'Unable to find year in review configuration file',
+				'text' => 'Unable to find year in review data',
 				'isPublicFacing' => true,
 			]);
 		}
@@ -264,7 +266,7 @@ class YearInReviewSetting extends DataObject {
 		return $result;
 	}
 
-	private function formatSlide(stdClass $slideInfo, User $patron, int $slideNumber, string|int $year) : string {
+	private function formatSlide(stdClass $slideInfo, int $slideNumber) : string {
 		global $interface;
 		$interface->assign('slideNumber', $slideNumber);
 		$interface->assign('slideInfo', $slideInfo);
@@ -274,11 +276,13 @@ class YearInReviewSetting extends DataObject {
 	public function getSlideImage(User $patron, int|string $slideNumber) : bool {
 		//Load slide configuration for the year
 		$gotImage = true;
-		$configurationFile = ROOT_DIR . "/year_in_review/{$this->year}_$this->style.json";
-		if (file_exists($configurationFile)) {
-			$slideConfiguration = json_decode(file_get_contents($configurationFile));
-			$userYearInResults = $patron->getYearInReviewResults();
-			if ($userYearInResults !== false) {
+		$userYearInResults = $patron->getYearInReviewResults();
+		if ($userYearInResults !== false) {
+			$style = (isset($userYearInResults->activeStyle) && is_numeric($userYearInResults->activeStyle)) ? $userYearInResults->activeStyle : $this->style;
+			$configurationFile = ROOT_DIR . "/year_in_review/{$this->year}_$style.json";
+			if (file_exists($configurationFile)) {
+				$slideConfiguration = json_decode(file_get_contents($configurationFile));
+
 				if ($slideNumber > 0 && $slideNumber <= $userYearInResults->numSlidesToShow) {
 					$slideIndex = $userYearInResults->slidesToShow[$slideNumber - 1];
 					$slideInfo = $slideConfiguration->slides[$slideIndex - 1];
@@ -364,7 +368,7 @@ class YearInReviewSetting extends DataObject {
 				}
 
 				[
-					$totalHeight,
+					,
 					$lines,
 				] = wrapTextForDisplay($font, $overlayText->text, $fontSize, $fontSize * .2, $textWidth);
 				if ($overlayText->align == 'center') {

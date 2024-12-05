@@ -49,6 +49,7 @@ function generateYearInReview(User $patron) : void {
 					if ($yearInReviewSetting->year == 2024) {
 						$yearInReviewData = new stdClass();
 						$yearInReviewData->userData = [];
+						$yearInReviewData->activeStyle = $yearInReviewSetting->style;
 
 						/** @noinspection PhpIfWithCommonPartsInspection */
 						if ($yearInReviewSetting->style == 0) {

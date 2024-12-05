@@ -67,14 +67,14 @@
       "background" : "2024_1_4.png",
       "overlay_text" : [
         {
-          "text": "You were a steady user of the library this year with a checkout average of {averageCheckouts} per month. What kept you coming back for more?",
+          "text": "You were a steady user of the library this year with a checkout average of {averageCheckouts} per month.",
           "left": "500px",
           "top": "475px",
           "width": "60%",
           "height": "30%",
           "color" : "white",
           "font" : "GothicA1-Regular",
-          "font_size": "4.5em",
+          "font_size": "4em",
           "allCaps": true,
           "align": "left"
         }

@@ -36,13 +36,13 @@
       "background" : "2024_0_2b.png",
       "overlay_text" : [
         {
-          "text": "You checked out <strong>{totalCheckouts}</strong> titles in 2024.",
-          "left": "43%",
-          "top": "45%",
+          "text": "You checked out {totalCheckouts} titles in 2024.",
+          "left": "540px",
+          "top": "350px",
           "width": "40%",
           "height": "20%",
           "color" : "black",
-          "font_size": "2em",
+          "font_size": "2.6em",
           "align": "center"
         }
       ]
@@ -68,12 +68,12 @@
       "background" : "2024_0_3b.png",
       "overlay_text" : [
         {
-          "text": "You were a steady user of the library this year with a checkout average of {averageCheckouts} per month. What kept you coming back for more?",
-          "left": "20%",
-          "top": "35%",
-          "width": "40%",
+          "text": "You were a steady user of the library this year with a checkout average of {averageCheckouts} per month.",
+          "left": "41%",
+          "top": "24%",
+          "width": "45%",
           "height": "20%",
-          "color" : "white",
+          "color" : "black",
           "font_size": "2em",
           "align": "left"
         }
@@ -122,11 +122,11 @@
         {
           "text": "{topGenres}",
           "left": "25%",
-          "top": "315px",
+          "top": "300px",
           "width": "50%",
           "height": "30%",
           "color" : "black",
-          "font_size": "2em",
+          "font_size": "1.9em",
           "align": "center"
         }
       ]

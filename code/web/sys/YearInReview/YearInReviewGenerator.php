@@ -29,10 +29,13 @@ function generateYearInReview(User $patron) : void {
 			$reloadData = false;
 			if (!$userYearInReview->find(true)) {
 				$reloadData = true;
+			}else{
+				if (isset($_REQUEST['reload'])) {
+					$reloadData = true;
+					$userYearInReview->delete();
+				}
 			}
-			if (isset($_REQUEST['reload'])) {
-				$reloadData = true;
-			}
+
 			if ($reloadData) {
 				//We have not created year in review data for the user
 				$readingHistorySize = $patron->getReadingHistorySizeForYear($yearInReviewSetting->year);
@@ -68,7 +71,17 @@ function generateYearInReview(User $patron) : void {
 						}
 
 						//Hot Month / Busy Months
+						$isSteadyUser = false;
 						if ($readingHistorySummary->maxMonthlyCheckouts - $readingHistorySummary->averageCheckouts > 2) {
+							foreach ($readingHistorySummary->monthlyCheckouts as $month => $monthlyCheckoutCount) {
+								if ($readingHistorySummary->topMonth != $month) {
+									if ($readingHistorySummary->maxMonthlyCheckouts - $monthlyCheckoutCount < 2) {
+										$isSteadyUser = true;
+									}
+								}
+							}
+						}
+						if (!$isSteadyUser) {
 							$dateObj   = DateTime::createFromFormat('!m', $readingHistorySummary->topMonth);
 							$monthName = $dateObj->format('F');
 							$yearInReviewData->userData['topMonth'] = $monthName;
@@ -100,8 +113,8 @@ function generateYearInReview(User $patron) : void {
 								]);
 							}elseif(count($readingHistorySummary->topGenres) == 3){
 								$yearInReviewData->userData['topGenres'] = join("\n", [
-									$readingHistorySummary->topGenres[0],
-									$readingHistorySummary->topGenres[1],
+									$readingHistorySummary->topGenres[0] . ', ',
+									$readingHistorySummary->topGenres[1]. ', ',
 									'and',
 									$readingHistorySummary->topGenres[2]
 								]);

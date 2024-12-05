@@ -113,7 +113,7 @@ function getUpdates24_12_00(): array {
 					wrappedResults TEXT,
 					UNIQUE (userId, settingId)
 				) ENGINE INNODB CHARACTER SET utf8 COLLATE utf8_general_ci',
-				'ALTER TABLE ptype ADD COLUMN enableYearInReview TINYINT DEFAULT 0'
+				'ALTER TABLE ptype ADD COLUMN enableYearInReview TINYINT DEFAULT 1'
 			]
 		], //year_in_review_settings
 		'add_end_date_to_year_in_review_settings' => [
@@ -130,6 +130,13 @@ function getUpdates24_12_00(): array {
 				'ALTER TABLE year_in_review_settings ADD COLUMN style TINYINT DEFAULT 0',
 			]
 		], //add_end_date_to_year_in_review_settings
+		'create_2024_default_year_in_review_settings' => [
+			'title' => 'Create 2024 Default Year In Review Settings',
+			'description' => 'Create 2024 Default Year In Review Settings',
+			'sql' => [
+				"INSERT INTO year_in_review_settings (name, year, style, staffStartDate, patronStartDate, endDate) VALUE ('2024 Shelved', 2024, 0, 1733036400, 1735714800, 1738393200)"
+			]
+		], //create_2024_default_year_in_review_settings
 		'add_active_status_to_materials_requests' => [
 			'title' => 'Add Active Status to Materials Requests',
 			'description' => 'Add active status to Materials requests so they can be distinguished from open requests',

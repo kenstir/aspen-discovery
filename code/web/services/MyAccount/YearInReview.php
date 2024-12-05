@@ -9,6 +9,9 @@ class YearInReview extends MyAccount {
 		$user = UserAccount::getLoggedInUser();
 
 		if ($user) {
+			require_once ROOT_DIR . '/sys/YearInReview/YearInReviewGenerator.php';
+			generateYearInReview($user);
+
 			if (!$user->hasYearInReview()) {
 				//User shouldn't get here
 				$module = 'Error';

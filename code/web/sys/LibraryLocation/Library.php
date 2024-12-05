@@ -439,6 +439,9 @@ class Library extends DataObject {
 	public $shareItUsername;
 	public $shareItPassword;
 
+	// LIBKEY
+	public $libKeySettingId;
+
 	public $allowUpdatingHolidaysFromILS;
 
 	private $_cloudLibraryScope;

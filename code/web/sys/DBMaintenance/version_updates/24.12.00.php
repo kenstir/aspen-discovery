@@ -214,6 +214,27 @@ function getUpdates24_12_00(): array {
 		], //optional_show_title_on_grapes_pages
 
 		//chloe - PTFS-Europe
+		'create_libkey_permissions' => [
+			'title' => 'Create LibKey Permissions',
+			'description' => 'Add an LibKey permission section containing the Administer LibKey Settings permission',
+			'sql' => [
+				"INSERT INTO permissions (name, sectionName, weight, description) VALUES ( 'Administer LibKey Settings','Third Party Enrichment', 0, 'Allows the user to administer the integration with LibKey')",
+				"INSERT INTO role_permissions(roleId, permissionId) VALUES ((SELECT roleId from roles where name='opacAdmin'), (SELECT id from permissions where name='Administer LibKey Settings'))",
+			],
+		],// create_libkey_permissions
+		'create_libkey_settings_table' => [
+			'title' => 'Create LibKey Settings Table',
+			'description' => 'Add an LibKey settings table',
+			'sql' => [
+				"CREATE TABLE libkey_settings (
+					id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					name VARCHAR(255) NOT NULL,
+					libraryId VARCHAR(20) NOT NULL,
+					apiKey VARCHAR(255) NOT NULL
+				)",
+				"ALTER TABLE library ADD libKeySettingId INT NOT NULL DEFAULT -1"
+			],
+		],// create_libkey_permissions
 
 
 		//James Staub - Nashville Public Library

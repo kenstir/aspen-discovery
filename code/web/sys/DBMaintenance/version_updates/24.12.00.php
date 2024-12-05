@@ -84,7 +84,7 @@ function getUpdates24_12_00(): array {
 			'title' => 'Create LibKey Permissions',
 			'description' => 'Add an LibKey permission section containing the Administer LibKey Settings permission',
 			'sql' => [
-				"INSERT INTO permissions (name, sectionName, requiredModule, weight, description) VALUES ( 'Administer LibKey Settings','LibKey','LibKey', 0, 'Allows the user to administer the integration with LibKey')",
+				"INSERT INTO permissions (name, sectionName, weight, description) VALUES ( 'Administer LibKey Settings','LibKey', 0, 'Allows the user to administer the integration with LibKey')",
 				"INSERT INTO role_permissions(roleId, permissionId) VALUES ((SELECT roleId from roles where name='opacAdmin'), (SELECT id from permissions where name='Administer LibKey Settings'))",
 			],
 		],// create_libkey_permissions
